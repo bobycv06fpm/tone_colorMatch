@@ -1,0 +1,637 @@
+from loadImages import loadImages
+from detectFace import detectFace
+from alignImages import cropAndAlign
+from getAverageReflection import getAverageScreenReflectionColor
+import saveStep
+from getPolygons import getPolygons, getFullFacePolygon
+from extractMask import extractMask, maskPolygons
+import colorTools
+import plotTools
+import processPoints
+import getMakeupColors
+import cv2
+import numpy as np
+import dlib
+import thresholdMask
+import math
+from scipy import ndimage
+import matplotlib.pyplot as plt
+
+import multiprocessing as mp
+#from multiprocessing.sharedctypes import RawValue
+
+#import pympler
+#from pympler.tracker import SummaryTracker
+
+def getLast(arr):
+    return arr[-1]
+
+def getSecond(arr):
+    return arr[1]
+
+def getCropWidth(shapeA, shapeB, shapeC, shapeD, heightMargin, heightMax, widthMargin, widthMax):
+    allShapes = np.append(shapeA, shapeB, axis=0)
+    allShapes = np.append(allShapes, shapeC, axis=0)
+    allShapes = np.append(allShapes, shapeD, axis=0)
+    BB = np.asarray(cv2.boundingRect(allShapes))
+    newX = BB[0] - widthMargin if BB[0] - widthMargin > 0 else 0
+    newY = BB[1] - heightMargin if BB[1] - heightMargin > 0 else 0
+    newWidth = BB[2] + 2*widthMargin if BB[2] + widthMargin < widthMax else widthMax
+    newHeight = BB[3] + 2*heightMargin if BB[3] + heightMargin < heightMax else heightMax
+    return [newX, newWidth, newY, newHeight]
+
+def extractHistogramValues(username, imageName, image, polygons):
+    mask = np.zeros(image.shape[0:2])
+    [points, averageFlashContribution] = extractMask(username, image, polygons, mask, imageName)
+    values = np.max(points, axis=1)
+    return values
+    #plt.hist(values, bins=range(0,255))
+    #plt.show()
+
+def scaleHSVtoFluxish(hsvValues, fluxish):
+    #Calculated From Scatter Plot.... could be wrong...
+    #hueFluxishSlope = -10.6641
+    #saturationFluxishSlope = -70.53
+    #valueFluxishSlope = 163.8858
+
+    hueFluxishSlope = 0
+    saturationFluxishSlope = 0
+    valueFluxishSlope = 0
+
+    fluxishSlopes = np.array([hueFluxishSlope, saturationFluxishSlope, valueFluxishSlope])
+
+    targetFluxish = .00150
+
+    fluxishDiff = targetFluxish - fluxish
+
+    hsvDiffs = (fluxishSlopes * fluxishDiff)
+    hsvValues += hsvDiffs
+    return hsvValues
+
+    #hueDiff = hueFluxishSlope * fluxishDiff
+    #saturationDiff = saturationFluxishSlope * fluxishDiff
+    #valueDiff = valueFluxishSlope * fluxishDiff
+
+
+
+    #hsvMedians[0] = hsvMedians[0] + hueDiff
+    #hsvMedians[1] = hsvMedians[1] + saturationDiff
+    #hsvMedians[2] = hsvMedians[2] + valueDiff
+
+def getLeftEye(image, shape):
+    (x, y, w, h) = cv2.boundingRect(np.array([shape[43], shape[44], shape[47], shape[46]]))
+    leftEye = image[y:y+h, x:x+w]
+    return leftEye
+
+def getRightEye(image, shape):
+    (x, y, w, h) = cv2.boundingRect(np.array([shape[37], shape[38], shape[41], shape[40]]))
+    rightEye = image[y:y+h, x:x+w]
+    return rightEye
+
+def prepEye(image):
+    image_gray = cv2.cvtColor(np.clip(image * 255, 0, 255).astype('uint8'), cv2.COLOR_BGR2GRAY)
+    #image_gray = cv2.GaussianBlur(image_gray, (11, 11), 0)
+    #image_gray = cv2.GaussianBlur(image_gray, (19, 19), 0)
+
+
+    original = np.copy(image_gray)
+    median = np.median(image_gray)
+    sd = np.std(image_gray)
+    lower = median - (2 * sd)
+    upper = median + (2 * sd)
+    test = np.copy(image_gray)
+    test[test < lower] = lower
+    test[test > upper] = upper
+
+    numerator = test - lower
+    denominator = upper - lower
+    stretched = (numerator / denominator)
+    stretched = np.clip(stretched * 255, 0, 255).astype('uint8')
+
+
+    #stretched = cv2.GaussianBlur(stretched, (19, 19), 0)
+    #stretched = cv2.GaussianBlur(stretched, (25, 25), 0)
+    stretched = cv2.GaussianBlur(stretched, (5, 5), 0)
+    #cv2.imshow('stretched', np.hstack((original, stretched)))
+    #cv2.waitKey(0)
+    #stackAndShow([[original, stretched]], 'Stretched')
+
+    image_prepped = cv2.Laplacian(stretched, cv2.CV_64F)
+    return image_prepped
+
+def alignEye(imageA, imageB):
+    (offset, response) = cv2.phaseCorrelate(np.float64(imageA), np.float64(imageB))
+    offset = list(offset)
+    offset = [round(value) for value in offset]
+    print("EYE Offset :: " + str(offset))
+    return offset
+
+#Eventually change to stretch histogram?
+def trimHistogram(greyImage):
+    #median = np.median(greyImage)
+    #sd = np.std(greyImage)
+    #lower = median - (2 * sd)
+    #upper = median + (2 * sd)
+    #greyImage[greyImage < lower] = 0
+    #greyImage[greyImage > upper] = 0
+    return greyImage
+
+def cropToBB(images, imageShapes, start, end):
+    points = []
+    for imageShape in imageShapes:
+        points += list(imageShape[start:end])
+
+    (BB_X, BB_Y, BB_W, BB_H) = cv2.boundingRect(np.array(points))
+
+    croppedImages = []
+    for image in images:
+        croppedImages.append(image[BB_Y:BB_Y+BB_H, BB_X:BB_X+BB_W])
+
+    return np.array(croppedImages)
+
+def scaleImages(images):
+    images = np.copy(images)
+    medians = np.array([np.median(np.max(image, axis=2)) for image in images])
+    images[0:3] = images[0:3] * (medians[-1] / medians[0:3])
+    return images
+
+def stackAndShow(imageSets, name):
+    counter = 0
+    for imageSet in imageSets:
+        imageStack = np.hstack([*imageSet])
+        cv2.imshow('{} :: {}'.format(name, counter), imageStack)
+        #print('Displaying Image....(not really)')
+        counter += 1
+
+    cv2.waitKey(0)
+
+#Order Not Maintained
+def cropToAxis(images, offset, axis):
+    #imageSets = np.dstack((images, offset, np.arange(len(offset))))
+    imageSets = []
+    for index, image in enumerate(images):
+        imageSets.append([np.array(image), offset[index], index])
+
+    imageSets = np.array(sorted(imageSets, key=getSecond))
+
+    if imageSets[0, 1] < 0:
+        imageSets[:, 1] += abs(imageSets[0, 1])
+
+    maxCrop = imageSets[-1, 1]
+
+    cropped = []
+    for imageSet in imageSets:
+        [image, offset, order] = imageSet
+        start = maxCrop - offset
+        end = image.shape[axis] - offset
+
+        if axis == 0:
+            image = image[start:end, :]
+            #image = image[:, start:end]
+        else:
+            image = image[:, start:end]
+            #image = image[start:end, :]
+
+        cropped.append([image, order])
+
+    originalOrder = np.array(sorted(cropped, key=getSecond))
+    return originalOrder[:, 0]
+
+
+def cropToOffsets(images, offsets):
+    print('Offsets :: ' + str(offsets))
+    images = cropToAxis(images, offsets[:, 0], 0)
+    images = cropToAxis(images, offsets[:, 1], 1)
+    return images
+    
+
+def experimentalReflectionDetection(B, BS, BF, BFS, TF, TFS, FF, FFS):
+    images = [B, BF, TF, FF]
+    shapes = [BS, BFS, TFS, FFS]
+
+    leftEyes = cropToBB(images, shapes, 42, 48)
+    rightEyes = cropToBB(images, shapes, 36, 42)
+    #stackAndShow([leftEyes, rightEyes], 'Unscaled')
+
+    #Scale Values Left
+    leftEyesScaled = scaleImages(leftEyes)
+    rightEyesScaled = scaleImages(rightEyes)
+    #stackAndShow([leftEyesScaled, rightEyesScaled], 'Scaled')
+
+    #Align left
+    print('LEFT')
+    leftEyesPrepped = [prepEye(eye) for eye in leftEyesScaled]
+    leftEyesTrimmed = [trimHistogram(eye) for eye in leftEyesPrepped]
+    leftEyeOffsets = np.array([alignEye(leftEyesTrimmed[3], eye) for eye in leftEyesTrimmed])
+
+    #Align right
+    print('RIGHT')
+    rightEyesPrepped = [prepEye(eye) for eye in rightEyesScaled]
+    rightEyesTrimmed = [trimHistogram(eye) for eye in rightEyesPrepped]
+    rightEyeOffsets = np.array([alignEye(rightEyesTrimmed[3], eye) for eye in rightEyesTrimmed])
+
+    #stackAndShow([leftEyesPrepped, rightEyesPrepped], 'Prepped')
+    #stackAndShow([leftEyesTrimmed, rightEyesTrimmed], 'Trimmed')
+
+    leftEyesCropped = cropToOffsets(leftEyes, leftEyeOffsets)
+    rightEyesCropped = cropToOffsets(rightEyes, rightEyeOffsets)
+    #stackAndShow([leftEyesCropped, rightEyesCropped], 'Cropped')
+
+    [BLE, BFLE, TFLE, FFLE] = leftEyesCropped
+    leftEyeDiff = np.absolute(FFLE - BFLE - TFLE + BLE)
+    leftEyeDiff2 = np.absolute(FFLE - BFLE - TFLE)
+
+    l_t = np.clip((TFLE - BLE) * 255, 0, 255).astype('uint8')
+    l_b = np.clip((BFLE - BLE) * 255, 0, 255).astype('uint8')
+    l_ff = np.clip((FFLE - BLE) * 255, 0, 255).astype('uint8')
+    l_test_ff = np.clip((TFLE + BFLE - BLE) * 255, 0, 255).astype('uint8')
+
+    l_test_t = np.clip((FFLE - BFLE - BLE) * 255, 0, 255).astype('uint8')
+    l_test_b = np.clip((FFLE - TFLE - BLE) * 255, 0, 255).astype('uint8')
+    #cv2.imshow('Left Eye Diff', (leftEyeDiff * 255 * 10).astype('uint8'))
+    #cv2.waitKey(0)
+
+    [BRE, BFRE, TFRE, FFRE] = rightEyesCropped
+    rightEyeDiff = np.absolute(FFRE - BFRE - TFRE + BRE)
+    rightEyeDiff2 = np.absolute(FFRE - BFRE - TFRE)
+
+    r_t = np.clip((TFRE - BRE) * 255, 0, 255).astype('uint8')
+    r_b = np.clip((BFRE - BRE) * 255, 0, 255).astype('uint8')
+    r_ff = np.clip((FFRE - BRE) * 255, 0, 255).astype('uint8')
+    r_test_ff = np.clip((TFRE + BFRE - BRE) * 255, 0, 255).astype('uint8')
+
+    r_test_t = np.clip((FFRE - BFRE - BRE) * 255, 0, 255).astype('uint8')
+    r_test_t = np.clip((FFRE - BFRE - BRE) * 255, 0, 255).astype('uint8')
+    r_test_b = np.clip((FFRE - TFRE - BRE) * 255, 0, 255).astype('uint8')
+
+    #This One...
+    #stackAndShow([[l_ff, l_b, l_t, l_test_ff, l_test_t, l_test_b], [r_ff, r_b, r_t, r_test_ff, r_test_t, r_test_b]], 'Diffs')
+
+    #stackAndShow([[(leftEyeDiff * 255 * 10).astype('uint8'), (leftEyeDiff2 * 255 * 10).astype('uint8')], [(rightEyeDiff * 255 * 10).astype('uint8'), (rightEyeDiff2 * 255 * 10).astype('uint8')]], 'Diffs')
+    #cv2.imshow('Right Eye Diff', (rightEyeDiff * 255 * 10).astype('uint8'))
+    #cv2.waitKey(0)
+
+    #test = np.absolute((FF) - (BF + TF))
+
+    #cv2.imshow('TEST... REFLECTION SHOULD BE ZERO', (test * 255).astype('uint8'))
+    #cv2.waitKey(0)
+
+    #test2 = np.absolute(test - B)
+    #cv2.imshow('JUST THE REFLECTIONS?', (test2 * 255).astype('uint8'))
+    #cv2.waitKey(0)
+
+
+def run(username, imageName, fast=False, saveStats=False):
+    saveStep.resetLogFile(username, imageName)
+
+    images = loadImages(username, imageName)
+
+    (originalBaseImage, originalFullFlashImage, originalTopFlashImage, originalBottomFlashImage) = images
+
+
+    detector = dlib.get_frontal_face_detector()
+    predictor = dlib.shape_predictor('/home/dmacewen/Projects/colorMatch/service/predictors/shape_predictor_68_face_landmarks.dat')
+
+    print('Detecting Base Face')
+    [baseImage, baseImageShape] = detectFace(originalBaseImage, predictor, detector)
+
+    print('Detecting Full Flash Face')
+    [fullFlashImage, fullFlashImageShape] = detectFace(originalFullFlashImage, predictor, detector)
+
+    print('Detecting Top Flash Face')
+    [topFlashImage, topFlashImageShape] = detectFace(originalTopFlashImage, predictor, detector)
+
+    print('Detecting Bottom Flash Face')
+    [bottomFlashImage, bottomFlashImageShape] = detectFace(originalBottomFlashImage, predictor, detector)
+
+    print('Trimming Down sRGB Images')
+    margin = .04
+    heightMargin = int(margin * baseImage.shape[0]) #Add 5% in both direction on height because crop is a little tight
+    heightMax = baseImage.shape[0]
+    widthMargin = int(margin * baseImage.shape[1])
+    widthMax = baseImage.shape[1]
+
+    [newX, newWidth, newY, newHeight] = getCropWidth(baseImageShape, fullFlashImageShape, topFlashImageShape, bottomFlashImageShape, heightMargin, heightMax, widthMargin, widthMax)
+
+    baseImageAligned = baseImage[newY:(newY + newHeight), newX:(newX + newWidth)]
+    baseImageShape = baseImageShape - [newX, newY]
+
+    fullFlashImageAligned = fullFlashImage[newY:(newY + newHeight), newX:(newX + newWidth)]
+    fullFlashImageShape = fullFlashImageShape - [newX, newY]
+
+    topFlashImageAligned = topFlashImage[newY:(newY + newHeight), newX:(newX + newWidth)]
+    topFlashImageShape = topFlashImageShape - [newX, newY]
+
+    bottomFlashImageAligned = bottomFlashImage[newY:(newY + newHeight), newX:(newX + newWidth)]
+    bottomFlashImageShape = bottomFlashImageShape - [newX, newY]
+
+    print('Masking sRGB Base')
+    baseImageMask = thresholdMask.getClippedMask(baseImageAligned, 5, 5)
+
+    print('Masking sRGB Full Flash')
+    fullFlashImageMask = thresholdMask.getClippedMask(fullFlashImageAligned, 5, 5)
+
+    print('Masking sRGB Top Flash')
+    topFlashImageMask = thresholdMask.getClippedMask(topFlashImageAligned, 5, 5)
+
+    print('Masking sRGB Bottom Flash')
+    bottomFlashImageMask = thresholdMask.getClippedMask(bottomFlashImageAligned, 5, 5)
+
+
+    print('Converting Base to Linear')
+    baseImage = colorTools.convert_sBGR_to_linearBGR_float(baseImageAligned)
+
+    print('Converting Full Flash to Linear')
+    fullFlashImage = colorTools.convert_sBGR_to_linearBGR_float(fullFlashImageAligned)
+
+    print('Converting Top Flash to Linear')
+    topFlashImage = colorTools.convert_sBGR_to_linearBGR_float(topFlashImageAligned)
+
+    print('Converting Bottom Flash to Linear')
+    bottomFlashImage = colorTools.convert_sBGR_to_linearBGR_float(bottomFlashImageAligned)
+
+
+    print('Cropping and Aligning')
+    baseCapture = (baseImage, baseImageShape, baseImageMask)
+    fullFlashCapture = (fullFlashImage, fullFlashImageShape, fullFlashImageMask)
+    topFlashCapture = (topFlashImage, topFlashImageShape, topFlashImageMask)
+    bottomFlashCapture = (bottomFlashImage, bottomFlashImageShape, bottomFlashImageMask)
+
+    [images, crops] = cropAndAlign(baseCapture, fullFlashCapture, topFlashCapture, bottomFlashCapture, imageName)
+
+    (baseImage, baseImageShape, baseImageMask) = images[0]
+    (fullFlashImage, fullFlashImageShape, fullFlashImageMask) = images[1]
+    (topFlashImage, topFlashImageShape, topFlashImageMask) = images[2]
+    (bottomFlashImage, bottomFlashImageShape, bottomFlashImageMask) = images[3]
+
+    crops = np.array(crops)
+
+    baseImage_sBGR = baseImageAligned[crops[0, 1, 1]:crops[0, 1, 2], crops[0, 0, 1]:crops[0, 0, 2]]
+    fullFlashImage_sBGR = fullFlashImageAligned[crops[1, 1, 1]:crops[1, 1, 2], crops[1, 0, 1]:crops[1, 0, 2]]
+    topFlashImage_sBGR = topFlashImageAligned[crops[2, 1, 1]:crops[2, 1, 2], crops[2, 0, 1]:crops[2, 0, 2]]
+    bottomFlashImage_sBGR = bottomFlashImageAligned[crops[3, 1, 1]:crops[3, 1, 2], crops[3, 0, 1]:crops[3, 0, 2]]
+
+
+    #experimentalReflectionDetection(baseImage, baseImageShape, bottomFlashImage, bottomFlashImageShape, topFlashImage, topFlashImageShape, fullFlashImage, fullFlashImageShape)
+
+    partialMask = np.logical_or(baseImageMask, bottomFlashImageMask)
+    partialMask = np.logical_or(partialMask, topFlashImageMask)
+    allPointsMask = np.logical_or(partialMask, fullFlashImageMask)
+    clippedPixelsMask = np.copy(allPointsMask)
+
+    # (All Pixels That Are Clipped In Full Flash) AND (All The Pixels That Are NOT Clipped By Base & Top & Bottom Flash)
+    # => Pixel Values caused to clip by Full Flash
+    potentiallyRecoverablePixelsMask = np.logical_and(fullFlashImageMask, np.logical_not(partialMask))
+    unrecoverablePixelsMask = np.logical_and(fullFlashImageMask, partialMask)
+    #allPointsMask = np.logical_and(allPointsMask, np.logical_not(unrecoverablePixelsMask))
+
+    imageShape = fullFlashImageShape
+
+    print('Getting Polygons')
+    polygons = getPolygons(imageShape)
+
+    unrecoverablePixelsMask = maskPolygons(unrecoverablePixelsMask, polygons)
+    potentiallyRecoverablePixelsMask = maskPolygons(potentiallyRecoverablePixelsMask, polygons)
+    RecoveredFullFlash = (bottomFlashImage + topFlashImage - baseImage)
+
+    fullFlashImage[potentiallyRecoverablePixelsMask] = RecoveredFullFlash[potentiallyRecoverablePixelsMask]
+
+    baseImageBlur = cv2.GaussianBlur(baseImage, (7, 7), 0)
+    topFlashImageBlur = cv2.GaussianBlur(topFlashImage, (7, 7), 0)
+    bottomFlashImageBlur = cv2.GaussianBlur(bottomFlashImage, (7, 7), 0)
+    fullFlashImageBlur = cv2.GaussianBlur(fullFlashImage, (7, 7), 0)
+
+    #TEST STARTING NOW
+    print('Beginning Linearity Test')
+    howLinear = np.abs((bottomFlashImageBlur + topFlashImageBlur) - (fullFlashImageBlur + baseImageBlur))
+    howLinearMax = np.sum(howLinear, axis=2)
+    howLinearMaxBlur = howLinearMax#cv2.GaussianBlur(howLinearMax, (7, 7), 0)
+
+    mean = np.mean(howLinearMaxBlur)
+    med = np.median(howLinearMaxBlur)
+    sd = np.std(howLinearMaxBlur)
+
+    nonLinearMask = howLinearMaxBlur > .03 #med
+    howLinearMaxBlurMasked = howLinearMaxBlur + nonLinearMask
+    allPointsMask = np.logical_or(allPointsMask, nonLinearMask)
+
+    print('Ending Linearity Test')
+    #TEST ENDING NOW
+
+    print('Subtracting Base from Flash')
+    image = fullFlashImage - baseImage
+    negativeSubPixelMask = image < 0
+    negativePixelMask = np.any(negativeSubPixelMask, axis=2)
+    allPointsMask = np.logical_or(allPointsMask, negativePixelMask)
+
+    #image = fullFlashImage - baseImage
+    print('Values Histograms')
+    baseValues = extractHistogramValues(username, imageName, baseImage_sBGR, polygons)
+    bottomFlashValues = extractHistogramValues(username, imageName, bottomFlashImage_sBGR, polygons)
+    topFlashValues = extractHistogramValues(username, imageName, topFlashImage_sBGR, polygons)
+    fullFlashValues = extractHistogramValues(username, imageName, fullFlashImage_sBGR, polygons)
+
+    fig, axs = plt.subplots(2, 2, sharey=True, tight_layout=True)
+    axs[0, 0].hist(baseValues, bins=range(0,260))
+    axs[0, 1].hist(bottomFlashValues, bins=range(0,260))
+    axs[1, 0].hist(topFlashValues, bins=range(0,260))
+    axs[1, 1].hist(fullFlashValues, bins=range(0,260))
+    saveStep.savePlot(username, imageName, 'originalCaptureValuesHist', plt)
+    #plt.show()
+
+    recoveredMask = np.logical_and(allPointsMask, np.logical_not(potentiallyRecoverablePixelsMask))
+    #recoveredMask = unrecoverablePixelsMask
+    #cv2.imshow('Recovered Mask', recoveredMask.astype('uint8') * 255)
+    #cv2.waitKey(0)
+    try:
+        [points, averageFlashContribution] = extractMask(username, image, polygons, recoveredMask, imageName)
+    except NameError as err:
+        #print('error extracting left side of face')
+        #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))
+        return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err)
+    else:
+        faceValues = np.max(points, axis=1)
+        medianFaceValue = np.median(faceValues)
+
+    if not fast:
+        print('Saving Step 1')
+        saveStep.saveShapeStep(username, imageName, imageShape, 1)
+        saveStep.saveImageStep(username, imageName, image, 1)
+        saveStep.saveImageStep(username, imageName, allPointsMask, 1, 'clippedMask')
+        saveStep.saveReferenceImageLinearBGR(username, imageName, baseImage, 'baseAligned')
+        saveStep.saveReferenceImageLinearBGR(username, imageName, fullFlashImage, 'fullFlashAligned')
+        saveStep.saveReferenceImageLinearBGR(username, imageName, topFlashImage, 'topFlashAligned')
+        saveStep.saveReferenceImageLinearBGR(username, imageName, bottomFlashImage, 'bottomFlashAligned')
+
+
+    whiteBalance_CIE1931_coord_asShot = saveStep.getAsShotWhiteBalance(username, imageName)
+
+    averageReflectionBGR = getAverageScreenReflectionColor(username, imageName, image, fullFlashImage_sBGR, imageShape, whiteBalance_CIE1931_coord_asShot)
+
+    [[leftAverageReflectionBGR, leftFluxish, leftDimensions], [rightAverageReflectionBGR, rightFluxish, rightDimensions]] = averageReflectionBGR
+    print('average left reflection :: ' + str(leftAverageReflectionBGR))
+    print('average right reflection :: ' + str(rightAverageReflectionBGR))
+
+    faceMidPoint = np.mean(imageShape[27:30, 0]).astype('uint') #average nose x values
+    #Users Right and Users Left
+    rightFaceImage = image[:, :faceMidPoint, :]
+    leftFaceImage = image[:, faceMidPoint:, :]
+
+    averageMaxReflectionSum = 0
+    maxReflectionZones = 0
+    testFluxish = 0
+    averageReflectionDimensions = np.array([0, 0], dtype=np.float)
+
+    left_hsvMedians = None
+    right_hsvMedians = None
+    #medianFaceValue = 0
+
+    print('Left Dimensions ({}, {})'.format(*leftDimensions))
+    if (leftAverageReflectionBGR is not None) and (leftFluxish > .0007) and ((leftDimensions[0] * leftDimensions[1]) >= .0017):# and (max(leftAverageReflectionBGR) > .2):
+        #print('here')
+        leftFaceImageWB = colorTools.whitebalanceBGR_float(leftFaceImage, leftAverageReflectionBGR)
+        #leftFaceImageWB *= ( / leftFluxish)
+
+        averageMaxReflectionSum = averageMaxReflectionSum + max(leftAverageReflectionBGR)
+
+        #Extract Value from Non WB image using recovered pixels
+        valuesMask = recoveredMask[:, faceMidPoint:]
+        try:
+            valuesPoints = extractMask(username, leftFaceImage, polygons, valuesMask, imageName)
+
+        except NameError as err:
+            #print('error extracting left side of face')
+            #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))
+            return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err)
+        else:
+            (valuesPoints, averageFlashContribution) = valuesPoints
+            leftFaceValues = np.max(valuesPoints, axis=1)
+            medianLeftFaceValue = np.median(leftFaceValues)
+
+
+        hueSatMask = allPointsMask[:, faceMidPoint:]
+        try:
+            maskedLeftPoints = extractMask(username, leftFaceImageWB, polygons, hueSatMask, imageName)
+        except NameError as err:
+            #print('error extracting left side of face')
+            #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))
+            return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err)
+        else:
+            (maskedLeftPoints, left_averageFlashContribution) = maskedLeftPoints
+            left_sBGR = colorTools.convert_linearBGR_float_to_sBGR(np.array([maskedLeftPoints]))
+            left_hsvPoints = colorTools.convert_linearBGR_float_to_linearHSV_float(left_sBGR / 255)[0]
+            left_hsvMedians = np.median(left_hsvPoints, axis=0)
+            left_hsvMedians[2] = medianLeftFaceValue
+            left_hsvMedians = scaleHSVtoFluxish(left_hsvMedians, leftFluxish)
+
+        
+        testFluxish = testFluxish + leftFluxish
+        averageReflectionDimensions += np.array(leftDimensions)
+        maxReflectionZones = maxReflectionZones + 1
+    else:
+        allPointsMask[:, faceMidPoint:] = True
+        leftFaceImageWB = leftFaceImage #Just dont white balance this part. will get masked out
+
+
+    print('Right Dimensions ({}, {})'.format(*rightDimensions))
+    if (rightAverageReflectionBGR is not None) and (rightFluxish > .0007) and ((rightDimensions[0] * rightDimensions[1]) >= .0017):# and (max(rightAverageReflectionBGR) > .2):
+        #print('there')
+        rightFaceImageWB = colorTools.whitebalanceBGR_float(rightFaceImage, rightAverageReflectionBGR)
+        #rightFaceImageWB *= (150 / rightFluxish)
+
+        averageMaxReflectionSum = averageMaxReflectionSum + max(rightAverageReflectionBGR)
+
+        #Extract Value from Non WB image using recovered pixels
+        valuesMask = recoveredMask[:, :faceMidPoint]
+        try:
+            [valuesPoints, averageFlashContribution] = extractMask(username, rightFaceImage, polygons, valuesMask, imageName)
+        except NameError as err:
+            #print('error extracting right side of face')
+            #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting right side of face', err))
+            return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting right side of face', err)
+        else:
+            rightFaceValues = np.max(valuesPoints, axis=1)
+            medianRightFaceValue = np.median(rightFaceValues)
+
+        hueSatMask = allPointsMask[:, :faceMidPoint]
+        try:
+            [maskedRightPoints, right_averageFlashContribution] = extractMask(username, rightFaceImageWB, polygons, hueSatMask, imageName)
+        except NameError as err:
+            #print('error extracting right side of face')
+            #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting right side of face', err))
+            return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting right side of face', err)
+        else:
+            right_sBGR = colorTools.convert_linearBGR_float_to_sBGR(np.array([maskedRightPoints]))
+            right_hsvPoints = colorTools.convert_linearBGR_float_to_linearHSV_float(right_sBGR / 255)[0]
+            right_hsvMedians = np.median(right_hsvPoints, axis=0)
+            right_hsvMedians[2] = medianRightFaceValue
+            right_hsvMedians = scaleHSVtoFluxish(right_hsvMedians, rightFluxish)
+
+        testFluxish = testFluxish + rightFluxish
+        averageReflectionDimensions += np.array(rightDimensions)
+        maxReflectionZones = maxReflectionZones + 1
+    else:
+        allPointsMask[:, :faceMidPoint] = True
+        rightFaceImageWB = rightFaceImage #Just dont white balance this part. will get masked out
+
+    if maxReflectionZones != 0:
+        averageMaxReflection = averageMaxReflectionSum / maxReflectionZones
+        testFluxish = testFluxish / maxReflectionZones
+        averageReflectionDimensions /= maxReflectionZones
+    else:
+        #raise NameError('User :: {} | Image :: {} | Error :: {}'.format(username, imageName, 'No valid reflection zones on face'))
+        return 'User :: {} | Image :: {} | Error :: {}'.format(username, imageName, 'No valid reflection zones on face')
+
+    imageWB = np.hstack((rightFaceImageWB, leftFaceImageWB))
+    image = imageWB
+
+    print('Extracting Mask')
+    [points, averageFlashContribution] = extractMask(username, image, polygons, allPointsMask, imageName)
+
+    if not fast:
+        print('Saving Step 2')
+        saveStep.logMeasurement(username, imageName, "Average Flash Contribution", str(averageFlashContribution))
+        saveStep.saveReferenceImageBGR(username, imageName, image, 'WhitebalancedImage')
+
+    print('Getting Median')
+    sBGR = colorTools.convert_linearBGR_float_to_sBGR(np.array([points]))
+    hsvPoints = colorTools.convert_linearBGR_float_to_linearHSV_float(sBGR / 255)[0]
+
+    plt.clf()
+    #plt.hist(hsvPoints[:, 2], bins='auto')
+    plt.hist(faceValues, bins='auto')
+    #plt.savefig('maskedLinearValuesHist')
+    saveStep.savePlot(username, imageName,'maskedLinearValuesHist', plt)
+    #plt.show()
+
+    print('Median Face Value :: ' + str(medianFaceValue))
+    hsvMedians = np.median(hsvPoints, axis=0)
+    hsvMedians[2] = medianFaceValue
+
+    fluxishRatio = hsvMedians[2] / testFluxish
+    temp = scaleHSVtoFluxish(hsvMedians, testFluxish)
+    hsvMedians[2] = temp[2]
+
+    saveStep.savePointsStep(username, imageName, [hsvMedians], 4)
+
+    if saveStats:
+        saveStep.saveImageStat(username, imageName, 'reflectionStrength', [averageMaxReflection])
+        saveStep.saveImageStat(username, imageName, 'testFluxish', [testFluxish])
+        saveStep.saveImageStat(username, imageName, 'meanReflectionDimensions', averageReflectionDimensions)
+        saveStep.saveImageStat(username, imageName, 'fluxishRatio', [fluxishRatio])
+        saveStep.saveImageStat(username, imageName, 'medianHSV', hsvMedians)
+
+        if (leftAverageReflectionBGR is not None) and (left_hsvMedians is not None) and (leftFluxish > .0007) and ((leftDimensions[0] * leftDimensions[1]) >= .0017):
+            saveStep.saveImageStat(username, imageName, 'splitReflectionStrength', [max(leftAverageReflectionBGR)])
+            saveStep.saveImageStat(username, imageName, 'splitTestFluxish', [leftFluxish])
+            saveStep.saveImageStat(username, imageName, 'splitMedianHSV', left_hsvMedians)
+            saveStep.saveImageStat(username, imageName, 'splitDimensions', leftDimensions)
+
+        if (rightAverageReflectionBGR is not None) and (right_hsvMedians is not None) and (rightFluxish > .0007) and ((rightDimensions[0] * rightDimensions[1]) >= .0017):
+            saveStep.saveImageStat(username, imageName, 'splitReflectionStrength', [max(rightAverageReflectionBGR)])
+            saveStep.saveImageStat(username, imageName, 'splitTestFluxish', [rightFluxish])
+            saveStep.saveImageStat(username, imageName, 'splitMedianHSV', right_hsvMedians)
+            saveStep.saveImageStat(username, imageName, 'splitDimensions', rightDimensions)
+
+    #print('Done!')
+    return None
