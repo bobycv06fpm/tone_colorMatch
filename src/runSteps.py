@@ -8,7 +8,6 @@ from extractMask import extractMask, maskPolygons
 import colorTools
 import plotTools
 import processPoints
-import getMakeupColors
 import cv2
 import numpy as np
 import dlib
@@ -22,6 +21,8 @@ import multiprocessing as mp
 
 #import pympler
 #from pympler.tracker import SummaryTracker
+
+root = '../../'
 
 def getLast(arr):
     return arr[-1]
@@ -290,7 +291,8 @@ def run(username, imageName, fast=False, saveStats=False):
 
 
     detector = dlib.get_frontal_face_detector()
-    predictor = dlib.shape_predictor('/home/dmacewen/Projects/colorMatch/service/predictors/shape_predictor_68_face_landmarks.dat')
+    #predictor = dlib.shape_predictor('/home/dmacewen/Projects/colorMatch/service/predictors/shape_predictor_68_face_landmarks.dat')
+    predictor = dlib.shape_predictor( root + 'tone_colorMatch/predictors/shape_predictor_68_face_landmarks.dat')
 
     print('Detecting Base Face')
     [baseImage, baseImageShape] = detectFace(originalBaseImage, predictor, detector)

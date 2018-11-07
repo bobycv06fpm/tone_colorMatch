@@ -9,13 +9,15 @@ def getImageWidth(image):
 def getImageHeight(image):
     return image.shape[0]
 
+root = '../../'
+
 def getFentiColors(trueColor):
-    fentiColorFiles = listdir('../scraped/fenti_colors')
+    fentiColorFiles = listdir(root + 'scraped/fenti_colors')
     fentiColors = []
     #print(fentiColors)
 
     for file in fentiColorFiles:
-        image = cv2.imread(join('../scraped/fenti_colors', file))
+        image = cv2.imread(join(root + 'scraped/fenti_colors', file))
         fentiColors.append(image)
 
     width = getImageWidth(fentiColors[0])
@@ -55,7 +57,7 @@ def getFentiColors(trueColor):
     return ((fenti_r, fenti_g, fenti_b), fenti_scaled)
 
 def getMakeupForeverColors(trueColor):
-    makeupForeverHex = open("../scraped/makeupForever/makeupForeverColors", "r")
+    makeupForeverHex = open(root + "scraped/makeupForever/makeupForeverColors", "r")
 
     mf_r = []
     mf_g = []
@@ -80,7 +82,7 @@ def getMakeupForeverColors(trueColor):
 
 
 def getBareMineralsColors(trueColor):
-    bareMineralsRGB = open("../scraped/bm_colors/bm_colors", "r")
+    bareMineralsRGB = open(root + "scraped/bm_colors/bm_colors", "r")
 
     bm_r = []
     bm_g = []

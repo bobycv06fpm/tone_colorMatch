@@ -4,16 +4,18 @@ import os
 import numpy as np
 import colorTools
 
+root = '../../'
+
 def referencePathBuilder(username, fileName, file='', extension=''):
-    return '../images/' + username + '/' + fileName + '/reference/' + file + extension
+    return root + 'images/' + username + '/' + fileName + '/reference/' + file + extension
 
 def benchmarkPathBuilder(username, fileName, benchmarkName=''):
     extension = '.csv' if benchmarkName != '' else ''
-    return '../images/' + username + '/' + fileName + '/benchmark/' + benchmarkName + extension
+    return root + 'images/' + username + '/' + fileName + '/benchmark/' + benchmarkName + extension
 
 def stepPathBuilder(username, fileName, step='', ext='.csv', meta=''):
     extension = ext if step != '' else ''
-    return '../images/' + username + '/' + fileName + '/steps/'+ str(step) + meta + extension
+    return root + 'images/' + username + '/' + fileName + '/steps/'+ str(step) + meta + extension
 
 #def calibrationPathBuilder(username):
 #    return '../calibrations/' + username + '/cameraResponseFunction.csv'
@@ -220,7 +222,7 @@ def saveBenchmarkValue(username, fileName, benchmarkName, value):
 #    return np.array(CRF)
 
 def getAsShotWhiteBalance(username, fileName):
-    path = '../images/' + username + '/' + fileName + '/' + fileName + '-whiteBalance.txt'
+    path = root + 'images/' + username + '/' + fileName + '/' + fileName + '-whiteBalance.txt'
 
     parsedValues = []
     with open(path, 'r', newline='') as f:

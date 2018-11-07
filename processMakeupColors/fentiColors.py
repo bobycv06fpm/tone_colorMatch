@@ -3,8 +3,10 @@ import csv
 import os
 import numpy as np
 
-pathToImageDir = '../../scraped/fenti_colors/'
-pathToCSV = '../../scraped/fenti_colors/fentiColors.csv'
+root = '../../'
+
+pathToImageDir = root + 'scraped/fenti_colors/'
+pathToCSV = root + 'scraped/fenti_colors/fentiColors.csv'
 pathsToImages = [os.path.join(pathToImageDir, img) for img in os.listdir(pathToImageDir) if (img[-3:] == 'jpg')]
 
 colors = []

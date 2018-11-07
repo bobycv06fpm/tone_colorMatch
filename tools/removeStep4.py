@@ -7,6 +7,8 @@ ap.add_argument("-u", "--username", required=False, default="doug", help="The Us
 ap.add_argument("-s", "--start", required=False, help="Image to start benchmarking run")
 ap.add_argument("-e", "--end", required=False, help="Image to end benchmarking run")
 
+root = '../../'
+
 args = vars(ap.parse_args())
 
 username = args["username"]
@@ -19,7 +21,7 @@ if args["start"] is not None:
 if args["end"] is not None:
     end = int(args["end"])
 
-path = '../images/' + str(username) + '/'
+path = root + 'images/' + str(username) + '/'
 
 directories = [os.path.join(path, o) for o in os.listdir(path) if os.path.isdir(os.path.join(path, o))]
 

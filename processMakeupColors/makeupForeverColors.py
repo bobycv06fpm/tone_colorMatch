@@ -3,8 +3,9 @@ import csv
 import os
 import numpy as np
 
-pathToHex = '../../scraped/makeupForever/makeupForeverColors'
-pathToCSV = '../../scraped/makeupForever/makeupForeverColors.csv'
+root = '../../'
+pathToHex = root + 'scraped/makeupForever/makeupForeverColors'
+pathToCSV = root + 'scraped/makeupForever/makeupForeverColors.csv'
 
 colors = []
 

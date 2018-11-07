@@ -6,7 +6,8 @@ import runSteps
 import dlib
 import multiprocessing as mp
 
-path = '../images/'
+root = '../../'
+path = root + 'images/'
 hsvCount_path = 'steps/4.csv'
 imageStat_path = 'reference/imageStats.csv'
 

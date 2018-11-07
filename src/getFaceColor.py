@@ -1,6 +1,5 @@
 import argparse
 import runSteps
-import runBaseline
 
 def strToBool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -34,8 +33,6 @@ save = strToBool(args["save"])
 
 if not baseline:
     error = runSteps.run(username, imageName, fast, save)
-else:
-    error = runBaseline.run(username, imageName, shouldPlot, fast, benchmark)
 
 if error is None:
     print('Done getting face color')

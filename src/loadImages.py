@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 
+root = '../../'
+
 def loadImage(path):
     image = cv2.imread(path)
     if image is None:
@@ -13,7 +15,7 @@ def loadImage(path):
     return image
 
 def loadImages(username, fileName, extension='PNG'): 
-    pathRoot = "../images/" + username + "/" + fileName + "/" + fileName
+    pathRoot = root + "images/" + username + "/" + fileName + "/" + fileName
 
     baseImagePath = pathRoot + '-base.' + extension
     baseImage = loadImage(baseImagePath)

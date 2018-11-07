@@ -9,6 +9,8 @@ from mpl_toolkits.mplot3d import Axes3D
 
 colors = ['g.', 'c.', 'm.', 'y.']
 
+root = '../../'
+
 def getLast(arr):
     return arr[-1]
 
@@ -25,7 +27,7 @@ def printStat(values, name):
     return median
 
 def getMakeupHSVvalues():
-    makeupColorPaths = ['../scraped/fenti_colors/fentiColors.csv', '../scraped/bm_colors/bm_colors.csv', '../scraped/makeupForever/makeupForeverColors.csv']
+    makeupColorPaths = [root + 'scraped/fenti_colors/fentiColors.csv', root + 'scraped/bm_colors/bm_colors.csv', root + 'scraped/makeupForever/makeupForeverColors.csv']
     #makeupColorPaths = ['../scraped/bm_colors/bm_colors.csv']
     
     hsvColors = []
@@ -61,7 +63,7 @@ if args["start"] is not None:
 if args["end"] is not None:
     end = int(args["end"])
 
-path = '../images/' + str(username) + '/'
+path = root + 'images/' + str(username) + '/'
 
 directories = [os.path.join(path, o) for o in os.listdir(path) if os.path.isdir(os.path.join(path, o))]
 
