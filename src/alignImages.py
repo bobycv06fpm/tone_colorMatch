@@ -41,36 +41,36 @@ def getPreparedAlt(image, shape):
     preppedMasked = prepped * mask
     return preppedMasked
 
-#def getPreparedBaseImage(baseImage, baseShape):
-#    grayBase = cv2.cvtColor(np.clip(baseImage * 255, 0, 255).astype('uint8'), cv2.COLOR_BGR2GRAY)
+#def getPreparedNoFlashImage(noFlashImage, noFlashShape):
+#    grayNoFlash = cv2.cvtColor(np.clip(noFlashImage * 255, 0, 255).astype('uint8'), cv2.COLOR_BGR2GRAY)
 #
 #    #CREATE A MASK FOR THE INNER FACE REGION
-#    baseShapeCroppedCulled = baseShape[17:]
+#    noFlashShapeCroppedCulled = noFlashShape[17:]
 #
-#    grayHullBase = cv2.convexHull(baseShapeCroppedCulled)
+#    grayHullNoFlash = cv2.convexHull(noFlashShapeCroppedCulled)
 #    
-#    baseMask = grayBase.copy()
-#    baseMask.fill(0)
-#    baseMask = cv2.fillConvexPoly(baseMask, grayHullBase, 1).astype('bool')
+#    noFlashMask = grayNoFlash.copy()
+#    noFlashMask.fill(0)
+#    noFlashMask = cv2.fillConvexPoly(noFlashMask, grayHullNoFlash, 1).astype('bool')
 #
 #    #GET POINTS IN MASK
-#    baseFacePoints = grayBase[baseMask] # Only take the median of points in the face
+#    noFlashFacePoints = grayNoFlash[noFlashMask] # Only take the median of points in the face
 #
 #    #gamma = 1.0
-#    #grayBase = ((grayBase/255 ** (1/gamma)) * 255).astype('uint8')
-#    grayBase = cv2.GaussianBlur(grayBase, (BLUR_SIZE, BLUR_SIZE), 0)
+#    #grayNoFlash = ((grayNoFlash/255 ** (1/gamma)) * 255).astype('uint8')
+#    grayNoFlash = cv2.GaussianBlur(grayNoFlash, (BLUR_SIZE, BLUR_SIZE), 0)
 #
 #    #MODIFIED AUTOCANNY
 #    #sigma = .33
 #    sigma = .25
 #
-#    maskMedian = np.median(baseFacePoints)
-#    baseLower = int(max(0, (1.0 - sigma) * maskMedian))
-#    baseUpper = int(min(255, (1.0 + sigma) * maskMedian))
-#    edgeBase = cv2.Canny(grayBase, baseLower, baseUpper)
-#    edgeBase = edgeBase * baseMask
-#    #Need to convert to a float64 for phaseCorrelation np.float64(edgeBase)
-#    return edgeBase
+#    maskMedian = np.median(noFlashFacePoints)
+#    noFlashLower = int(max(0, (1.0 - sigma) * maskMedian))
+#    noFlashUpper = int(min(255, (1.0 + sigma) * maskMedian))
+#    edgeNoFlash = cv2.Canny(grayNoFlash, noFlashLower, noFlashUpper)
+#    edgeNoFlash = edgeNoFlash * noFlashMask
+#    #Need to convert to a float64 for phaseCorrelation np.float64(edgeNoFlash)
+#    return edgeNoFlash
 #
 #
 #
@@ -105,8 +105,8 @@ def getPreparedAlt(image, shape):
 #    edgeFlash = edgeFlash * flashMask
 #    return edgeFlash
 
-def calculateOffset(preparedBaseImage, preparedFlashImage):
-    (offset, response) = cv2.phaseCorrelate(np.float64(preparedBaseImage), np.float64(preparedFlashImage))
+def calculateOffset(preparedNoFlashImage, preparedFlashImage):
+    (offset, response) = cv2.phaseCorrelate(np.float64(preparedNoFlashImage), np.float64(preparedFlashImage))
     offset = list(offset)
     offset = [round(value) for value in offset]
     print("Offset :: " + str(offset))
@@ -174,56 +174,49 @@ def cropToOffset(imagesSortedByOffset, axis):
     return cropped
 
 
-def cropAndAlign(base, fullFlash, topFlash, bottomFlash, imageName):
-    (baseImage, baseShape, baseMask) = base
+def cropAndAlign(noFlash, halfFlash, fullFlash, imageName):
+    (noFlashImage, noFlashShape, noFlashMask) = noFlash
+    (halfFlashImage, halfFlashShape, halfFlashMask) = halfFlash
+    #(halfFlashImage_sBGR, halfFlashShape_sBGR, halfFlashMask_sBGR) = halfFlash_sBGR
     (fullFlashImage, fullFlashShape, fullFlashMask) = fullFlash
-    #(fullFlashImage_sBGR, fullFlashShape_sBGR, fullFlashMask_sBGR) = fullFlash_sBGR
-    (topFlashImage, topFlashShape, topFlashMask) = topFlash
-    (bottomFlashImage, bottomFlashShape, bottomFlashMask) = bottomFlash
 
 
-    #preparedBaseImage = getPreparedBaseImage(baseImage, baseShape)
+    #preparedNoFlashImage = getPreparedNoFlashImage(noFlashImage, noFlashShape)
+    #preparedHalfFlashImage = getPreparedFlashImage(halfFlashImage, halfFlashShape, 1.1)
     #preparedFullFlashImage = getPreparedFlashImage(fullFlashImage, fullFlashShape, 1.1)
-    #preparedTopFlashImage = getPreparedFlashImage(topFlashImage, topFlashShape, 1.1)
-    #preparedBottomFlashImage = getPreparedFlashImage(bottomFlashImage, bottomFlashShape, 1.1)
 
-    preparedBaseImage = getPreparedAlt(baseImage, baseShape)
+    preparedNoFlashImage = getPreparedAlt(noFlashImage, noFlashShape)
+    preparedHalfFlashImage = getPreparedAlt(halfFlashImage, halfFlashShape)
     preparedFullFlashImage = getPreparedAlt(fullFlashImage, fullFlashShape)
-    preparedTopFlashImage = getPreparedAlt(topFlashImage, topFlashShape)
-    preparedBottomFlashImage = getPreparedAlt(bottomFlashImage, bottomFlashShape)
 
-    #cv2.imshow("Prepared", np.hstack([cv2.resize(preparedBaseImage, (0, 0), fx=.5, fy=.5), cv2.resize(preparedTopFlashImage, (0, 0), fx=.5, fy=.5), cv2.resize(preparedBottomFlashImage, (0, 0), fx=.5, fy=.5), cv2.resize(preparedFullFlashImage, (0, 0), fx=.5, fy=.5)]))
+    #cv2.imshow("Prepared", np.hstack([cv2.resize(preparedNoFlashImage, (0, 0), fx=.5, fy=.5), cv2.resize(preparedFullFlashImage, (0, 0), fx=.5, fy=.5), cv2.resize(preparedBottomFlashImage, (0, 0), fx=.5, fy=.5), cv2.resize(preparedHalfFlashImage, (0, 0), fx=.5, fy=.5)]))
     #cv2.waitKey(0)
 
-    baseOffset = [0, 0] #All offsets are relative to baseImage
-    fullFlashOffset = calculateOffset(preparedBaseImage, preparedFullFlashImage)
-    #fullFlashOffset_sBGR = fullFlashOffset.copy()
-    topFlashOffset = calculateOffset(preparedBaseImage, preparedTopFlashImage)
-    bottomFlashOffset = calculateOffset(preparedBaseImage, preparedBottomFlashImage)
+    noFlashOffset = [0, 0] #All offsets are relative to noFlashImage
+    halfFlashOffset = calculateOffset(preparedNoFlashImage, preparedHalfFlashImage)
+    #halfFlashOffset_sBGR = halfFlashOffset.copy()
+    fullFlashOffset = calculateOffset(preparedNoFlashImage, preparedFullFlashImage)
 
-    justOffsets = [baseOffset, fullFlashOffset, topFlashOffset, bottomFlashOffset]#, fullFlashOffset_sBGR]
+    justOffsets = [noFlashOffset, halfFlashOffset, fullFlashOffset]#, halfFlashOffset_sBGR]
     justOffsets.sort(key=getXOffset, reverse=True)
     largestX = justOffsets[0][X]
 
     justOffsets.sort(key=getYOffset, reverse=True)
     largestY = justOffsets[0][Y]
 
-    baseOffset.append(base)
-    baseOffset.append(0) #Want to keep track of ordering...
+    noFlashOffset.append(noFlash)
+    noFlashOffset.append(0) #Want to keep track of ordering...
+
+    halfFlashOffset.append(halfFlash)
+    halfFlashOffset.append(1)
+
+    #halfFlashOffset_sBGR.append(halfFlash_sBGR)
+    #halfFlashOffset_sBGR.append(2)
 
     fullFlashOffset.append(fullFlash)
-    fullFlashOffset.append(1)
+    fullFlashOffset.append(2)
 
-    #fullFlashOffset_sBGR.append(fullFlash_sBGR)
-    #fullFlashOffset_sBGR.append(2)
-
-    topFlashOffset.append(topFlash)
-    topFlashOffset.append(2)
-
-    bottomFlashOffset.append(bottomFlash)
-    bottomFlashOffset.append(3)
-
-    offsets = [baseOffset, fullFlashOffset, topFlashOffset, bottomFlashOffset]
+    offsets = [noFlashOffset, halfFlashOffset, fullFlashOffset]
 
     offsets.sort(key=getXOffset)
     offsets = cropToOffset(offsets, X)
@@ -235,17 +228,13 @@ def cropAndAlign(base, fullFlash, topFlash, bottomFlash, imageName):
 
     #print('Offsets :: ' + str(offsets))
 
-    [baseCropped, fullFlashCropped, topFlashCropped, bottomFlashCropped] = [offset[2] for offset in offsets]
-
-    #cv2.imshow("Cropped", np.hstack([cv2.resize(baseCropped[0], (0, 0), fx=.5, fy=.5), cv2.resize(topFlashCropped[0], (0, 0), fx=.5, fy=.5), cv2.resize(bottomFlashCropped[0], (0, 0), fx=.5, fy=.5), cv2.resize(fullFlashCropped[0], (0, 0), fx=.5, fy=.5)]))
-    #cv2.waitKey(0)
-
+    [noFlashCropped, halfFlashCropped, fullFlashCropped] = [offset[2] for offset in offsets]
 
     offsetDistance = math.sqrt(math.pow(largestX, 2) + math.pow(largestY, 2))
     #print("Offset Distance! :: " + str(offsetDistance))
     #if offsetDistance > 100:
         #return [None, 'Possible Alignment Error. Total offset distance :: ' + str(offsetDistance) + '. Returning Early']
-    croppedImages = [baseCropped, fullFlashCropped, topFlashCropped, bottomFlashCropped]
+    croppedImages = [noFlashCropped, halfFlashCropped, fullFlashCropped]
     crop = [[offset[-2], offset[-1]] for offset in offsets]
 
     return [croppedImages, crop]

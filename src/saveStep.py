@@ -3,6 +3,7 @@ import csv
 import os
 import numpy as np
 import colorTools
+import json
 
 root = '../../'
 
@@ -221,22 +222,30 @@ def saveBenchmarkValue(username, fileName, benchmarkName, value):
 #
 #    return np.array(CRF)
 
+#def getAsShotWhiteBalance(username, fileName):
+#    path = root + 'images/' + username + '/' + fileName + '/' + fileName + '-whiteBalance.txt'
+#
+#    parsedValues = []
+#    with open(path, 'r', newline='') as f:
+#        #Yea Yea I know this is nasty. Change so app just sends json or csv 
+#        wbValuesString = f.readline()
+#        roughParseValues = wbValuesString.split('], [')
+#        parsedStringValues = [value.lstrip('[]\n').rstrip('[]\n').split(', ') for value in roughParseValues]
+#        parsedValues = [[float(coordValue) for coordValue in value] for value in parsedStringValues]
+#
+#    for value in parsedValues:
+#        if value != parsedValues[0]:
+#            raise NameError('Not All White Balance Values Match!')
+#
+#    return parsedValues[0]
+
 def getAsShotWhiteBalance(username, fileName):
-    path = root + 'images/' + username + '/' + fileName + '/' + fileName + '-whiteBalance.txt'
+    path = root + 'images/' + username + '/' + fileName + '/' + fileName + '-metadata.txt'
 
-    parsedValues = []
-    with open(path, 'r', newline='') as f:
-        #Yea Yea I know this is nasty. Change so app just sends json or csv 
-        wbValuesString = f.readline()
-        roughParseValues = wbValuesString.split('], [')
-        parsedStringValues = [value.lstrip('[]\n').rstrip('[]\n').split(', ') for value in roughParseValues]
-        parsedValues = [[float(coordValue) for coordValue in value] for value in parsedStringValues]
+    with open(path) as f:
+        data = json.load(f)
 
-    for value in parsedValues:
-        if value != parsedValues[0]:
-            raise NameError('Not All White Balance Values Match!')
-
-    return parsedValues[0]
+    return [data[0]['whiteBalance']['x'], data[0]['whiteBalance']['y']]
 
 def savePlot(username, fileName, name, plot):
     path = referencePathBuilder(username, fileName, name, '.png')

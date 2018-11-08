@@ -17,16 +17,14 @@ def loadImage(path):
 def loadImages(username, fileName, extension='PNG'): 
     pathRoot = root + "images/" + username + "/" + fileName + "/" + fileName
 
-    baseImagePath = pathRoot + '-base.' + extension
-    baseImage = loadImage(baseImagePath)
 
-    fullFlashImagePath = pathRoot + '-fullFlash.' + extension
-    fullFlashImage = loadImage(fullFlashImagePath)
+    noFlashPath = pathRoot + '-3.' + extension
+    noFlash = loadImage(noFlashPath)
 
-    topFlashImagePath = pathRoot + '-topFlash.' + extension
-    topFlashImage = loadImage(topFlashImagePath)
+    halfFlashPath = pathRoot + '-2.' + extension
+    halfFlash = loadImage(halfFlashPath)
 
-    bottomFlashImagePath = pathRoot + '-bottomFlash.' + extension
-    bottomFlashImage = loadImage(bottomFlashImagePath)
+    fullFlashPath = pathRoot + '-1.' + extension
+    fullFlash = loadImage(fullFlashPath)
 
-    return [baseImage, fullFlashImage, topFlashImage, bottomFlashImage]
+    return [noFlash, halfFlash, fullFlash]

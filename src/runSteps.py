@@ -30,10 +30,9 @@ def getLast(arr):
 def getSecond(arr):
     return arr[1]
 
-def getCropWidth(shapeA, shapeB, shapeC, shapeD, heightMargin, heightMax, widthMargin, widthMax):
+def getCropWidth(shapeA, shapeB, shapeC, heightMargin, heightMax, widthMargin, widthMax):
     allShapes = np.append(shapeA, shapeB, axis=0)
     allShapes = np.append(allShapes, shapeC, axis=0)
-    allShapes = np.append(allShapes, shapeD, axis=0)
     BB = np.asarray(cv2.boundingRect(allShapes))
     newX = BB[0] - widthMargin if BB[0] - widthMargin > 0 else 0
     newY = BB[1] - heightMargin if BB[1] - heightMargin > 0 else 0
@@ -287,97 +286,83 @@ def run(username, imageName, fast=False, saveStats=False):
 
     images = loadImages(username, imageName)
 
-    (originalBaseImage, originalFullFlashImage, originalTopFlashImage, originalBottomFlashImage) = images
-
+    [originalNoFlashImage, originalHalfFlashImage, originalFullFlashImage] = images
 
     detector = dlib.get_frontal_face_detector()
     #predictor = dlib.shape_predictor('/home/dmacewen/Projects/colorMatch/service/predictors/shape_predictor_68_face_landmarks.dat')
     predictor = dlib.shape_predictor( root + 'tone_colorMatch/predictors/shape_predictor_68_face_landmarks.dat')
 
+    #cv2.imshow('no flash', originalNoFlashImage)
+    #cv2.imshow('half flash', originalHalfFlashImage)
+    #cv2.imshow('full flash', originalFullFlashImage)
+    #cv2.waitKey(0)
+
     print('Detecting Base Face')
-    [baseImage, baseImageShape] = detectFace(originalBaseImage, predictor, detector)
+    [noFlashImage, noFlashImageShape] = detectFace(originalNoFlashImage, predictor, detector)
+
+    print('Detecting Half Flash Face')
+    [halfFlashImage, halfFlashImageShape] = detectFace(originalHalfFlashImage, predictor, detector)
 
     print('Detecting Full Flash Face')
     [fullFlashImage, fullFlashImageShape] = detectFace(originalFullFlashImage, predictor, detector)
 
-    print('Detecting Top Flash Face')
-    [topFlashImage, topFlashImageShape] = detectFace(originalTopFlashImage, predictor, detector)
-
-    print('Detecting Bottom Flash Face')
-    [bottomFlashImage, bottomFlashImageShape] = detectFace(originalBottomFlashImage, predictor, detector)
-
     print('Trimming Down sRGB Images')
     margin = .04
-    heightMargin = int(margin * baseImage.shape[0]) #Add 5% in both direction on height because crop is a little tight
-    heightMax = baseImage.shape[0]
-    widthMargin = int(margin * baseImage.shape[1])
-    widthMax = baseImage.shape[1]
+    heightMargin = int(margin * noFlashImage.shape[0]) #Add 5% in both direction on height because crop is a little tight
+    heightMax = noFlashImage.shape[0]
+    widthMargin = int(margin * noFlashImage.shape[1])
+    widthMax = noFlashImage.shape[1]
 
-    [newX, newWidth, newY, newHeight] = getCropWidth(baseImageShape, fullFlashImageShape, topFlashImageShape, bottomFlashImageShape, heightMargin, heightMax, widthMargin, widthMax)
+    [newX, newWidth, newY, newHeight] = getCropWidth(noFlashImageShape, halfFlashImageShape, fullFlashImageShape, heightMargin, heightMax, widthMargin, widthMax)
 
-    baseImageAligned = baseImage[newY:(newY + newHeight), newX:(newX + newWidth)]
-    baseImageShape = baseImageShape - [newX, newY]
+    noFlashImageAligned = noFlashImage[newY:(newY + newHeight), newX:(newX + newWidth)]
+    noFlashImageShape = noFlashImageShape - [newX, newY]
+
+    halfFlashImageAligned = halfFlashImage[newY:(newY + newHeight), newX:(newX + newWidth)]
+    halfFlashImageShape = halfFlashImageShape - [newX, newY]
 
     fullFlashImageAligned = fullFlashImage[newY:(newY + newHeight), newX:(newX + newWidth)]
     fullFlashImageShape = fullFlashImageShape - [newX, newY]
 
-    topFlashImageAligned = topFlashImage[newY:(newY + newHeight), newX:(newX + newWidth)]
-    topFlashImageShape = topFlashImageShape - [newX, newY]
-
-    bottomFlashImageAligned = bottomFlashImage[newY:(newY + newHeight), newX:(newX + newWidth)]
-    bottomFlashImageShape = bottomFlashImageShape - [newX, newY]
-
     print('Masking sRGB Base')
-    baseImageMask = thresholdMask.getClippedMask(baseImageAligned, 5, 5)
+    noFlashImageMask = thresholdMask.getClippedMask(noFlashImageAligned, 5, 5)
+
+    print('Masking sRGB Top Flash')
+    halfFlashImageMask = thresholdMask.getClippedMask(halfFlashImageAligned, 5, 5)
 
     print('Masking sRGB Full Flash')
     fullFlashImageMask = thresholdMask.getClippedMask(fullFlashImageAligned, 5, 5)
 
-    print('Masking sRGB Top Flash')
-    topFlashImageMask = thresholdMask.getClippedMask(topFlashImageAligned, 5, 5)
-
-    print('Masking sRGB Bottom Flash')
-    bottomFlashImageMask = thresholdMask.getClippedMask(bottomFlashImageAligned, 5, 5)
-
 
     print('Converting Base to Linear')
-    baseImage = colorTools.convert_sBGR_to_linearBGR_float(baseImageAligned)
+    noFlashImage = colorTools.convert_sBGR_to_linearBGR_float(noFlashImageAligned)
+
+    print('Converting Top Flash to Linear')
+    halfFlashImage = colorTools.convert_sBGR_to_linearBGR_float(halfFlashImageAligned)
 
     print('Converting Full Flash to Linear')
     fullFlashImage = colorTools.convert_sBGR_to_linearBGR_float(fullFlashImageAligned)
 
-    print('Converting Top Flash to Linear')
-    topFlashImage = colorTools.convert_sBGR_to_linearBGR_float(topFlashImageAligned)
-
-    print('Converting Bottom Flash to Linear')
-    bottomFlashImage = colorTools.convert_sBGR_to_linearBGR_float(bottomFlashImageAligned)
-
-
     print('Cropping and Aligning')
-    baseCapture = (baseImage, baseImageShape, baseImageMask)
+    noFlashCapture = (noFlashImage, noFlashImageShape, noFlashImageMask)
+    halfFlashCapture = (halfFlashImage, halfFlashImageShape, halfFlashImageMask)
     fullFlashCapture = (fullFlashImage, fullFlashImageShape, fullFlashImageMask)
-    topFlashCapture = (topFlashImage, topFlashImageShape, topFlashImageMask)
-    bottomFlashCapture = (bottomFlashImage, bottomFlashImageShape, bottomFlashImageMask)
 
-    [images, crops] = cropAndAlign(baseCapture, fullFlashCapture, topFlashCapture, bottomFlashCapture, imageName)
+    [images, crops] = cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture, imageName)
 
-    (baseImage, baseImageShape, baseImageMask) = images[0]
-    (fullFlashImage, fullFlashImageShape, fullFlashImageMask) = images[1]
-    (topFlashImage, topFlashImageShape, topFlashImageMask) = images[2]
-    (bottomFlashImage, bottomFlashImageShape, bottomFlashImageMask) = images[3]
+    (noFlashImage, noFlashImageShape, noFlashImageMask) = images[0]
+    (halfFlashImage, halfFlashImageShape, halfFlashImageMask) = images[1]
+    (fullFlashImage, fullFlashImageShape, fullFlashImageMask) = images[2]
 
     crops = np.array(crops)
 
-    baseImage_sBGR = baseImageAligned[crops[0, 1, 1]:crops[0, 1, 2], crops[0, 0, 1]:crops[0, 0, 2]]
+    noFlashImage_sBGR = noFlashImageAligned[crops[0, 1, 1]:crops[0, 1, 2], crops[0, 0, 1]:crops[0, 0, 2]]
+    halfFlashImage_sBGR = halfFlashImageAligned[crops[2, 1, 1]:crops[2, 1, 2], crops[2, 0, 1]:crops[2, 0, 2]]
     fullFlashImage_sBGR = fullFlashImageAligned[crops[1, 1, 1]:crops[1, 1, 2], crops[1, 0, 1]:crops[1, 0, 2]]
-    topFlashImage_sBGR = topFlashImageAligned[crops[2, 1, 1]:crops[2, 1, 2], crops[2, 0, 1]:crops[2, 0, 2]]
-    bottomFlashImage_sBGR = bottomFlashImageAligned[crops[3, 1, 1]:crops[3, 1, 2], crops[3, 0, 1]:crops[3, 0, 2]]
 
+    #experimentalReflectionDetection(noFlashImage, noFlashImageShape, bottomFlashImage, bottomFlashImageShape, halfFlashImage, halfFlashImageShape, fullFlashImage, fullFlashImageShape)
 
-    #experimentalReflectionDetection(baseImage, baseImageShape, bottomFlashImage, bottomFlashImageShape, topFlashImage, topFlashImageShape, fullFlashImage, fullFlashImageShape)
-
-    partialMask = np.logical_or(baseImageMask, bottomFlashImageMask)
-    partialMask = np.logical_or(partialMask, topFlashImageMask)
+    partialMask = np.logical_or(noFlashImageMask, halfFlashImageMask)
     allPointsMask = np.logical_or(partialMask, fullFlashImageMask)
     clippedPixelsMask = np.copy(allPointsMask)
 
@@ -392,20 +377,27 @@ def run(username, imageName, fast=False, saveStats=False):
     print('Getting Polygons')
     polygons = getPolygons(imageShape)
 
-    unrecoverablePixelsMask = maskPolygons(unrecoverablePixelsMask, polygons)
-    potentiallyRecoverablePixelsMask = maskPolygons(potentiallyRecoverablePixelsMask, polygons)
-    RecoveredFullFlash = (bottomFlashImage + topFlashImage - baseImage)
+    #unrecoverablePixelsMask = maskPolygons(unrecoverablePixelsMask, polygons)
+    #potentiallyRecoverablePixelsMask = maskPolygons(potentiallyRecoverablePixelsMask, polygons)
+    #RecoveredFullFlash = ((2 * halfFlashImage) - noFlashImage)
 
-    fullFlashImage[potentiallyRecoverablePixelsMask] = RecoveredFullFlash[potentiallyRecoverablePixelsMask]
+    #fullFlashImage[potentiallyRecoverablePixelsMask] = RecoveredFullFlash[potentiallyRecoverablePixelsMask]
 
-    baseImageBlur = cv2.GaussianBlur(baseImage, (7, 7), 0)
-    topFlashImageBlur = cv2.GaussianBlur(topFlashImage, (7, 7), 0)
-    bottomFlashImageBlur = cv2.GaussianBlur(bottomFlashImage, (7, 7), 0)
+    noFlashImageBlur = cv2.GaussianBlur(noFlashImage, (7, 7), 0)
+    halfFlashImageBlur = cv2.GaussianBlur(halfFlashImage, (7, 7), 0)
     fullFlashImageBlur = cv2.GaussianBlur(fullFlashImage, (7, 7), 0)
+
+    #noFlashImageBlur = cv2.GaussianBlur(noFlashImage, (15, 15), 0)
+    #halfFlashImageBlur = cv2.GaussianBlur(halfFlashImage, (15, 15), 0)
+    #fullFlashImageBlur = cv2.GaussianBlur(fullFlashImage, (15, 15), 0)
 
     #TEST STARTING NOW
     print('Beginning Linearity Test')
-    howLinear = np.abs((bottomFlashImageBlur + topFlashImageBlur) - (fullFlashImageBlur + baseImageBlur))
+    cv2.waitKey(0)
+    howLinear = np.abs((2 * halfFlashImageBlur) - (fullFlashImageBlur + noFlashImageBlur))
+    cv2.imshow('how linear...', np.clip(howLinear * 10, 0, 255))
+    cv2.waitKey(0)
+
     howLinearMax = np.sum(howLinear, axis=2)
     howLinearMaxBlur = howLinearMax#cv2.GaussianBlur(howLinearMax, (7, 7), 0)
 
@@ -421,21 +413,19 @@ def run(username, imageName, fast=False, saveStats=False):
     #TEST ENDING NOW
 
     print('Subtracting Base from Flash')
-    image = fullFlashImage - baseImage
+    image = fullFlashImage - noFlashImage
     negativeSubPixelMask = image < 0
     negativePixelMask = np.any(negativeSubPixelMask, axis=2)
     allPointsMask = np.logical_or(allPointsMask, negativePixelMask)
 
-    #image = fullFlashImage - baseImage
+    #image = fullFlashImage - noFlashImage
     print('Values Histograms')
-    baseValues = extractHistogramValues(username, imageName, baseImage_sBGR, polygons)
-    bottomFlashValues = extractHistogramValues(username, imageName, bottomFlashImage_sBGR, polygons)
-    topFlashValues = extractHistogramValues(username, imageName, topFlashImage_sBGR, polygons)
+    baseValues = extractHistogramValues(username, imageName, noFlashImage_sBGR, polygons)
+    topFlashValues = extractHistogramValues(username, imageName, halfFlashImage_sBGR, polygons)
     fullFlashValues = extractHistogramValues(username, imageName, fullFlashImage_sBGR, polygons)
 
     fig, axs = plt.subplots(2, 2, sharey=True, tight_layout=True)
     axs[0, 0].hist(baseValues, bins=range(0,260))
-    axs[0, 1].hist(bottomFlashValues, bins=range(0,260))
     axs[1, 0].hist(topFlashValues, bins=range(0,260))
     axs[1, 1].hist(fullFlashValues, bins=range(0,260))
     saveStep.savePlot(username, imageName, 'originalCaptureValuesHist', plt)
@@ -460,13 +450,13 @@ def run(username, imageName, fast=False, saveStats=False):
         saveStep.saveShapeStep(username, imageName, imageShape, 1)
         saveStep.saveImageStep(username, imageName, image, 1)
         saveStep.saveImageStep(username, imageName, allPointsMask, 1, 'clippedMask')
-        saveStep.saveReferenceImageLinearBGR(username, imageName, baseImage, 'baseAligned')
+        saveStep.saveReferenceImageLinearBGR(username, imageName, noFlashImage, 'noFlashAligned')
         saveStep.saveReferenceImageLinearBGR(username, imageName, fullFlashImage, 'fullFlashAligned')
-        saveStep.saveReferenceImageLinearBGR(username, imageName, topFlashImage, 'topFlashAligned')
-        saveStep.saveReferenceImageLinearBGR(username, imageName, bottomFlashImage, 'bottomFlashAligned')
+        saveStep.saveReferenceImageLinearBGR(username, imageName, halfFlashImage, 'halfFlashAligned')
 
 
     whiteBalance_CIE1931_coord_asShot = saveStep.getAsShotWhiteBalance(username, imageName)
+    print('White Balance As Shot :: ' + str(whiteBalance_CIE1931_coord_asShot))
 
     averageReflectionBGR = getAverageScreenReflectionColor(username, imageName, image, fullFlashImage_sBGR, imageShape, whiteBalance_CIE1931_coord_asShot)
 
