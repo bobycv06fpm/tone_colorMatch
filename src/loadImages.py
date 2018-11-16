@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
 
-root = '../../'
+#root = '../../'
+root = '/home/dmacewen/Projects/tone/'
 
 def loadImage(path):
     image = cv2.imread(path)

@@ -22,7 +22,8 @@ import multiprocessing as mp
 #import pympler
 #from pympler.tracker import SummaryTracker
 
-root = '../../'
+#root = '../../'
+root = '/home/dmacewen/Projects/tone/'
 
 def getLast(arr):
     return arr[-1]
@@ -282,12 +283,15 @@ def experimentalReflectionDetection(B, BS, BF, BFS, TF, TFS, FF, FFS):
 
 
 def run(username, imageName, fast=False, saveStats=False):
+    print("Reseting Log File...")
     saveStep.resetLogFile(username, imageName)
 
+    print("Loading Images...")
     images = loadImages(username, imageName)
 
     [originalNoFlashImage, originalHalfFlashImage, originalFullFlashImage] = images
 
+    print("Detecting!...")
     detector = dlib.get_frontal_face_detector()
     #predictor = dlib.shape_predictor('/home/dmacewen/Projects/colorMatch/service/predictors/shape_predictor_68_face_landmarks.dat')
     predictor = dlib.shape_predictor( root + 'tone_colorMatch/predictors/shape_predictor_68_face_landmarks.dat')
