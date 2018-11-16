@@ -40,8 +40,8 @@ def drawSpot(image, location):
 
 #Points defined here: https://www.pyimagesearch.com/2017/04/03/facial-landmarks-dlib-opencv-python/ (NOTE: Points are in 0 indexed array while site starts at 1)
 
-Y = 1
 X = 0
+Y = 1
 
 def getEyePoints(imageShape):
     (start, end) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]

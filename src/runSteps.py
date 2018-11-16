@@ -281,34 +281,29 @@ def experimentalReflectionDetection(B, BS, BF, BFS, TF, TFS, FF, FFS):
     #cv2.imshow('JUST THE REFLECTIONS?', (test2 * 255).astype('uint8'))
     #cv2.waitKey(0)
 
-
 def run(username, imageName, fast=False, saveStats=False):
-    print("Reseting Log File...")
     saveStep.resetLogFile(username, imageName)
-
-    print("Loading Images...")
     images = loadImages(username, imageName)
 
     [originalNoFlashImage, originalHalfFlashImage, originalFullFlashImage] = images
 
-    print("Detecting!...")
-    detector = dlib.get_frontal_face_detector()
+    #detector = dlib.get_frontal_face_detector()
     #predictor = dlib.shape_predictor('/home/dmacewen/Projects/colorMatch/service/predictors/shape_predictor_68_face_landmarks.dat')
-    predictor = dlib.shape_predictor( root + 'tone_colorMatch/predictors/shape_predictor_68_face_landmarks.dat')
+    #predictor = dlib.shape_predictor( root + 'tone_colorMatch/predictors/shape_predictor_68_face_landmarks.dat')
 
-    #cv2.imshow('no flash', originalNoFlashImage)
-    #cv2.imshow('half flash', originalHalfFlashImage)
-    #cv2.imshow('full flash', originalFullFlashImage)
-    #cv2.waitKey(0)
+    #print('Detecting Base Face')
+    #[noFlashImage, noFlashImageShape] = detectFace(originalNoFlashImage, predictor, detector)
 
-    print('Detecting Base Face')
-    [noFlashImage, noFlashImageShape] = detectFace(originalNoFlashImage, predictor, detector)
+    #print('Detecting Half Flash Face')
+    #[halfFlashImage, halfFlashImageShape] = detectFace(originalHalfFlashImage, predictor, detector)
 
-    print('Detecting Half Flash Face')
-    [halfFlashImage, halfFlashImageShape] = detectFace(originalHalfFlashImage, predictor, detector)
+    #print('Detecting Full Flash Face')
+    #[fullFlashImage, fullFlashImageShape] = detectFace(originalFullFlashImage, predictor, detector)
 
-    print('Detecting Full Flash Face')
-    [fullFlashImage, fullFlashImageShape] = detectFace(originalFullFlashImage, predictor, detector)
+    [noFlashMetadata, halfFlashMetadata, fullFlashMetadata] = saveStep.getMetadata(username, imageName)
+    for landmark in noFlashMetadata['faceLandmarks']:
+        print(landmark, landmark[0] + landmark[1])
+
 
     print('Trimming Down sRGB Images')
     margin = .04

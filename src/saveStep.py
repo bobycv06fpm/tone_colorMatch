@@ -23,8 +23,6 @@ def stepPathBuilder(username, fileName, step='', ext='.csv', meta=''):
 #    return '../calibrations/' + username + '/cameraResponseFunction.csv'
 
 def touchReference(username, fileName):
-    print("USERNAME :: " + username)
-    print("FILENAME :: " + fileName)
     path = referencePathBuilder(username, fileName)
     if not os.path.exists(path):
         os.makedirs(path)
@@ -174,9 +172,7 @@ def logMeasurement(username, fileName, measurementName, measurementValue):
     os.chmod(path, 0o777)
 
 def resetLogFile(username, fileName):
-    print('reseting still...')
     touchReference(username, fileName)
-    print('Touuuuched')
     path = referencePathBuilder(username, fileName, 'measurementLog', '.txt')
     open(path, 'w').close()
     os.chmod(path, 0o777)
@@ -251,6 +247,14 @@ def getAsShotWhiteBalance(username, fileName):
         data = json.load(f)
 
     return [data[0]['whiteBalance']['x'], data[0]['whiteBalance']['y']]
+
+def getMetadata(username, fileName):
+    path = root + 'images/' + username + '/' + fileName + '/' + fileName + '-metadata.txt'
+
+    with open(path) as f:
+        data = json.load(f)
+
+    return data
 
 def savePlot(username, fileName, name, plot):
     path = referencePathBuilder(username, fileName, name, '.png')
