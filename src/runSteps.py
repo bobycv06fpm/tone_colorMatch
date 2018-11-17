@@ -15,6 +15,8 @@ import thresholdMask
 import math
 from scipy import ndimage
 import matplotlib.pyplot as plt
+#import landmarkPoints
+from capture import Capture 
 
 import multiprocessing as mp
 #from multiprocessing.sharedctypes import RawValue
@@ -285,7 +287,12 @@ def run(username, imageName, fast=False, saveStats=False):
     saveStep.resetLogFile(username, imageName)
     images = loadImages(username, imageName)
 
-    [originalNoFlashImage, originalHalfFlashImage, originalFullFlashImage] = images
+    [noFlashImage, halfFlashImage, fullFlashImage] = images
+    [noFlashMetadata, halfFlashMetadata, fullFlashMetadata] = saveStep.getMetadata(username, imageName)
+
+    noFlashCapture = Capture('No Flash', noFlashImage, noFlashMetadata)
+    halfFlashCapture = Capture('Half Flash', halfFlashImage, halfFlashMetadata)
+    fullFlashCapture = Capture('Full Flash', fullFlashImage, fullFlashMetadata)
 
     #detector = dlib.get_frontal_face_detector()
     #predictor = dlib.shape_predictor('/home/dmacewen/Projects/colorMatch/service/predictors/shape_predictor_68_face_landmarks.dat')
@@ -300,69 +307,92 @@ def run(username, imageName, fast=False, saveStats=False):
     #print('Detecting Full Flash Face')
     #[fullFlashImage, fullFlashImageShape] = detectFace(originalFullFlashImage, predictor, detector)
 
-    [noFlashMetadata, halfFlashMetadata, fullFlashMetadata] = saveStep.getMetadata(username, imageName)
-    for landmark in noFlashMetadata['faceLandmarks']:
-        print(landmark, landmark[0] + landmark[1])
+    #for landmark in noFlashMetadata['faceLandmarks']:
+    #    print(landmark, landmark[0] + landmark[1])
+
+    #noFlashLandmarks = landmarkPoints.landmarks(noFlashMetadata['faceLandmarksSource'], noFlashMetadata['faceLandmarks'])
+    #halfFlashLandmarks = landmarkPoints.landmarks(halfFlashMetadata['faceLandmarksSource'], halfFlashMetadata['faceLandmarks'])
+    #fullFlashLandmarks = landmarkPoints.landmarks(fullFlashMetadata['faceLandmarksSource'], fullFlashMetadata['faceLandmarks'])
+
+    #print("No Flash Landmarks" + str(noFlashLandmarks.landmarks))
+    #print("Half Flash Landmarks" + str(halfFlashLandmarks.landmarks))
+    #print("Full Flash Landmarks" + str(fullFlashLandmarks.landmarks))
+
+    #print('Trimming Down sRGB Images')
+    #margin = .04
+    #heightMargin = int(margin * noFlashImage.shape[0]) #Add 5% in both direction on height because crop is a little tight
+    #heightMax = noFlashImage.shape[0]
+    #widthMargin = int(margin * noFlashImage.shape[1])
+    #widthMax = noFlashImage.shape[1]
+
+    #[newX, newWidth, newY, newHeight] = getCropWidth(noFlashImageShape, halfFlashImageShape, fullFlashImageShape, heightMargin, heightMax, widthMargin, widthMax)
+
+    #noFlashImageAligned = noFlashImage[newY:(newY + newHeight), newX:(newX + newWidth)]
+    #noFlashImageShape = noFlashImageShape - [newX, newY]
+
+    #halfFlashImageAligned = halfFlashImage[newY:(newY + newHeight), newX:(newX + newWidth)]
+    #halfFlashImageShape = halfFlashImageShape - [newX, newY]
+
+    #fullFlashImageAligned = fullFlashImage[newY:(newY + newHeight), newX:(newX + newWidth)]
+    #fullFlashImageShape = fullFlashImageShape - [newX, newY]
+
+    #print('Masking No Flash')
+    #noFlashImageMask = thresholdMask.getClippedMask(noFlashImageAligned, 5, 5)
+    #noFlashImageMask = thresholdMask.getClippedMask(noFlashImage, 1, 1)
+
+    #print('Masking Half Flash')
+    #halfFlashImageMask = thresholdMask.getClippedMask(halfFlashImageAligned, 5, 5)
+    #halfFlashImageMask = thresholdMask.getClippedMask(halfFlashImage, 1, 1)
+
+    #print('Masking Full Flash')
+    #fullFlashImageMask = thresholdMask.getClippedMask(fullFlashImageAligned, 5, 5)
+    #fullFlashImageMask = thresholdMask.getClippedMask(fullFlashImage, 1, 1)
 
 
-    print('Trimming Down sRGB Images')
-    margin = .04
-    heightMargin = int(margin * noFlashImage.shape[0]) #Add 5% in both direction on height because crop is a little tight
-    heightMax = noFlashImage.shape[0]
-    widthMargin = int(margin * noFlashImage.shape[1])
-    widthMax = noFlashImage.shape[1]
+    #print('Converting Base to Linear')
+    #noFlashImage = colorTools.convert_sBGR_to_linearBGR_float(noFlashImageAligned)
 
-    [newX, newWidth, newY, newHeight] = getCropWidth(noFlashImageShape, halfFlashImageShape, fullFlashImageShape, heightMargin, heightMax, widthMargin, widthMax)
+    #print('Converting Top Flash to Linear')
+    #halfFlashImage = colorTools.convert_sBGR_to_linearBGR_float(halfFlashImageAligned)
 
-    noFlashImageAligned = noFlashImage[newY:(newY + newHeight), newX:(newX + newWidth)]
-    noFlashImageShape = noFlashImageShape - [newX, newY]
-
-    halfFlashImageAligned = halfFlashImage[newY:(newY + newHeight), newX:(newX + newWidth)]
-    halfFlashImageShape = halfFlashImageShape - [newX, newY]
-
-    fullFlashImageAligned = fullFlashImage[newY:(newY + newHeight), newX:(newX + newWidth)]
-    fullFlashImageShape = fullFlashImageShape - [newX, newY]
-
-    print('Masking sRGB Base')
-    noFlashImageMask = thresholdMask.getClippedMask(noFlashImageAligned, 5, 5)
-
-    print('Masking sRGB Top Flash')
-    halfFlashImageMask = thresholdMask.getClippedMask(halfFlashImageAligned, 5, 5)
-
-    print('Masking sRGB Full Flash')
-    fullFlashImageMask = thresholdMask.getClippedMask(fullFlashImageAligned, 5, 5)
-
-
-    print('Converting Base to Linear')
-    noFlashImage = colorTools.convert_sBGR_to_linearBGR_float(noFlashImageAligned)
-
-    print('Converting Top Flash to Linear')
-    halfFlashImage = colorTools.convert_sBGR_to_linearBGR_float(halfFlashImageAligned)
-
-    print('Converting Full Flash to Linear')
-    fullFlashImage = colorTools.convert_sBGR_to_linearBGR_float(fullFlashImageAligned)
+    #print('Converting Full Flash to Linear')
+    #fullFlashImage = colorTools.convert_sBGR_to_linearBGR_float(fullFlashImageAligned)
 
     print('Cropping and Aligning')
-    noFlashCapture = (noFlashImage, noFlashImageShape, noFlashImageMask)
-    halfFlashCapture = (halfFlashImage, halfFlashImageShape, halfFlashImageMask)
-    fullFlashCapture = (fullFlashImage, fullFlashImageShape, fullFlashImageMask)
+    #noFlashCapture = (noFlashImage, noFlashLandmarks.landmarks, noFlashImageMask)
+    #halfFlashCapture = (halfFlashImage, halfFlashLandmarks.landmarks, halfFlashImageMask)
+    #fullFlashCapture = (fullFlashImage, fullFlashLandmarks.landmarks, fullFlashImageMask)
 
-    [images, crops] = cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture, imageName)
+#    noFlashCapture.show(False)
+#    halfFlashCapture.show(False)
+#    fullFlashCapture.show()
+#
+#    print("half flash size :: " + str(halfFlashCapture.image.shape))
 
-    (noFlashImage, noFlashImageShape, noFlashImageMask) = images[0]
-    (halfFlashImage, halfFlashImageShape, halfFlashImageMask) = images[1]
-    (fullFlashImage, fullFlashImageShape, fullFlashImageMask) = images[2]
+    #images = cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture)
 
-    crops = np.array(crops)
+    #Needs to be more accurate
+    cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture)
 
-    noFlashImage_sBGR = noFlashImageAligned[crops[0, 1, 1]:crops[0, 1, 2], crops[0, 0, 1]:crops[0, 0, 2]]
-    halfFlashImage_sBGR = halfFlashImageAligned[crops[2, 1, 1]:crops[2, 1, 2], crops[2, 0, 1]:crops[2, 0, 2]]
-    fullFlashImage_sBGR = fullFlashImageAligned[crops[1, 1, 1]:crops[1, 1, 2], crops[1, 0, 1]:crops[1, 0, 2]]
+#    print("half flash size :: " + str(halfFlashCapture.image.shape))
+#    noFlashCapture.show(False)
+#    halfFlashCapture.show(False)
+#    fullFlashCapture.show()
+
+    #(noFlashImage, noFlashImageShape, noFlashImageMask) = images[0]
+    #(halfFlashImage, halfFlashImageShape, halfFlashImageMask) = images[1]
+    #(fullFlashImage, fullFlashImageShape, fullFlashImageMask) = images[2]
+
+    #crops = np.array(crops)
+
+    #noFlashImage_sBGR = noFlashImageAligned[crops[0, 1, 1]:crops[0, 1, 2], crops[0, 0, 1]:crops[0, 0, 2]]
+    #halfFlashImage_sBGR = halfFlashImageAligned[crops[2, 1, 1]:crops[2, 1, 2], crops[2, 0, 1]:crops[2, 0, 2]]
+    #fullFlashImage_sBGR = fullFlashImageAligned[crops[1, 1, 1]:crops[1, 1, 2], crops[1, 0, 1]:crops[1, 0, 2]]
 
     #experimentalReflectionDetection(noFlashImage, noFlashImageShape, bottomFlashImage, bottomFlashImageShape, halfFlashImage, halfFlashImageShape, fullFlashImage, fullFlashImageShape)
 
-    partialMask = np.logical_or(noFlashImageMask, halfFlashImageMask)
-    allPointsMask = np.logical_or(partialMask, fullFlashImageMask)
+    partialMask = np.logical_or(noFlashCapture.mask, halfFlashCapture.mask)
+    allPointsMask = np.logical_or(partialMask, fullFlashCapture.mask)
     clippedPixelsMask = np.copy(allPointsMask)
 
     # (All Pixels That Are Clipped In Full Flash) AND (All The Pixels That Are NOT Clipped By Base & Top & Bottom Flash)
@@ -418,16 +448,16 @@ def run(username, imageName, fast=False, saveStats=False):
     allPointsMask = np.logical_or(allPointsMask, negativePixelMask)
 
     #image = fullFlashImage - noFlashImage
-    print('Values Histograms')
-    baseValues = extractHistogramValues(username, imageName, noFlashImage_sBGR, polygons)
-    topFlashValues = extractHistogramValues(username, imageName, halfFlashImage_sBGR, polygons)
-    fullFlashValues = extractHistogramValues(username, imageName, fullFlashImage_sBGR, polygons)
+    #print('Values Histograms')
+    #baseValues = extractHistogramValues(username, imageName, noFlashImage_sBGR, polygons)
+    #topFlashValues = extractHistogramValues(username, imageName, halfFlashImage_sBGR, polygons)
+    #fullFlashValues = extractHistogramValues(username, imageName, fullFlashImage_sBGR, polygons)
 
-    fig, axs = plt.subplots(2, 2, sharey=True, tight_layout=True)
-    axs[0, 0].hist(baseValues, bins=range(0,260))
-    axs[1, 0].hist(topFlashValues, bins=range(0,260))
-    axs[1, 1].hist(fullFlashValues, bins=range(0,260))
-    saveStep.savePlot(username, imageName, 'originalCaptureValuesHist', plt)
+    #fig, axs = plt.subplots(2, 2, sharey=True, tight_layout=True)
+    #axs[0, 0].hist(baseValues, bins=range(0,260))
+    #axs[1, 0].hist(topFlashValues, bins=range(0,260))
+    #axs[1, 1].hist(fullFlashValues, bins=range(0,260))
+    #saveStep.savePlot(username, imageName, 'originalCaptureValuesHist', plt)
     #plt.show()
 
     recoveredMask = np.logical_and(allPointsMask, np.logical_not(potentiallyRecoverablePixelsMask))

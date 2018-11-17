@@ -4,6 +4,7 @@ import cv2
 import imutils
 import colorTools
 import math
+import cropTools
 
 BLUR_SIZE = 11
 
@@ -16,17 +17,17 @@ def updateShape(shape, xyDiff):
 
     return newShape
 
-X = 0
-Y = 1
-W = 2
-H = 3
+#X = 0
+#Y = 1
+#W = 2
+#H = 3
+#
+#bbMargin = .01 #make the bounding boxes % larger in each Coord (2x% total in each direction)
 
-bbMargin = .01 #make the bounding boxes % larger in each Coord (2x% total in each direction)
+def getPreparedAlt(capture):
+    gray = cv2.cvtColor(np.clip(capture.image * 255, 0, 255).astype('uint8'), cv2.COLOR_BGR2GRAY)
 
-def getPreparedAlt(image, shape):
-    gray = cv2.cvtColor(np.clip(image * 255, 0, 255).astype('uint8'), cv2.COLOR_BGR2GRAY)
-
-    shapeCulled = shape[17:]
+    shapeCulled = capture.landmarks.getInteriorPoints()
 
     grayHull = cv2.convexHull(shapeCulled)
     
@@ -112,129 +113,132 @@ def calculateOffset(preparedNoFlashImage, preparedFlashImage):
     print("Offset :: " + str(offset))
     return offset
 
-X=0
-Y=1
+#X=0
+#Y=1
+#
+#def getXOffset(elem):
+#    return elem[0]
+#
+#def getYOffset(elem):
+#    return elem[1]
+#
+#def getOrder(elem):
+#    return elem[3]
 
-def getXOffset(elem):
-    return elem[0]
-
-def getYOffset(elem):
-    return elem[1]
-
-def getOrder(elem):
-    return elem[3]
-
-def cropToOffset(imagesSortedByOffset, axis):
-    cropped = []
-
-    targetOffset = imagesSortedByOffset[0][axis] #SmallestOffsetValue
-    largestOffset = imagesSortedByOffset[-1][axis] #LargestOffsetValue
-    axisSizeReduction = abs(targetOffset - largestOffset) #Used to figure out how much to reduce the length of each axis
-
-    for capture in imagesSortedByOffset:
-        imageCapture = capture[2]
-        imageOffset = capture[axis]
-
-        coordDelta = abs(targetOffset - imageOffset)
-        axisSizeDelta = abs(axisSizeReduction - coordDelta)
-
-        shapeMask = [0, 0]
-        shapeMask[axis] = coordDelta
-
-        (image, shape, mask) = imageCapture
-        if axis == Y:
-            image = image[coordDelta:, :]
-            mask = mask[coordDelta:, :]
-
-            if axisSizeDelta != 0:
-                image = image[0:-axisSizeDelta, :]
-                mask = mask[0:-axisSizeDelta, :]
-                capture.append([0, coordDelta, -axisSizeDelta])
-            else:
-                capture.append([0, coordDelta, None])
-
-        else:
-            image = image[:, coordDelta:]
-            mask = mask[:, coordDelta:]
-
-            if axisSizeDelta != 0:
-                image = image[:, 0:-axisSizeDelta]
-                mask = mask[:, 0:-axisSizeDelta]
-                capture.append([1, coordDelta, -axisSizeDelta])
-            else:
-                capture.append([1, coordDelta, None])
-
-        shape = shape - shapeMask
-
-        capture[2] = (image, shape, mask)
-        capture[axis] = 0
-
-        cropped.append(capture)
-
-    return cropped
+#def cropToOffset(imagesSortedByOffset, axis):
+#    cropped = []
+#
+#    targetOffset = imagesSortedByOffset[0][axis] #SmallestOffsetValue
+#    largestOffset = imagesSortedByOffset[-1][axis] #LargestOffsetValue
+#    axisSizeReduction = abs(targetOffset - largestOffset) #Used to figure out how much to reduce the length of each axis
+#
+#    for capture in imagesSortedByOffset:
+#        imageCapture = capture[2]
+#        imageOffset = capture[axis]
+#
+#        coordDelta = abs(targetOffset - imageOffset)
+#        axisSizeDelta = abs(axisSizeReduction - coordDelta)
+#
+#        shapeMask = [0, 0]
+#        shapeMask[axis] = coordDelta
+#
+#        (image, shape, mask) = imageCapture
+#        if axis == Y:
+#            image = image[coordDelta:, :]
+#            mask = mask[coordDelta:, :]
+#
+#            if axisSizeDelta != 0:
+#                image = image[0:-axisSizeDelta, :]
+#                mask = mask[0:-axisSizeDelta, :]
+#                capture.append([0, coordDelta, -axisSizeDelta])
+#            else:
+#                capture.append([0, coordDelta, None])
+#
+#        else:
+#            image = image[:, coordDelta:]
+#            mask = mask[:, coordDelta:]
+#
+#            if axisSizeDelta != 0:
+#                image = image[:, 0:-axisSizeDelta]
+#                mask = mask[:, 0:-axisSizeDelta]
+#                capture.append([1, coordDelta, -axisSizeDelta])
+#            else:
+#                capture.append([1, coordDelta, None])
+#
+#        shape = shape - shapeMask
+#
+#        capture[2] = (image, shape, mask)
+#        capture[axis] = 0
+#
+#        cropped.append(capture)
+#
+#    return cropped
 
 
-def cropAndAlign(noFlash, halfFlash, fullFlash, imageName):
-    (noFlashImage, noFlashShape, noFlashMask) = noFlash
-    (halfFlashImage, halfFlashShape, halfFlashMask) = halfFlash
+def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
+    #(noFlashImage, noFlashShape, noFlashMask) = noFlash
+    #(halfFlashImage, halfFlashShape, halfFlashMask) = halfFlash
     #(halfFlashImage_sBGR, halfFlashShape_sBGR, halfFlashMask_sBGR) = halfFlash_sBGR
-    (fullFlashImage, fullFlashShape, fullFlashMask) = fullFlash
+    #(fullFlashImage, fullFlashShape, fullFlashMask) = fullFlash
 
 
     #preparedNoFlashImage = getPreparedNoFlashImage(noFlashImage, noFlashShape)
     #preparedHalfFlashImage = getPreparedFlashImage(halfFlashImage, halfFlashShape, 1.1)
     #preparedFullFlashImage = getPreparedFlashImage(fullFlashImage, fullFlashShape, 1.1)
 
-    preparedNoFlashImage = getPreparedAlt(noFlashImage, noFlashShape)
-    preparedHalfFlashImage = getPreparedAlt(halfFlashImage, halfFlashShape)
-    preparedFullFlashImage = getPreparedAlt(fullFlashImage, fullFlashShape)
+    preparedNoFlashImage = getPreparedAlt(noFlashCapture)
+    preparedHalfFlashImage = getPreparedAlt(halfFlashCapture)
+    preparedFullFlashImage = getPreparedAlt(fullFlashCapture)
 
     #cv2.imshow("Prepared", np.hstack([cv2.resize(preparedNoFlashImage, (0, 0), fx=.5, fy=.5), cv2.resize(preparedFullFlashImage, (0, 0), fx=.5, fy=.5), cv2.resize(preparedBottomFlashImage, (0, 0), fx=.5, fy=.5), cv2.resize(preparedHalfFlashImage, (0, 0), fx=.5, fy=.5)]))
     #cv2.waitKey(0)
 
     noFlashOffset = [0, 0] #All offsets are relative to noFlashImage
     halfFlashOffset = calculateOffset(preparedNoFlashImage, preparedHalfFlashImage)
-    #halfFlashOffset_sBGR = halfFlashOffset.copy()
     fullFlashOffset = calculateOffset(preparedNoFlashImage, preparedFullFlashImage)
 
-    justOffsets = [noFlashOffset, halfFlashOffset, fullFlashOffset]#, halfFlashOffset_sBGR]
-    justOffsets.sort(key=getXOffset, reverse=True)
-    largestX = justOffsets[0][X]
+    print('Cropping to offsets!')
+    cropTools.cropToOffsets([noFlashCapture, halfFlashCapture, fullFlashCapture], np.array([noFlashOffset, halfFlashOffset, fullFlashOffset]))
+    #halfFlashOffset_sBGR = halfFlashOffset.copy()
 
-    justOffsets.sort(key=getYOffset, reverse=True)
-    largestY = justOffsets[0][Y]
+    #justOffsets = [noFlashOffset, halfFlashOffset, fullFlashOffset]#, halfFlashOffset_sBGR]
+    #justOffsets.sort(key=getXOffset, reverse=True)
+    #largestX = justOffsets[0][X]
 
-    noFlashOffset.append(noFlash)
-    noFlashOffset.append(0) #Want to keep track of ordering...
+    #justOffsets.sort(key=getYOffset, reverse=True)
+    #largestY = justOffsets[0][Y]
 
-    halfFlashOffset.append(halfFlash)
-    halfFlashOffset.append(1)
+    #noFlashOffset.append(noFlash)
+    #noFlashOffset.append(0) #Want to keep track of ordering...
 
-    #halfFlashOffset_sBGR.append(halfFlash_sBGR)
-    #halfFlashOffset_sBGR.append(2)
+    #halfFlashOffset.append(halfFlash)
+    #halfFlashOffset.append(1)
 
-    fullFlashOffset.append(fullFlash)
-    fullFlashOffset.append(2)
+    ##halfFlashOffset_sBGR.append(halfFlash_sBGR)
+    ##halfFlashOffset_sBGR.append(2)
 
-    offsets = [noFlashOffset, halfFlashOffset, fullFlashOffset]
+    #fullFlashOffset.append(fullFlash)
+    #fullFlashOffset.append(2)
 
-    offsets.sort(key=getXOffset)
-    offsets = cropToOffset(offsets, X)
+    #offsets = [noFlashOffset, halfFlashOffset, fullFlashOffset]
 
-    offsets.sort(key=getYOffset)
-    offsets = cropToOffset(offsets, Y)
+    #offsets.sort(key=getXOffset)
+    #offsets = cropToOffset(offsets, X)
 
-    offsets.sort(key=getOrder)
+    #offsets.sort(key=getYOffset)
+    #offsets = cropToOffset(offsets, Y)
 
-    #print('Offsets :: ' + str(offsets))
+    #offsets.sort(key=getOrder)
 
-    [noFlashCropped, halfFlashCropped, fullFlashCropped] = [offset[2] for offset in offsets]
+    ##print('Offsets :: ' + str(offsets))
 
-    offsetDistance = math.sqrt(math.pow(largestX, 2) + math.pow(largestY, 2))
-    #print("Offset Distance! :: " + str(offsetDistance))
-    #if offsetDistance > 100:
-        #return [None, 'Possible Alignment Error. Total offset distance :: ' + str(offsetDistance) + '. Returning Early']
-    croppedImages = [noFlashCropped, halfFlashCropped, fullFlashCropped]
-    crop = [[offset[-2], offset[-1]] for offset in offsets]
+    #[noFlashCropped, halfFlashCropped, fullFlashCropped] = [offset[2] for offset in offsets]
 
-    return [croppedImages, crop]
+    ##offsetDistance = math.sqrt(math.pow(largestX, 2) + math.pow(largestY, 2))
+    ##print("Offset Distance! :: " + str(offsetDistance))
+    ##if offsetDistance > 100:
+    #    #return [None, 'Possible Alignment Error. Total offset distance :: ' + str(offsetDistance) + '. Returning Early']
+    #croppedImages = [noFlashCropped, halfFlashCropped, fullFlashCropped]
+    #crop = [[offset[-2], offset[-1]] for offset in offsets]
+
+    #return croppedImages

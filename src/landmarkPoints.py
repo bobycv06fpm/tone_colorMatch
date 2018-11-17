@@ -1,9 +1,8 @@
-from imutils import face_utils
-import imutils
 import numpy as np
+import cv2
 
-#Dlib face landmarks url (indexed from 1, not 0...) https://www.pyimagesearch.com/wp-content/uploads/2017/04/facial_landmarks_68markup-768x619.jpg
-#Apple face landmarks url https://i.stack.imgur.com/2p1la.png
+#Dlib face landmarkPoints url (indexed from 1, not 0...) https://www.pyimagesearch.com/wp-content/uploads/2017/04/facial_landmarkPoints_68markup-768x619.jpg
+#Apple face landmarkPoints url https://i.stack.imgur.com/2p1la.png
 
 #Algo Specific Features (For generating bounding boxes... might as well use all the data)
 #Format: [start, end)
@@ -28,7 +27,7 @@ DLIB_LEFT_EYE = (42, 48)
 DLIB_NOSE = (27, 36) 
 DLIB_MOUTH = (48, 68) 
 
-class landmarks:
+class Landmarks:
 
     #General Rule Of thumb... Try and match points between Apple and Dlib with the source that has fewer points
 
@@ -48,150 +47,157 @@ class landmarks:
 
 
     source = ''
-    sourceLandmarks = []
-    landmarks = []
+    sourceLandmarkPoints = []
+    landmarkPoints = []
     
-    def __init__(self, source, landmarks):
-        self.sourceLandmarks = landmarks
+    def __init__(self, source, landmarkPoints, imageSize):
+        self.sourceLandmarkPoints = np.array(landmarkPoints)
         self.source = source
         if source == 'apple':
-            self.landmarks = self.convertAppleLandmarks(landmarks)
-        else if source == 'dlib':
-            self.landmarks = self.convertDLibLandmarks(landmarks)
+            self.landmarkPoints = self.convertAppleLandmarks(landmarkPoints, imageSize)
+        elif source == 'dlib':
+            self.landmarkPoints = self.convertDLibLandmarks(landmarkPoints)
 
-    def convertAppleLandmarks(sourceLandmarks):
-        landmarks = []
+    def convertAppleLandmarks(self, sourceLandmarkPoints, imageSize):
+        landmarkPoints = []
 
         #Jaw
-        landmarks = landmarks + sourceLandmarks[40:51]
+        landmarkPoints = landmarkPoints + sourceLandmarkPoints[40:51]
 
         #Right Eyebrow
-        landmarks = landmarks + sourceLandmarks[0:4]
+        landmarkPoints = landmarkPoints + sourceLandmarkPoints[0:4]
 
         #Left Eyebrow
-        landmarks = landmarks + sourceLandmarks[4:8]
+        landmarkPoints = landmarkPoints + sourceLandmarkPoints[4:8]
 
         #Right Eye
         rightEye = [
-                sourceLandmarks[8],
-                sourceLandmarks[9], 
-                sourceLandmarks[11], 
-                sourceLandmarks[12], 
-                sourceLandmarks[13], 
-                sourceLandmarks[15]]
+                sourceLandmarkPoints[8],
+                sourceLandmarkPoints[9], 
+                sourceLandmarkPoints[11], 
+                sourceLandmarkPoints[12], 
+                sourceLandmarkPoints[13], 
+                sourceLandmarkPoints[15]]
 
-        landmarks = landmarks + rightEye
+        landmarkPoints = landmarkPoints + rightEye
 
         #Left Eye
         leftEye = [
-                sourceLandmarks[16],
-                sourceLandmarks[17], 
-                sourceLandmarks[19], 
-                sourceLandmarks[20], 
-                sourceLandmarks[21], 
-                sourceLandmarks[23]]
+                sourceLandmarkPoints[16],
+                sourceLandmarkPoints[17], 
+                sourceLandmarkPoints[19], 
+                sourceLandmarkPoints[20], 
+                sourceLandmarkPoints[21], 
+                sourceLandmarkPoints[23]]
 
-        landmarks = landmarks + leftEye
+        landmarkPoints = landmarkPoints + leftEye
 
         #Nose
-        landmarks = landmarks + sourceLandmarks[60:63]
-        landmarks = landmarks + sourceLandmarks[53:58]
+        landmarkPoints = landmarkPoints + sourceLandmarkPoints[60:63]
+        landmarkPoints = landmarkPoints + sourceLandmarkPoints[53:58]
 
         #Lips
-        landmarks = landmarks + [sourceLandmarks[33]]
-        landmarks = landmarks + sourceLandmarks[24:33]
+        landmarkPoints = landmarkPoints + [sourceLandmarkPoints[33]]
+        landmarkPoints = landmarkPoints + sourceLandmarkPoints[24:33]
 
-        return landmarks
+        #Flip Y coordinates... Indexed off of Bottom, not top..
+        landmarkPoints = np.array(landmarkPoints)
+        landmarkPoints[:, 1] = imageSize[0] - landmarkPoints[:, 1]
+        return landmarkPoints
 
-    def convertDLibLandmarks(landmarks):
-        landmarks = []
+    def convertDLibLandmarks(self, landmarkPoints):
+        landmarkPoints = []
 
         #Jaw
-        jaw = [ sourceLandmarks[0], #1
-                sourceLandmarks[1], #2
-                sourceLandmarks[3], #4
-                sourceLandmarks[5], #6
-                sourceLandmarks[6], #7
-                sourceLandmarks[8], #9
-                sourceLandmarks[10],#11
-                sourceLandmarks[11],#12
-                sourceLandmarks[13],#14
-                sourceLandmarks[15],#16
-                sourceLandmarks[16]]#17
+        jaw = [ sourceLandmarkPoints[0], #1
+                sourceLandmarkPoints[1], #2
+                sourceLandmarkPoints[3], #4
+                sourceLandmarkPoints[5], #6
+                sourceLandmarkPoints[6], #7
+                sourceLandmarkPoints[8], #9
+                sourceLandmarkPoints[10],#11
+                sourceLandmarkPoints[11],#12
+                sourceLandmarkPoints[13],#14
+                sourceLandmarkPoints[15],#16
+                sourceLandmarkPoints[16]]#17
 
-        landmarks = landmarks + jaw
+        landmarkPoints = landmarkPoints + jaw
 
         #Right Eyebrow
         rightEyebrow = [
-                sourceLandmarks[17],#18
-                sourceLandmarks[18],#19
-                sourceLandmarks[20],#21
-                sourceLandmarks[21]]#22
+                sourceLandmarkPoints[17],#18
+                sourceLandmarkPoints[18],#19
+                sourceLandmarkPoints[20],#21
+                sourceLandmarkPoints[21]]#22
 
-        landmarks = landmarks + rightEyebrow
+        landmarkPoints = landmarkPoints + rightEyebrow
 
         #Left Eyebrow
         leftEyebrow = [
-                sourceLandmarks[22],#23
-                sourceLandmarks[23],#24
-                sourceLandmarks[25],#26
-                sourceLandmarks[26]]#27
+                sourceLandmarkPoints[22],#23
+                sourceLandmarkPoints[23],#24
+                sourceLandmarkPoints[25],#26
+                sourceLandmarkPoints[26]]#27
 
-        landmarks = landmarks + leftEyebrow
+        landmarkPoints = landmarkPoints + leftEyebrow
 
         #Right Eye
-        landmarks = landmarks + sourceLandmarks[36:42]
+        landmarkPoints = landmarkPoints + sourceLandmarkPoints[36:42]
 
         #Left Eye
-        landmarks = landmarks + sourceLandmarks[42:48]
+        landmarkPoints = landmarkPoints + sourceLandmarkPoints[42:48]
 
         #Nose
         noseBridge = [
-                sourceLandmarks[27], #28
-                sourceLandmarks[28], #29
-                sourceLandmarks[30]] #31
+                sourceLandmarkPoints[27], #28
+                sourceLandmarkPoints[28], #29
+                sourceLandmarkPoints[30]] #31
 
-        noseNostril = sourceLandmarks[31:36]
+        noseNostril = sourceLandmarkPoints[31:36]
 
-        landmarks = landmarks + noseBridge + noseNostril
+        landmarkPoints = landmarkPoints + noseBridge + noseNostril
 
         #Lips
-        topLip = sourceLandmarks[48:55]
-        bottomLip = sourceLandmarks[57:60]
+        topLip = sourceLandmarkPoints[48:55]
+        bottomLip = sourceLandmarkPoints[57:60]
 
-        landmarks = landmarks + topLip + bottomLip
+        landmarkPoints = landmarkPoints + topLip + bottomLip
 
-        return landmarks
+        return np.array(landmarkPoints)
 
-    def getRightEyeBB():
+    def getRightEyeBB(self):
         if source == 'apple':
             (start, end) = APPLE_RIGHT_EYE
-            rightEyePoints = sourceLandmarks[start:end]
+            rightEyePoints = self.sourceLandmarkPoints[start:end]
         else:
             (start, end) = DLIB_RIGHT_EYE
-            rightEyePoints = sourceLandmarks[start:end]
+            rightEyePoints = self.sourceLandmarkPoints[start:end]
 
         return cv2.boundingRect(np.array(rightEyePoints))
 
-    def getLeftEyeBB():
+    def getLeftEyeBB(self):
         if source == 'apple':
             (start, end) = APPLE_LEFT_EYE
-            leftEyePoints = sourceLandmarks[start:end]
+            leftEyePoints = self.sourceLandmarkPoints[start:end]
         else:
             (start, end) = DLIB_LEFT_EYE
-            leftEyePoints = sourceLandmarks[start:end]
+            leftEyePoints = self.sourceLandmarkPoints[start:end]
 
         return cv2.boundingRect(np.array(leftEyePoints))
 
-    def getMouthBB():
+    def getMouthBB(self):
         if source == 'apple':
             (start, end) = APPLE_MOUTH
-            mouthPoints = sourceLandmarks[start:end]
+            mouthPoints = self.sourceLandmarkPoints[start:end]
         else:
             (start, end) = DLIB_MOUTH
-            mouthPoints = sourceLandmarks[start:end]
+            mouthPoints = self.sourceLandmarkPoints[start:end]
 
         return cv2.boundingRect(np.array(mouthPoints))
 
-    def
+    def getFaceBB(self):
+        return cv2.boundingRect(np.array(sourceLandmarkPoints))
+
+    def getInteriorPoints(self):
+        return self.landmarkPoints[11:]
 
