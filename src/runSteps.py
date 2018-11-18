@@ -162,11 +162,11 @@ def stackAndShow(imageSets, name):
     counter = 0
     for imageSet in imageSets:
         imageStack = np.hstack([*imageSet])
-        cv2.imshow('{} :: {}'.format(name, counter), imageStack)
+        #cv2.imshow('{} :: {}'.format(name, counter), imageStack)
         #print('Displaying Image....(not really)')
         counter += 1
 
-    cv2.waitKey(0)
+    #cv2.waitKey(0)
 
 #Order Not Maintained
 def cropToAxis(images, offset, axis):
@@ -422,10 +422,10 @@ def run(username, imageName, fast=False, saveStats=False):
 
     #TEST STARTING NOW
     print('Beginning Linearity Test')
-    cv2.waitKey(0)
+    #cv2.waitKey(0)
     howLinear = np.abs((2 * halfFlashImageBlur) - (fullFlashImageBlur + noFlashImageBlur))
-    cv2.imshow('how linear...', np.clip(howLinear * 10, 0, 255))
-    cv2.waitKey(0)
+    #cv2.imshow('how linear...', np.clip(howLinear * 10, 0, 255))
+    #cv2.waitKey(0)
 
     howLinearMax = np.sum(howLinear, axis=2)
     howLinearMaxBlur = howLinearMax#cv2.GaussianBlur(howLinearMax, (7, 7), 0)
