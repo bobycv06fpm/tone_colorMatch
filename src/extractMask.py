@@ -15,7 +15,10 @@ def maskPolygons(mask, polygons):
     return np.logical_and(polyMask.astype('bool'), mask)
 
 
-def extractMask(username, image, polygons, clippedMask=None, imageName=None):
+def extractMask(username, imageName, polygons, capture):
+    image = capture.image
+    clippedMask = capture.mask
+
     mask = cv2.split(image)[0].copy()
     mask.fill(0)
 

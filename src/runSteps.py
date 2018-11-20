@@ -393,18 +393,14 @@ def run(username, imageName, fast=False, saveStats=False):
 
     partialMask = np.logical_or(noFlashCapture.mask, halfFlashCapture.mask)
     allPointsMask = np.logical_or(partialMask, fullFlashCapture.mask)
-    clippedPixelsMask = np.copy(allPointsMask)
+    #clippedPixelsMask = np.copy(allPointsMask)
 
     # (All Pixels That Are Clipped In Full Flash) AND (All The Pixels That Are NOT Clipped By Base & Top & Bottom Flash)
     # => Pixel Values caused to clip by Full Flash
-    potentiallyRecoverablePixelsMask = np.logical_and(fullFlashImageMask, np.logical_not(partialMask))
-    unrecoverablePixelsMask = np.logical_and(fullFlashImageMask, partialMask)
+    #potentiallyRecoverablePixelsMask = np.logical_and(fullFlashImageMask, np.logical_not(partialMask))
+    #unrecoverablePixelsMask = np.logical_and(fullFlashImageMask, partialMask)
     #allPointsMask = np.logical_and(allPointsMask, np.logical_not(unrecoverablePixelsMask))
 
-    imageShape = fullFlashImageShape
-
-    print('Getting Polygons')
-    polygons = getPolygons(imageShape)
 
     #unrecoverablePixelsMask = maskPolygons(unrecoverablePixelsMask, polygons)
     #potentiallyRecoverablePixelsMask = maskPolygons(potentiallyRecoverablePixelsMask, polygons)
@@ -412,9 +408,9 @@ def run(username, imageName, fast=False, saveStats=False):
 
     #fullFlashImage[potentiallyRecoverablePixelsMask] = RecoveredFullFlash[potentiallyRecoverablePixelsMask]
 
-    noFlashImageBlur = cv2.GaussianBlur(noFlashImage, (7, 7), 0)
-    halfFlashImageBlur = cv2.GaussianBlur(halfFlashImage, (7, 7), 0)
-    fullFlashImageBlur = cv2.GaussianBlur(fullFlashImage, (7, 7), 0)
+    noFlashImageBlur = cv2.GaussianBlur(noFlashCapture.image, (7, 7), 0)
+    halfFlashImageBlur = cv2.GaussianBlur(halfFlashCapture.image, (7, 7), 0)
+    fullFlashImageBlur = cv2.GaussianBlur(fullFlashCapture.image, (7, 7), 0)
 
     #noFlashImageBlur = cv2.GaussianBlur(noFlashImage, (15, 15), 0)
     #halfFlashImageBlur = cv2.GaussianBlur(halfFlashImage, (15, 15), 0)
@@ -427,6 +423,7 @@ def run(username, imageName, fast=False, saveStats=False):
     #cv2.imshow('how linear...', np.clip(howLinear * 10, 0, 255))
     #cv2.waitKey(0)
 
+    #TODO: Compare Subpixel nonlinearity with full pixel nonlinearity....
     howLinearMax = np.sum(howLinear, axis=2)
     howLinearMaxBlur = howLinearMax#cv2.GaussianBlur(howLinearMax, (7, 7), 0)
 
@@ -442,10 +439,14 @@ def run(username, imageName, fast=False, saveStats=False):
     #TEST ENDING NOW
 
     print('Subtracting Base from Flash')
-    image = fullFlashImage - noFlashImage
-    negativeSubPixelMask = image < 0
+    diffImage = fullFlashCapture.image - noFlashCapture.image
+
+    negativeSubPixelMask = diffImage < 0
     negativePixelMask = np.any(negativeSubPixelMask, axis=2)
     allPointsMask = np.logical_or(allPointsMask, negativePixelMask)
+
+    diffCapture = Capture('Diff', diffImage, fullFlashCapture.metadata, allPointsMask)
+
 
     #image = fullFlashImage - noFlashImage
     #print('Values Histograms')
@@ -460,12 +461,17 @@ def run(username, imageName, fast=False, saveStats=False):
     #saveStep.savePlot(username, imageName, 'originalCaptureValuesHist', plt)
     #plt.show()
 
-    recoveredMask = np.logical_and(allPointsMask, np.logical_not(potentiallyRecoverablePixelsMask))
+    #recoveredMask = np.logical_and(allPointsMask, np.logical_not(potentiallyRecoverablePixelsMask))
     #recoveredMask = unrecoverablePixelsMask
     #cv2.imshow('Recovered Mask', recoveredMask.astype('uint8') * 255)
     #cv2.waitKey(0)
+
+    print('Getting Polygons')
+    #imageShape = fullFlashImageShape
+    polygons = getPolygons(diffCapture.landmarks)
+    return
     try:
-        [points, averageFlashContribution] = extractMask(username, image, polygons, recoveredMask, imageName)
+        [points, averageFlashContribution] = extractMask(username, imageName, polygons, diffCapture)
     except NameError as err:
         #print('error extracting left side of face')
         #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))

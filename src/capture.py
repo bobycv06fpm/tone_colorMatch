@@ -5,12 +5,15 @@ from landmarkPoints import Landmarks
 
 class Capture:
 
-    def __init__(self, name, image, metadata):
+    def __init__(self, name, image, metadata, mask=None):
         self.name = name
         self.image = image
         self.metadata = metadata
         self.landmarks = Landmarks(self.metadata['faceLandmarksSource'], self.metadata['faceLandmarks'], image.shape)
-        self.mask = thresholdMask.getClippedMask(self.image, 1, 1)
+        self.mask = mask
+
+        if mask is None:
+            self.mask = thresholdMask.getClippedMask(self.image, 1, 1)
 
     def show(self, wait=True):
         ratio = 3
@@ -18,5 +21,4 @@ class Capture:
         cv2.imshow(self.name, smallImage)
         if wait:
             cv2.waitKey(0)
-
 
