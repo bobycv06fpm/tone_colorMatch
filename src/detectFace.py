@@ -1,5 +1,3 @@
-from imutils import face_utils
-import imutils
 import numpy as np
 import dlib
 import utils 
@@ -18,7 +16,6 @@ def detectFace(image, predictor, detector):
         shape = predictor(gray, rects[0])
         shape = face_utils.shape_to_np(shape)
         shape = shape * ratio
-        #image = imutils.auto_canny(gray)
         return [image, shape]
     except:
         raise NameError("Could Not Detect Face")

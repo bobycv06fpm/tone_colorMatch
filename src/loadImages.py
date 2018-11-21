@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
+import os
 
-#root = '../../'
-root = '/home/dmacewen/Projects/tone/'
+root = os.path.expanduser('~/Projects/tone/')
 
 def loadImage(path):
     image = cv2.imread(path)
@@ -16,8 +16,7 @@ def loadImage(path):
     return image
 
 def loadImages(username, fileName, extension='PNG'): 
-    pathRoot = root + "images/" + username + "/" + fileName + "/" + fileName
-
+    pathRoot = os.path.join(root, "images/", username, fileName, fileName)
 
     noFlashPath = pathRoot + '-3.' + extension
     noFlash = loadImage(noFlashPath)

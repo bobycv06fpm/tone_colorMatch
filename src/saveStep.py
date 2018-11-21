@@ -6,18 +6,19 @@ import colorTools
 import json
 
 #root = '../../'
-root = '/home/dmacewen/Projects/tone/'
+#root = '/home/dmacewen/Projects/tone/'
+root = os.path.expanduser('~/Projects/tone/')
 
 def referencePathBuilder(username, fileName, file='', extension=''):
-    return root + 'images/' + username + '/' + fileName + '/reference/' + file + extension
+    return os.path.join(root, 'images/', username, fileName, 'reference', file + extension)
 
 def benchmarkPathBuilder(username, fileName, benchmarkName=''):
     extension = '.csv' if benchmarkName != '' else ''
-    return root + 'images/' + username + '/' + fileName + '/benchmark/' + benchmarkName + extension
+    return os.path.join(root, 'images/', username, fileName, 'benchmark', benchmarkName + extension)
 
 def stepPathBuilder(username, fileName, step='', ext='.csv', meta=''):
     extension = ext if step != '' else ''
-    return root + 'images/' + username + '/' + fileName + '/steps/'+ str(step) + meta + extension
+    return os.path.join(root, 'images/', username, fileName, 'steps', str(step) + meta + extension)
 
 #def calibrationPathBuilder(username):
 #    return '../calibrations/' + username + '/cameraResponseFunction.csv'
@@ -241,7 +242,7 @@ def saveBenchmarkValue(username, fileName, benchmarkName, value):
 #    return parsedValues[0]
 
 def getAsShotWhiteBalance(username, fileName):
-    path = root + 'images/' + username + '/' + fileName + '/' + fileName + '-metadata.txt'
+    path = os.path.join(root, 'images/', username, fileName, fileName + '-metadata.txt')
 
     with open(path) as f:
         data = json.load(f)
@@ -249,7 +250,7 @@ def getAsShotWhiteBalance(username, fileName):
     return [data[0]['whiteBalance']['x'], data[0]['whiteBalance']['y']]
 
 def getMetadata(username, fileName):
-    path = root + 'images/' + username + '/' + fileName + '/' + fileName + '-metadata.txt'
+    path = os.path.join(root, 'images/', username, fileName, fileName + '-metadata.txt')
 
     with open(path) as f:
         data = json.load(f)

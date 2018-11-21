@@ -1,20 +1,20 @@
 from loadImages import loadImages
-from detectFace import detectFace
+#from detectFace import detectFace
 from alignImages import cropAndAlign
 from getAverageReflection import getAverageScreenReflectionColor
 import saveStep
 from getPolygons import getPolygons, getFullFacePolygon
 from extractMask import extractMask, maskPolygons
 import colorTools
-import plotTools
-import processPoints
+#import plotTools
+#import processPoints
 import cv2
 import numpy as np
-import dlib
+#import dlib
 import thresholdMask
 import math
-from scipy import ndimage
-import matplotlib.pyplot as plt
+#from scipy import ndimage
+#import matplotlib.pyplot as plt
 #import landmarkPoints
 from capture import Capture 
 
@@ -25,7 +25,8 @@ import multiprocessing as mp
 #from pympler.tracker import SummaryTracker
 
 #root = '../../'
-root = '/home/dmacewen/Projects/tone/'
+#root = '/home/dmacewen/Projects/tone/'
+#root = os.path.expanduser('~/Projects/tone/')
 
 def getLast(arr):
     return arr[-1]
@@ -624,11 +625,11 @@ def run(username, imageName, fast=False, saveStats=False):
     sBGR = colorTools.convert_linearBGR_float_to_sBGR(np.array([points]))
     hsvPoints = colorTools.convert_linearBGR_float_to_linearHSV_float(sBGR / 255)[0]
 
-    plt.clf()
+    #plt.clf()
     #plt.hist(hsvPoints[:, 2], bins='auto')
-    plt.hist(faceValues, bins='auto')
+    #plt.hist(faceValues, bins='auto')
     #plt.savefig('maskedLinearValuesHist')
-    saveStep.savePlot(username, imageName,'maskedLinearValuesHist', plt)
+    #saveStep.savePlot(username, imageName,'maskedLinearValuesHist', plt)
     #plt.show()
 
     print('Median Face Value :: ' + str(medianFaceValue))

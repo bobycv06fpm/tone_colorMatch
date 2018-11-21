@@ -4,8 +4,8 @@ import cv2
 import numpy as np
 import colorTools
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+#import matplotlib.pyplot as plt
+#from mpl_toolkits.mplot3d import Axes3D
 
 def interiorBoundingRect(tl, tr, bl, br):
     topLeftX = tl[0] if tl[0] > bl[0] else bl[0]
