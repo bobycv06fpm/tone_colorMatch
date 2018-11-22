@@ -374,6 +374,7 @@ def run(username, imageName, fast=False, saveStats=False):
 
     #Needs to be more accurate
     cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture)
+    print('Done Cropping and aligning')
 
 #    print("half flash size :: " + str(halfFlashCapture.image.shape))
 #    noFlashCapture.show(False)
@@ -409,9 +410,11 @@ def run(username, imageName, fast=False, saveStats=False):
 
     #fullFlashImage[potentiallyRecoverablePixelsMask] = RecoveredFullFlash[potentiallyRecoverablePixelsMask]
 
-    noFlashImageBlur = cv2.GaussianBlur(noFlashCapture.image, (7, 7), 0)
-    halfFlashImageBlur = cv2.GaussianBlur(halfFlashCapture.image, (7, 7), 0)
-    fullFlashImageBlur = cv2.GaussianBlur(fullFlashCapture.image, (7, 7), 0)
+    #NOTE: MIGHT BE NEEDED
+    #noFlashImageBlur = cv2.GaussianBlur(noFlashCapture.getClippedImage(), (7, 7), 0)
+    #halfFlashImageBlur = cv2.GaussianBlur(halfFlashCapture.getClippedImage(), (7, 7), 0)
+    #fullFlashImageBlur = cv2.GaussianBlur(fullFlashCapture.getClippedImage(), (7, 7), 0)
+    #END NOTE
 
     #noFlashImageBlur = cv2.GaussianBlur(noFlashImage, (15, 15), 0)
     #halfFlashImageBlur = cv2.GaussianBlur(halfFlashImage, (15, 15), 0)
@@ -420,20 +423,27 @@ def run(username, imageName, fast=False, saveStats=False):
     #TEST STARTING NOW
     print('Beginning Linearity Test')
     #cv2.waitKey(0)
-    howLinear = np.abs((2 * halfFlashImageBlur) - (fullFlashImageBlur + noFlashImageBlur))
-    #cv2.imshow('how linear...', np.clip(howLinear * 10, 0, 255))
+
+    howLinear = np.abs((2 * halfFlashCapture.image.astype('int32')) - (fullFlashCapture.image.astype('int32') + noFlashCapture.image.astype('int32')))
+    #howLinear = np.abs((2 * halfFlashImageBlur.astype('int32')) - (fullFlashImageBlur.astype('int32') + noFlashImageBlur.astype('int32')))
+    #cv2.imshow('how linear...', np.clip(np.abs(howLinear), 0, 255).astype('uint8'))
     #cv2.waitKey(0)
 
     #TODO: Compare Subpixel nonlinearity with full pixel nonlinearity....
-    howLinearMax = np.sum(howLinear, axis=2)
-    howLinearMaxBlur = howLinearMax#cv2.GaussianBlur(howLinearMax, (7, 7), 0)
+    #howLinearSum = np.sum(howLinear, axis=2)
+    howLinearMax = np.max(howLinear, axis=2)
+    #howLinearMaxBlur = howLinearMax#cv2.GaussianBlur(howLinearMax, (7, 7), 0)
 
-    mean = np.mean(howLinearMaxBlur)
-    med = np.median(howLinearMaxBlur)
-    sd = np.std(howLinearMaxBlur)
+    #mean = np.mean(howLinearMaxBlur)
+    #med = np.median(howLinearMaxBlur)
+    #sd = np.std(howLinearMaxBlur)
 
-    nonLinearMask = howLinearMaxBlur > .03 #med
-    howLinearMaxBlurMasked = howLinearMaxBlur + nonLinearMask
+    #print('howLinearMax :: ' + str(howLinearMax))
+
+    #nonLinearMask = howLinearMax > .03 #med
+    nonLinearMask = howLinearMax > 8 #12 #med
+    #cv2.imshow('non linear mask', nonLinearMask.astype('uint8') * 255)
+    #howLinearMaxBlurMasked = howLinearMaxBlur + nonLinearMask
     allPointsMask = np.logical_or(allPointsMask, nonLinearMask)
 
     print('Ending Linearity Test')
@@ -442,10 +452,7 @@ def run(username, imageName, fast=False, saveStats=False):
     print('Subtracting Base from Flash')
     diffImage = fullFlashCapture.image - noFlashCapture.image
 
-    negativeSubPixelMask = diffImage < 0
-    negativePixelMask = np.any(negativeSubPixelMask, axis=2)
-    allPointsMask = np.logical_or(allPointsMask, negativePixelMask)
-
+    #print('Diff Image :: ' + str(diffImage))
     diffCapture = Capture('Diff', diffImage, fullFlashCapture.metadata, allPointsMask)
 
 
@@ -467,10 +474,13 @@ def run(username, imageName, fast=False, saveStats=False):
     #cv2.imshow('Recovered Mask', recoveredMask.astype('uint8') * 255)
     #cv2.waitKey(0)
 
+    #diffCapture.show()
+    #diffCapture.showMasked()
+
     print('Getting Polygons')
     #imageShape = fullFlashImageShape
-    polygons = getPolygons(diffCapture.landmarks)
     return
+    polygons = getPolygons(diffCapture.landmarks)
     try:
         [points, averageFlashContribution] = extractMask(username, imageName, polygons, diffCapture)
     except NameError as err:
