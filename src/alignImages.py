@@ -35,11 +35,11 @@ def getPreparedAlt(capture):
     mask = cv2.fillConvexPoly(mask, grayHull, 1).astype('bool')
 
     gray = cv2.GaussianBlur(gray, (11, 11), 0)
-    prepped = cv2.Laplacian(gray, cv2.CV_64F)
+    prepped = cv2.Laplacian(gray, cv2.CV_16S)
     #prepped = cv2.Sobel(gray, cv2.CV_64F, 1, 1, ksize=5)
 
     preppedMasked = prepped * mask
-    return preppedMasked
+    return np.float32(preppedMasked)
 
 #def getPreparedNoFlashImage(noFlashImage, noFlashShape):
 #    grayNoFlash = cv2.cvtColor(np.clip(noFlashImage * 255, 0, 255).astype('uint8'), cv2.COLOR_BGR2GRAY)
@@ -106,7 +106,7 @@ def getPreparedAlt(capture):
 #    return edgeFlash
 
 def calculateOffset(preparedNoFlashImage, preparedFlashImage):
-    (offset, response) = cv2.phaseCorrelate(np.float64(preparedNoFlashImage), np.float64(preparedFlashImage))
+    (offset, response) = cv2.phaseCorrelate(preparedNoFlashImage, preparedFlashImage)
     offset = list(offset)
     offset = [round(value) for value in offset]
     print("Offset :: " + str(offset))
@@ -185,19 +185,24 @@ def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
     #preparedHalfFlashImage = getPreparedFlashImage(halfFlashImage, halfFlashShape, 1.1)
     #preparedFullFlashImage = getPreparedFlashImage(fullFlashImage, fullFlashShape, 1.1)
 
+    print("Preparing Images")
     preparedNoFlashImage = getPreparedAlt(noFlashCapture)
     preparedHalfFlashImage = getPreparedAlt(halfFlashCapture)
     preparedFullFlashImage = getPreparedAlt(fullFlashCapture)
+    print("Done Preparing Images")
 
     #cv2.imshow("Prepared", np.hstack([cv2.resize(preparedNoFlashImage, (0, 0), fx=.5, fy=.5), cv2.resize(preparedFullFlashImage, (0, 0), fx=.5, fy=.5), cv2.resize(preparedBottomFlashImage, (0, 0), fx=.5, fy=.5), cv2.resize(preparedHalfFlashImage, (0, 0), fx=.5, fy=.5)]))
     #cv2.waitKey(0)
 
+    print("Calculating Offset")
     noFlashOffset = [0, 0] #All offsets are relative to noFlashImage
     halfFlashOffset = calculateOffset(preparedNoFlashImage, preparedHalfFlashImage)
     fullFlashOffset = calculateOffset(preparedNoFlashImage, preparedFullFlashImage)
+    print("Done Calculating Offset")
 
     print('Cropping to offsets!')
     cropTools.cropToOffsets([noFlashCapture, halfFlashCapture, fullFlashCapture], np.array([noFlashOffset, halfFlashOffset, fullFlashOffset]))
+    print('Done Cropping to offsets!')
     #halfFlashOffset_sBGR = halfFlashOffset.copy()
 
     #justOffsets = [noFlashOffset, halfFlashOffset, fullFlashOffset]#, halfFlashOffset_sBGR]
