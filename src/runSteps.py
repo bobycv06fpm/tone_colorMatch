@@ -441,7 +441,7 @@ def run(username, imageName, fast=False, saveStats=False):
     #print('howLinearMax :: ' + str(howLinearMax))
 
     #nonLinearMask = howLinearMax > .03 #med
-    nonLinearMask = howLinearMax > 8 #12 #med
+    nonLinearMask = howLinearMax > 6#8 #12 #med
     #cv2.imshow('non linear mask', nonLinearMask.astype('uint8') * 255)
     #howLinearMaxBlurMasked = howLinearMaxBlur + nonLinearMask
     allPointsMask = np.logical_or(allPointsMask, nonLinearMask)
@@ -450,7 +450,7 @@ def run(username, imageName, fast=False, saveStats=False):
     #TEST ENDING NOW
 
     print('Subtracting Base from Flash')
-    diffImage = fullFlashCapture.image - noFlashCapture.image
+    diffImage = fullFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
 
     #print('Diff Image :: ' + str(diffImage))
     diffCapture = Capture('Diff', diffImage, fullFlashCapture.metadata, allPointsMask)
@@ -474,7 +474,7 @@ def run(username, imageName, fast=False, saveStats=False):
     #cv2.imshow('Recovered Mask', recoveredMask.astype('uint8') * 255)
     #cv2.waitKey(0)
 
-    #diffCapture.show()
+    #diffCapture.show(False)
     #diffCapture.showMasked()
 
     print('Getting Polygons')
