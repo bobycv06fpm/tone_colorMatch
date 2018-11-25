@@ -2,7 +2,7 @@ from loadImages import loadImages
 #from detectFace import detectFace
 from alignImages import cropAndAlign
 from getAverageReflection import getAverageScreenReflectionColor
-import saveStep
+from saveStep import Save
 from getPolygons import getPolygons, getFullFacePolygon
 from extractMask import extractMask, maskPolygons
 import colorTools
@@ -285,11 +285,13 @@ def experimentalReflectionDetection(B, BS, BF, BFS, TF, TFS, FF, FFS):
     #cv2.waitKey(0)
 
 def run(username, imageName, fast=False, saveStats=False):
-    saveStep.resetLogFile(username, imageName)
+    #saveStep.resetLogFile(username, imageName)
+    saveStep = Save(username, imageName)
+    saveStep.resetLogFile()
     images = loadImages(username, imageName)
 
     [noFlashImage, halfFlashImage, fullFlashImage] = images
-    [noFlashMetadata, halfFlashMetadata, fullFlashMetadata] = saveStep.getMetadata(username, imageName)
+    [noFlashMetadata, halfFlashMetadata, fullFlashMetadata] = saveStep.getMetadata()
 
     noFlashCapture = Capture('No Flash', noFlashImage, noFlashMetadata)
     halfFlashCapture = Capture('Half Flash', halfFlashImage, halfFlashMetadata)
@@ -481,7 +483,7 @@ def run(username, imageName, fast=False, saveStats=False):
     #imageShape = fullFlashImageShape
     polygons = getPolygons(diffCapture)
     try:
-        [points, averageFlashContribution] = extractMask(username, imageName, polygons, diffCapture)
+        [points, averageFlashContribution] = extractMask(diffCapture, polygons, saveStep)
     except NameError as err:
         #print('error extracting left side of face')
         #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))
@@ -493,15 +495,15 @@ def run(username, imageName, fast=False, saveStats=False):
     if not fast:
         print('Saving Step 1')
         #saveStep.saveShapeStep(username, imageName, imageShape, 1)
-        saveStep.saveImageStep(username, imageName, image, 1)
-        saveStep.saveImageStep(username, imageName, allPointsMask, 1, 'clippedMask')
-        saveStep.saveReferenceImageLinearBGR(username, imageName, noFlashImage, 'noFlashAligned')
-        saveStep.saveReferenceImageLinearBGR(username, imageName, fullFlashImage, 'fullFlashAligned')
-        saveStep.saveReferenceImageLinearBGR(username, imageName, halfFlashImage, 'halfFlashAligned')
+        saveStep.saveImageStep(diffCapture.image, 1)
+        saveStep.saveImageStep(allPointsMask, 1, 'clippedMask')
+        saveStep.saveReferenceImageLinearBGR(noFlashImage, 'noFlashAligned')
+        saveStep.saveReferenceImageLinearBGR(fullFlashImage, 'fullFlashAligned')
+        saveStep.saveReferenceImageLinearBGR(halfFlashImage, 'halfFlashAligned')
 
 
     return
-    whiteBalance_CIE1931_coord_asShot = saveStep.getAsShotWhiteBalance(username, imageName)
+    whiteBalance_CIE1931_coord_asShot = saveStep.getAsShotWhiteBalance()
     print('White Balance As Shot :: ' + str(whiteBalance_CIE1931_coord_asShot))
 
     averageReflectionBGR = getAverageScreenReflectionColor(username, imageName, image, fullFlashImage_sBGR, imageShape, whiteBalance_CIE1931_coord_asShot)
@@ -535,7 +537,8 @@ def run(username, imageName, fast=False, saveStats=False):
         #Extract Value from Non WB image using recovered pixels
         valuesMask = recoveredMask[:, faceMidPoint:]
         try:
-            valuesPoints = extractMask(username, leftFaceImage, polygons, valuesMask, imageName)
+            #valuesPoints = extractMask(username, leftFaceImage, polygons, valuesMask, imageName)
+            valuesPoints = extractMask(leftCapture, polygons, saveStep)
 
         except NameError as err:
             #print('error extracting left side of face')
@@ -549,7 +552,9 @@ def run(username, imageName, fast=False, saveStats=False):
 
         hueSatMask = allPointsMask[:, faceMidPoint:]
         try:
-            maskedLeftPoints = extractMask(username, leftFaceImageWB, polygons, hueSatMask, imageName)
+            #maskedLeftPoints = extractMask(username, leftFaceImageWB, polygons, hueSatMask, imageName)
+            #maskedLeftPoints = extractMask(username, leftFaceImageWB, polygons, hueSatMask, imageName)
+            maskedLeftPoints = extractMask(leftCapture, polygons, saveStep)
         except NameError as err:
             #print('error extracting left side of face')
             #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))
@@ -582,23 +587,27 @@ def run(username, imageName, fast=False, saveStats=False):
         #Extract Value from Non WB image using recovered pixels
         valuesMask = recoveredMask[:, :faceMidPoint]
         try:
-            [valuesPoints, averageFlashContribution] = extractMask(username, rightFaceImage, polygons, valuesMask, imageName)
+            #[valuesPoints, averageFlashContribution] = extractMask(username, rightFaceImage, polygons, valuesMask, imageName)
+            valuesPoints = extractMask(rightCapture, polygons, saveStep)
         except NameError as err:
             #print('error extracting right side of face')
             #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting right side of face', err))
             return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting right side of face', err)
         else:
+            (valuesPoints, averageFlashContribution) = valuesPoints
             rightFaceValues = np.max(valuesPoints, axis=1)
             medianRightFaceValue = np.median(rightFaceValues)
 
         hueSatMask = allPointsMask[:, :faceMidPoint]
         try:
-            [maskedRightPoints, right_averageFlashContribution] = extractMask(username, rightFaceImageWB, polygons, hueSatMask, imageName)
+            #[maskedRightPoints, right_averageFlashContribution] = extractMask(username, rightFaceImageWB, polygons, hueSatMask, imageName)
+            maskedRightPoints = extractMask(rightCapture, polygons, saveStep)
         except NameError as err:
             #print('error extracting right side of face')
             #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting right side of face', err))
             return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting right side of face', err)
         else:
+            (maskedRightPoints, right_averageFlashContribution) = maskedRightPoints
             right_sBGR = colorTools.convert_linearBGR_float_to_sBGR(np.array([maskedRightPoints]))
             right_hsvPoints = colorTools.convert_linearBGR_float_to_linearHSV_float(right_sBGR / 255)[0]
             right_hsvMedians = np.median(right_hsvPoints, axis=0)
@@ -628,8 +637,8 @@ def run(username, imageName, fast=False, saveStats=False):
 
     if not fast:
         print('Saving Step 2')
-        saveStep.logMeasurement(username, imageName, "Average Flash Contribution", str(averageFlashContribution))
-        saveStep.saveReferenceImageBGR(username, imageName, image, 'WhitebalancedImage')
+        saveStep.logMeasurement("Average Flash Contribution", str(averageFlashContribution))
+        saveStep.saveReferenceImageBGR(image, 'WhitebalancedImage')
 
     print('Getting Median')
     sBGR = colorTools.convert_linearBGR_float_to_sBGR(np.array([points]))
@@ -650,26 +659,26 @@ def run(username, imageName, fast=False, saveStats=False):
     temp = scaleHSVtoFluxish(hsvMedians, testFluxish)
     hsvMedians[2] = temp[2]
 
-    saveStep.savePointsStep(username, imageName, [hsvMedians], 4)
+    saveStep.savePointsStep([hsvMedians], 4)
 
     if saveStats:
-        saveStep.saveImageStat(username, imageName, 'reflectionStrength', [averageMaxReflection])
-        saveStep.saveImageStat(username, imageName, 'testFluxish', [testFluxish])
-        saveStep.saveImageStat(username, imageName, 'meanReflectionDimensions', averageReflectionDimensions)
-        saveStep.saveImageStat(username, imageName, 'fluxishRatio', [fluxishRatio])
-        saveStep.saveImageStat(username, imageName, 'medianHSV', hsvMedians)
+        saveStep.saveImageStat('reflectionStrength', [averageMaxReflection])
+        saveStep.saveImageStat('testFluxish', [testFluxish])
+        saveStep.saveImageStat('meanReflectionDimensions', averageReflectionDimensions)
+        saveStep.saveImageStat('fluxishRatio', [fluxishRatio])
+        saveStep.saveImageStat('medianHSV', hsvMedians)
 
         if (leftAverageReflectionBGR is not None) and (left_hsvMedians is not None) and (leftFluxish > .0007) and ((leftDimensions[0] * leftDimensions[1]) >= .0017):
-            saveStep.saveImageStat(username, imageName, 'splitReflectionStrength', [max(leftAverageReflectionBGR)])
-            saveStep.saveImageStat(username, imageName, 'splitTestFluxish', [leftFluxish])
-            saveStep.saveImageStat(username, imageName, 'splitMedianHSV', left_hsvMedians)
-            saveStep.saveImageStat(username, imageName, 'splitDimensions', leftDimensions)
+            saveStep.saveImageStat('splitReflectionStrength', [max(leftAverageReflectionBGR)])
+            saveStep.saveImageStat('splitTestFluxish', [leftFluxish])
+            saveStep.saveImageStat('splitMedianHSV', left_hsvMedians)
+            saveStep.saveImageStat('splitDimensions', leftDimensions)
 
         if (rightAverageReflectionBGR is not None) and (right_hsvMedians is not None) and (rightFluxish > .0007) and ((rightDimensions[0] * rightDimensions[1]) >= .0017):
-            saveStep.saveImageStat(username, imageName, 'splitReflectionStrength', [max(rightAverageReflectionBGR)])
-            saveStep.saveImageStat(username, imageName, 'splitTestFluxish', [rightFluxish])
-            saveStep.saveImageStat(username, imageName, 'splitMedianHSV', right_hsvMedians)
-            saveStep.saveImageStat(username, imageName, 'splitDimensions', rightDimensions)
+            saveStep.saveImageStat('splitReflectionStrength', [max(rightAverageReflectionBGR)])
+            saveStep.saveImageStat('splitTestFluxish', [rightFluxish])
+            saveStep.saveImageStat('splitMedianHSV', right_hsvMedians)
+            saveStep.saveImageStat('splitDimensions', rightDimensions)
 
     #print('Done!')
     return None

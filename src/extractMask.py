@@ -1,5 +1,4 @@
 import utils
-import saveStep
 import colorsys
 import numpy as np
 import cv2
@@ -15,7 +14,7 @@ def maskPolygons(mask, polygons):
     return np.logical_and(polyMask.astype('bool'), mask)
 
 
-def extractMask(username, imageName, polygons, capture):
+def extractMask(capture, polygons, saveStep):
     image = capture.image
     clippedMask = capture.mask
 
@@ -38,15 +37,14 @@ def extractMask(username, imageName, polygons, capture):
     clippedPixelRatio = masked_points.size / region_mask_point.size
     print('Clipping Ratio :: ' + str(clippedPixelRatio))
     if clippedPixelRatio < .2:
+    #if clippedPixelRatio < .01:
         raise NameError('Not enough clean non-clipped pixels. Ratio :: ' + str(clippedPixelRatio))
 
     sumOfUnscaledPixels = np.sum(masked_points, axis=0)
     averageOfUnscaledPixels = sumOfUnscaledPixels / len(masked_points)
     averageIntensityOfUnscaledPixels = sum(averageOfUnscaledPixels) / 3
     
-    if imageName is not None:
-        saveStep.logMeasurement(username, imageName, 'Flash Contribution', str(averageIntensityOfUnscaledPixels))
-        saveStep.saveReferenceImageBGR(username, imageName, masked_image, 'masked')
+    saveStep.saveReferenceImageBGR(masked_image, 'masked')
 
     return [np.array(masked_points), averageIntensityOfUnscaledPixels]
 
