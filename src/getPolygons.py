@@ -41,16 +41,18 @@ def drawSpot(image, location):
 X = 0
 Y = 1
 
-def getEyePoints(imageShape):
-    (start, end) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
-    (x, y, w, h) = cv2.boundingRect(np.array([imageShape[start:end]]))
+def getEyePoints(capture):
+    #(start, end) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
+    #(x, y, w, h) = cv2.boundingRect(np.array([imageShape[start:end]]))
+    (x, y, w, h) = capture.landmarks.getLeftEyeBB()
 
     #Bottom two points for left eye bounding box
     leftEyeRight = [x, y + h]
     leftEyeLeft = [x + w, y + h]
 
-    (start, end) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
-    (x, y, w, h) = cv2.boundingRect(np.array([imageShape[start:end]]))
+    #(start, end) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
+    #(x, y, w, h) = cv2.boundingRect(np.array([imageShape[start:end]]))
+    (x, y, w, h) = capture.landmarks.getRightEyeBB()
 
     rightEyeRight = [x, y + h]
     rightEyeLeft = [x + w, y + h]
@@ -63,9 +65,10 @@ def getEyePoints(imageShape):
 
     return [leftEyeLeft, leftEyeRight, rightEyeLeft, rightEyeRight]
 
-def getMouthPoints(imageShape):
-    (start, end) = face_utils.FACIAL_LANDMARKS_IDXS["mouth"]
-    (x, y, w, h) = cv2.boundingRect(np.array([imageShape[start:end]]))
+def getMouthPoints(capture):
+    #(start, end) = face_utils.FACIAL_LANDMARKS_IDXS["mouth"]
+    #(x, y, w, h) = cv2.boundingRect(np.array([imageShape[start:end]]))
+    (x, y, w, h) = capture.landmarks.getMouthBB()
 
     mouthTopRight = [x, y]
     mouthTopLeft = [x + w, y]
@@ -74,11 +77,12 @@ def getMouthPoints(imageShape):
 
     return [mouthTopLeft, mouthTopRight, mouthBottomLeft, mouthBottomRight]
 
-def getJawShape(imageShape):
-    jawTopRight = imageShape[6]
-    jawBottomRight = imageShape[7]
-    jawBottomLeft = imageShape[9]
-    jawTopLeft = imageShape[10]
+def getJawShape(capture):
+    landmarks = capture.landmarks.landmarkPoints
+    jawTopRight = landmarks[3]
+    jawBottomRight = landmarks[4]
+    jawBottomLeft = landmarks[6]
+    jawTopLeft = landmarks[7]
 
     topY = jawTopRight[Y] if jawTopRight[Y] < jawTopLeft[Y] else jawTopLeft[Y]
     jawTopRight[Y] = topY
@@ -91,14 +95,14 @@ def getJawShape(imageShape):
     return [jawTopLeft, jawTopRight, jawBottomLeft, jawBottomRight]
 
 
-def getPolygons(imageShape):
+def getPolygons(capture):
     print('starting get polygons')
     #points = []
     polygons = []
 
-    [leftEyeLeft, leftEyeRight, rightEyeLeft, rightEyeRight] = getEyePoints(imageShape)
-    [mouthTopLeft, mouthTopRight, mouthBottomLeft, mouthBottomRight] = getMouthPoints(imageShape)
-    [jawTopLeft, jawTopRight, jawBottomLeft, jawBottomRight] = getJawShape(imageShape)
+    [leftEyeLeft, leftEyeRight, rightEyeLeft, rightEyeRight] = getEyePoints(capture)
+    [mouthTopLeft, mouthTopRight, mouthBottomLeft, mouthBottomRight] = getMouthPoints(capture)
+    [jawTopLeft, jawTopRight, jawBottomLeft, jawBottomRight] = getJawShape(capture)
 
     #Ordering defines boundary (traced point to point)
     #points.append(leftEyeLeft)

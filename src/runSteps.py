@@ -479,8 +479,7 @@ def run(username, imageName, fast=False, saveStats=False):
 
     print('Getting Polygons')
     #imageShape = fullFlashImageShape
-    return
-    polygons = getPolygons(diffCapture.landmarks)
+    polygons = getPolygons(diffCapture)
     try:
         [points, averageFlashContribution] = extractMask(username, imageName, polygons, diffCapture)
     except NameError as err:
@@ -493,7 +492,7 @@ def run(username, imageName, fast=False, saveStats=False):
 
     if not fast:
         print('Saving Step 1')
-        saveStep.saveShapeStep(username, imageName, imageShape, 1)
+        #saveStep.saveShapeStep(username, imageName, imageShape, 1)
         saveStep.saveImageStep(username, imageName, image, 1)
         saveStep.saveImageStep(username, imageName, allPointsMask, 1, 'clippedMask')
         saveStep.saveReferenceImageLinearBGR(username, imageName, noFlashImage, 'noFlashAligned')
@@ -501,6 +500,7 @@ def run(username, imageName, fast=False, saveStats=False):
         saveStep.saveReferenceImageLinearBGR(username, imageName, halfFlashImage, 'halfFlashAligned')
 
 
+    return
     whiteBalance_CIE1931_coord_asShot = saveStep.getAsShotWhiteBalance(username, imageName)
     print('White Balance As Shot :: ' + str(whiteBalance_CIE1931_coord_asShot))
 

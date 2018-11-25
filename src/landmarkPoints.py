@@ -166,7 +166,7 @@ class Landmarks:
         return np.array(landmarkPoints)
 
     def getRightEyeBB(self):
-        if source == 'apple':
+        if self.source == 'apple':
             (start, end) = APPLE_RIGHT_EYE
             rightEyePoints = self.sourceLandmarkPoints[start:end]
         else:
@@ -176,7 +176,7 @@ class Landmarks:
         return cv2.boundingRect(np.array(rightEyePoints))
 
     def getLeftEyeBB(self):
-        if source == 'apple':
+        if self.source == 'apple':
             (start, end) = APPLE_LEFT_EYE
             leftEyePoints = self.sourceLandmarkPoints[start:end]
         else:
@@ -186,7 +186,7 @@ class Landmarks:
         return cv2.boundingRect(np.array(leftEyePoints))
 
     def getMouthBB(self):
-        if source == 'apple':
+        if self.source == 'apple':
             (start, end) = APPLE_MOUTH
             mouthPoints = self.sourceLandmarkPoints[start:end]
         else:
