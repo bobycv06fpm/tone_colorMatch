@@ -36,15 +36,17 @@ def extractMask(capture, polygons, saveStep):
 
     clippedPixelRatio = masked_points.size / region_mask_point.size
     print('Clipping Ratio :: ' + str(clippedPixelRatio))
-    if clippedPixelRatio < .2:
-    #if clippedPixelRatio < .01:
+    #if clippedPixelRatio < .2:
+    if clippedPixelRatio < .01:
         raise NameError('Not enough clean non-clipped pixels. Ratio :: ' + str(clippedPixelRatio))
 
     sumOfUnscaledPixels = np.sum(masked_points, axis=0)
     averageOfUnscaledPixels = sumOfUnscaledPixels / len(masked_points)
     averageIntensityOfUnscaledPixels = sum(averageOfUnscaledPixels) / 3
     
-    saveStep.saveReferenceImageBGR(masked_image, 'masked')
+    #cv2.imshow('masked', masked_image)
+    #cv2.waitKey(0)
+    saveStep.saveReferenceImageBGR(masked_image, capture.name + '_masked')
 
     return [np.array(masked_points), averageIntensityOfUnscaledPixels]
 

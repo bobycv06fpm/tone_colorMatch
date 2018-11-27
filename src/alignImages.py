@@ -24,7 +24,7 @@ def updateShape(shape, xyDiff):
 #bbMargin = .01 #make the bounding boxes % larger in each Coord (2x% total in each direction)
 
 def getPreparedAlt(capture):
-    gray = cv2.cvtColor(np.clip(capture.image * 255, 0, 255).astype('uint8'), cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(capture.image, cv2.COLOR_BGR2GRAY)
 
     shapeCulled = capture.landmarks.getInteriorPoints()
 
@@ -34,11 +34,17 @@ def getPreparedAlt(capture):
     mask.fill(0)
     mask = cv2.fillConvexPoly(mask, grayHull, 1).astype('bool')
 
-    gray = cv2.GaussianBlur(gray, (11, 11), 0)
-    prepped = cv2.Laplacian(gray, cv2.CV_16S)
+    #gray = cv2.GaussianBlur(gray, (11, 11), 0)
+    gray = cv2.GaussianBlur(gray, (17, 17), 0)
+    #prepped = cv2.Laplacian(gray, cv2.CV_16S)
+    prepped = cv2.Laplacian(gray, cv2.CV_32F)
     #prepped = cv2.Sobel(gray, cv2.CV_64F, 1, 1, ksize=5)
 
+    #cv2.imshow('prepped', prepped)
+
     preppedMasked = prepped * mask
+    #cv2.imshow('prepped masked', preppedMasked)
+    #cv2.waitKey(0)
     return np.float32(preppedMasked)
 
 #def getPreparedNoFlashImage(noFlashImage, noFlashShape):
@@ -201,7 +207,7 @@ def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
     print("Done Calculating Offset")
 
     print('Cropping to offsets!')
-    cropTools.cropToOffsets([noFlashCapture, halfFlashCapture, fullFlashCapture], np.array([noFlashOffset, halfFlashOffset, fullFlashOffset]))
+    #cropTools.cropToOffsets([noFlashCapture, halfFlashCapture, fullFlashCapture], np.array([noFlashOffset, halfFlashOffset, fullFlashOffset]))
     print('Done Cropping to offsets!')
     #halfFlashOffset_sBGR = halfFlashOffset.copy()
 

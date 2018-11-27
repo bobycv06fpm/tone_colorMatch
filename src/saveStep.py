@@ -47,11 +47,18 @@ class Save:
             os.makedirs(path)
             os.chmod(path, 0o777)
 
-    def saveImageStep(self, image_float, step, meta=''):
+    def saveImageStep(self, image, step, meta=''):
         self.touchSteps()
         path = self.stepPathBuilder(step, '.PNG', meta)
-        image = np.clip(image_float * 255, 0, 255).astype('uint8')
-        cv2.imwrite(path, image)
+        #image = np.clip(image_float * 255, 0, 255).astype('uint8')
+        cv2.imwrite(path, image.astype('uint8'))
+        os.chmod(path, 0o777)
+
+    def saveMaskStep(self, mask, step, meta=''):
+        self.touchSteps()
+        path = self.stepPathBuilder(step, '.PNG', meta)
+        image = np.clip(mask * 255, 0, 255).astype('uint8')
+        cv2.imwrite(path, image.astype('uint8'))
         os.chmod(path, 0o777)
 
     #def loadImageStep(username, fileName, step, meta=''):
@@ -147,9 +154,9 @@ class Save:
         cv2.imwrite(path, image)
         os.chmod(path, 0o777)
 
-    def saveReferenceImageLinearBGR(self, bgr_float, reference):
+    def saveReferenceImageLinearBGR(self, bgr, reference):
         self.touchReference()
-        image = (bgr_float * 255).astype('uint8')
+        image = bgr
         #[image, error] = colorTools.convert_linearBGR_float_to_sBGR(bgr_float)
         #image = bgr_float * 255
         #image = bgr_float
@@ -157,12 +164,12 @@ class Save:
         cv2.imwrite(path, image)
         os.chmod(path, 0o777)
 
-    def saveReferenceImageBGR(self, bgr_float, reference):
+    def saveReferenceImageBGR(self, bgr, reference):
         self.touchReference()
-        bgr_float_clipped = np.clip(bgr_float, 0.0, 1.0)
-        image = colorTools.convert_linearBGR_float_to_sBGR(bgr_float_clipped)
-        #image = bgr_float * 255
-        #image = bgr_float
+        #bgr_float_clipped = np.clip(bgr_float, 0.0, 1.0)
+        #image = colorTools.convert_linearBGR_float_to_sBGR(bgr_float_clipped)
+        #image = bgr * 255
+        image = bgr
         path = self.referencePathBuilder(reference, '.PNG')
         cv2.imwrite(path, image)
         os.chmod(path, 0o777)

@@ -297,6 +297,21 @@ def run(username, imageName, fast=False, saveStats=False):
     halfFlashCapture = Capture('Half Flash', halfFlashImage, halfFlashMetadata)
     fullFlashCapture = Capture('Full Flash', fullFlashImage, fullFlashMetadata)
 
+    noFlashCapture.showImageWithLandmarks()
+    halfFlashCapture.showImageWithLandmarks()
+    fullFlashCapture.showImageWithLandmarks()
+
+    #polygons = getPolygons(noFlashCapture)
+    #extractMask(noFlashCapture, polygons, saveStep)
+
+    #polygons = getPolygons(halfFlashCapture)
+    #extractMask(halfFlashCapture, polygons, saveStep)
+
+    #polygons = getPolygons(fullFlashCapture)
+    #extractMask(fullFlashCapture, polygons, saveStep)
+
+
+
     #detector = dlib.get_frontal_face_detector()
     #predictor = dlib.shape_predictor('/home/dmacewen/Projects/colorMatch/service/predictors/shape_predictor_68_face_landmarks.dat')
     #predictor = dlib.shape_predictor( root + 'tone_colorMatch/predictors/shape_predictor_68_face_landmarks.dat')
@@ -496,16 +511,12 @@ def run(username, imageName, fast=False, saveStats=False):
         print('Saving Step 1')
         #saveStep.saveShapeStep(username, imageName, imageShape, 1)
         saveStep.saveImageStep(diffCapture.image, 1)
-        saveStep.saveImageStep(allPointsMask, 1, 'clippedMask')
-        saveStep.saveReferenceImageLinearBGR(noFlashImage, 'noFlashAligned')
-        saveStep.saveReferenceImageLinearBGR(fullFlashImage, 'fullFlashAligned')
-        saveStep.saveReferenceImageLinearBGR(halfFlashImage, 'halfFlashAligned')
+        saveStep.saveMaskStep(allPointsMask, 1, 'clippedMask')
 
-
-    return
     whiteBalance_CIE1931_coord_asShot = saveStep.getAsShotWhiteBalance()
     print('White Balance As Shot :: ' + str(whiteBalance_CIE1931_coord_asShot))
 
+    return
     averageReflectionBGR = getAverageScreenReflectionColor(username, imageName, image, fullFlashImage_sBGR, imageShape, whiteBalance_CIE1931_coord_asShot)
 
     [[leftAverageReflectionBGR, leftFluxish, leftDimensions], [rightAverageReflectionBGR, rightFluxish, rightDimensions]] = averageReflectionBGR

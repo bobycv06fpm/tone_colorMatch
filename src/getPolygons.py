@@ -63,6 +63,12 @@ def getEyePoints(capture):
     rightEyeLeft[Y] = bottomY
     rightEyeRight[Y] = bottomY
 
+    print("Source :: " + str(capture.landmarks.source))
+    print("Left Eye Left :: " + str(leftEyeLeft))
+    print("Left Eye Right :: " + str(leftEyeRight))
+    print("Right Eye Left :: " + str(rightEyeLeft))
+    print("Right Eye Right :: " + str(rightEyeRight))
+
     return [leftEyeLeft, leftEyeRight, rightEyeLeft, rightEyeRight]
 
 def getMouthPoints(capture):

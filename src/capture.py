@@ -34,3 +34,16 @@ class Capture:
         masked[self.mask] = [0, 0, 0]
 
         self.show(wait, masked)
+
+    def showImageWithLandmarks(self):
+        img = np.copy(self.image)
+        for point in self.landmarks.landmarkPoints:
+            cv2.circle(img, (point[0], point[1]), 5, (0, 0, 255), -1)
+
+        ratio = 3
+        smallImage = cv2.resize(img, (0, 0), fx=1/ratio, fy=1/ratio)
+
+        cv2.imshow(self.name, smallImage)
+        cv2.waitKey(0)
+
+
