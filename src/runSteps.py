@@ -468,6 +468,7 @@ def run(username, imageName, fast=False, saveStats=False):
 
     print('Subtracting Base from Flash')
     diffImage = fullFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
+    #diffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
 
     #print('Diff Image :: ' + str(diffImage))
     diffCapture = Capture('Diff', diffImage, fullFlashCapture.metadata, allPointsMask)

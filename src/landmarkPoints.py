@@ -172,11 +172,19 @@ class Landmarks:
     def getRightEyeBB(self):
         return cv2.boundingRect(self.getRightEye())
 
+    def getRightEyeInnerBB(self):
+        innerEyePoints = np.array(list(self.landmarkPoints[26:28]) + list(self.landmarkPoints[29:31]))
+        return cv2.boundingRect(innerEyePoints)
+
     def getLeftEye(self):
         return np.array(self.landmarkPoints[25:31])
 
     def getLeftEyeBB(self):
         return cv2.boundingRect(self.getLeftEye())
+
+    def getLeftEyeInnerBB(self):
+        innerEyePoints = np.array(list(self.landmarkPoints[20:22]) + list(self.landmarkPoints[23:25]))
+        return cv2.boundingRect(innerEyePoints)
 
     def getMouth(self):
         return np.array(self.landmarkPoints[39:49])
@@ -191,4 +199,12 @@ class Landmarks:
 
     def getInteriorPoints(self):
         return self.landmarkPoints[11:]
+
+    def getEyesPoints(self):
+        return self.landmarkPoints[11:34]
+        #return cv2.boundingRect(np.array(eyes))
+
+
+    #def getInteriorPoints(self):
+    #    return self.landmarkPoints[19:31]
 
