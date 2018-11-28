@@ -19,6 +19,8 @@ def cropToAxis(captures, offsets, axis):
     if captureSets[0, 1] < 0:
         captureSets[:, 1] += abs(captureSets[0, OFFSET])
 
+    print('Capture Sets :: ' + str(captureSets))
+
     maxOffset = captureSets[-1, OFFSET]
 
     #cropped = []
@@ -31,13 +33,13 @@ def cropToAxis(captures, offsets, axis):
             capture.image = capture.image[start:end, :]
             capture.mask = capture.mask[start:end, :]
             capture.landmarks.landmarkPoints[:, 1] -= start
-            capture.landmarks.sourceLandmarkPoints[:, 1] -= start
+            #capture.landmarks.sourceLandmarkPoints[:, 1] -= start
 
         else:
             capture.image = capture.image[:, start:end]
             capture.mask = capture.mask[:, start:end]
             capture.landmarks.landmarkPoints[:, 0] -= start
-            capture.landmarks.sourceLandmarkPoints[:, 0] -= start
+            #capture.landmarks.sourceLandmarkPoints[:, 0] -= start
 
 def cropToOffsets(captures, offsets):
     print('Offsets :: ' + str(offsets))

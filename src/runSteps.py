@@ -1,6 +1,6 @@
 from loadImages import loadImages
 #from detectFace import detectFace
-from alignImages import cropAndAlign
+import alignImages
 from getAverageReflection import getAverageScreenReflectionColor
 from saveStep import Save
 from getPolygons import getPolygons, getFullFacePolygon
@@ -297,9 +297,9 @@ def run(username, imageName, fast=False, saveStats=False):
     halfFlashCapture = Capture('Half Flash', halfFlashImage, halfFlashMetadata)
     fullFlashCapture = Capture('Full Flash', fullFlashImage, fullFlashMetadata)
 
-    noFlashCapture.showImageWithLandmarks()
-    halfFlashCapture.showImageWithLandmarks()
-    fullFlashCapture.showImageWithLandmarks()
+#    noFlashCapture.showImageWithLandmarks()
+#    halfFlashCapture.showImageWithLandmarks()
+#    fullFlashCapture.showImageWithLandmarks()
 
     #polygons = getPolygons(noFlashCapture)
     #extractMask(noFlashCapture, polygons, saveStep)
@@ -390,7 +390,7 @@ def run(username, imageName, fast=False, saveStats=False):
     #images = cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture)
 
     #Needs to be more accurate
-    cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture)
+    alignImages.cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture)
     print('Done Cropping and aligning')
 
 #    print("half flash size :: " + str(halfFlashCapture.image.shape))
@@ -513,10 +513,11 @@ def run(username, imageName, fast=False, saveStats=False):
         saveStep.saveImageStep(diffCapture.image, 1)
         saveStep.saveMaskStep(allPointsMask, 1, 'clippedMask')
 
+    alignImages.alignEyes(noFlashCapture, halfFlashCapture, fullFlashCapture)
+    return
     whiteBalance_CIE1931_coord_asShot = saveStep.getAsShotWhiteBalance()
     print('White Balance As Shot :: ' + str(whiteBalance_CIE1931_coord_asShot))
 
-    return
     averageReflectionBGR = getAverageScreenReflectionColor(username, imageName, image, fullFlashImage_sBGR, imageShape, whiteBalance_CIE1931_coord_asShot)
 
     [[leftAverageReflectionBGR, leftFluxish, leftDimensions], [rightAverageReflectionBGR, rightFluxish, rightDimensions]] = averageReflectionBGR
