@@ -25,6 +25,49 @@ def updateShape(shape, xyDiff):
 
 #def rankAlignment(image,
 
+def getMask(img, points):
+    hull = cv2.convexHull(points)
+    mask = img.copy()
+    mask.fill(0)
+    mask = cv2.fillConvexPoly(mask, hull, 1).astype('bool')
+    return mask
+
+def stretchHistogram(gray, mask):
+    #TEST
+    clippedHigh = gray != 255
+    clippedLow = gray != 0
+
+    mask = np.logical_and(mask, clippedHigh)
+    mask = np.logical_and(mask, clippedLow)
+
+    grayPoints = gray[mask]
+    median = np.median(grayPoints)
+    sd = np.std(grayPoints)
+    lower = median - (3 * sd)
+    lower = lower if lower > 0 else 0
+    upper = median + (3 * sd)
+    upper = upper if upper < 256 else 255
+
+    print('MEDIAN :: ' + str(median))
+    print('SD :: ' + str(sd))
+    print('LOWER :: ' + str(lower))
+    print('UPPER :: ' + str(upper))
+
+    test = np.copy(gray)
+    test[test < lower] = lower
+    test[test > upper] = upper
+
+    numerator = test - lower
+    denominator = upper - lower
+    stretched = (numerator.astype('int32') / denominator.astype('int32'))
+    stretched = np.clip(stretched * 255, 0, 255).astype('uint8')
+
+#    cv2.imshow('stretched', cv2.resize(stretched, (0, 0), fx=1/2, fy=1/2))
+#    cv2.imshow('original', cv2.resize(gray, (0, 0), fx=1/2, fy=1/2))
+    #END TEST
+    return stretched
+
+
 def getPreparedFlash(gray, points):
     #gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
@@ -85,67 +128,22 @@ def getPreparedFlash(gray, points):
     #cv2.waitKey(0)
     return np.float32(preppedMasked)
 
-def getPreparedNoFlash(gray, points, allPoints):
-    #points = allPoints
-    allPoints = points
-    grayHull = cv2.convexHull(points)
-    fullFaceGrayHull = cv2.convexHull(allPoints)
-
-    mask = gray.copy()
-    fullFaceMask = gray.copy()
-
-    mask.fill(0)
-    fullFaceMask.fill(0)
-
-    mask = cv2.fillConvexPoly(mask, grayHull, 1).astype('bool')
-    fullFaceMask = cv2.fillConvexPoly(fullFaceMask, fullFaceGrayHull, 1).astype('bool')
-
-    #TEST
-    clippedHigh = gray != 255
-    clippedLow = gray != 0
-
-    mask = np.logical_and(mask, clippedHigh)
-    mask = np.logical_and(mask, clippedLow)
-
-    grayPoints = gray[mask]
-    median = np.median(grayPoints)
-    sd = np.std(grayPoints)
-    lower = median - (3 * sd)
-    lower = lower if lower > 0 else 0
-    upper = median + (3 * sd)
-
-    print('MEDIAN :: ' + str(median))
-    print('SD :: ' + str(sd))
-    print('LOWER :: ' + str(lower))
-    print('UPPER :: ' + str(upper))
-
-    test = np.copy(gray)
-    test[test < lower] = lower
-    test[test > upper] = upper
-
-    numerator = test - lower
-    denominator = upper - lower
-    stretched = (numerator.astype('int32') / denominator.astype('int32'))
-    stretched = np.clip(stretched * 255, 0, 255).astype('uint8')
-
-#    cv2.imshow('stretched', cv2.resize(stretched, (0, 0), fx=1/2, fy=1/2))
-#    cv2.imshow('original', cv2.resize(gray, (0, 0), fx=1/2, fy=1/2))
-    #END TEST
-    gray = stretched
-
+def getPreparedNoFlash(gray, mask):
     #gray = cv2.GaussianBlur(gray, (11, 11), 0)
-    blur = 51 #Works will with eyes.. Ksize5
+    #blur = 41 #Works will with eyes.. Ksize5
     #blur = 101
     #gray = cv2.GaussianBlur(gray, (blur, blur), 0)
     #gray = cv2.bilateralFilter(gray,30,300,300)
+    #cv2.imshow('before gray',cv2.resize((gray * mask).astype('uint8'), (0, 0), fx=1/2, fy=1/2))
     gray = cv2.bilateralFilter(gray,30,300,300)
+    #gray = cv2.GaussianBlur(gray, (blur, blur), 0)
+    #cv2.imshow('after gray',cv2.resize((gray * mask).astype('uint8'), (0, 0), fx=1/2, fy=1/2))
     #gray = cv2.blur(gray,(30,30))
     #gray = cv2.GaussianBlur(gray, (45, 45), 0)
     #prepped = cv2.Laplacian(gray, cv2.CV_16S)
-    prepped = cv2.Laplacian(gray, cv2.CV_16S)
-    #cv2.imshow('gray',cv2.resize(gray.astype('uint8'), (0, 0), fx=1/2, fy=1/2))
-    #prepped = cv2.Sobel(gray, cv2.CV_16S, 1, 1, ksize=5)
-    prepped = cv2.GaussianBlur(prepped, (1, 3), 0)
+    #prepped = cv2.Laplacian(gray, cv2.CV_16S)
+    prepped = cv2.Sobel(gray, cv2.CV_16S, 1, 1, ksize=5)
+    #prepped = cv2.GaussianBlur(prepped, (1, 3), 0)
     #sigma = .8
     #med = np.median(gray)
     #lower = int(max(0, (1.0 - sigma) * med))
@@ -154,8 +152,8 @@ def getPreparedNoFlash(gray, points, allPoints):
 
     #cv2.imshow('prepped', prepped)
 
-    cv2.imshow('prepped',cv2.resize(prepped.astype('uint8'), (0, 0), fx=1/2, fy=1/2))
-    preppedMasked = prepped * fullFaceMask#mask
+    preppedMasked = prepped * mask
+    #cv2.imshow('prepped',cv2.resize(preppedMasked.astype('uint8'), (0, 0), fx=1/2, fy=1/2))
     
     #cv2.imshow('prepped masked', preppedMasked.astype('uint8'))
     #cv2.imshow('prepped masked',cv2.resize(preppedMasked.astype('uint8'), (0, 0), fx=1/2, fy=1/2))
@@ -321,9 +319,13 @@ def scaleBB(bb, scale, dimensions):
 
     return (x, y, w, h)
 
-def getLuminosity(image, blur=101):
+def getLuminosity(image, blur=101, dimensions=3):
     #values = np.max(image, axis=2)
-    values = np.floor(np.sum(image.astype('int32'), axis=2) / 3).astype('uint8')
+    if dimensions == 3:
+        values = np.floor(np.sum(image.astype('int32'), axis=2) / 3).astype('uint8')
+    else:
+        values = image
+
     luminosity = cv2.GaussianBlur(values, (blur, blur), 0)
     luminosity[luminosity == 0] = 1
     #cv2.imshow(capture.name + ' luminosity!', luminosity)
@@ -446,21 +448,22 @@ def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
     #halfFlashImageBlur = cv2.GaussianBlur(halfFlashCapture.image, (blur, blur), 0)
     #fullFlashImageBlur = cv2.GaussianBlur(fullFlashCapture.image, (blur, blur), 0)
     #synNoFlash = np.clip((2 * halfFlashImageBlur.astype('int32')) - (fullFlashImageBlur.astype('int32')), 0, 255).astype('uint8')
-    synNoFlash = np.clip((2 * halfFlashCapture.image.astype('int32')) - (fullFlashCapture.image.astype('int32')), 0, 255).astype('uint8')
+    synNoFlash = halfFlashCapture.image#np.clip((2 * halfFlashCapture.image.astype('int32')) - (fullFlashCapture.image.astype('int32')), 0, 255).astype('uint8')
 
     #cv2.imshow('checker', cv2.resize(synNoFlash, (0, 0), fx=1/2, fy=1/2))
     #cv2.imshow('actual', cv2.resize(noFlashCapture.image, (0, 0), fx=1/2, fy=1/2))
     #cv2.waitKey(0)
 
-    synNoFlashLuminosity = getLuminosity(synNoFlash)
-    noFlashLuminosity = getLuminosity(noFlashCapture.image)
+    #synNoFlashLuminosity = getLuminosity(synNoFlash)
+    #noFlashLuminosity = getLuminosity(noFlashCapture.image)
 
     synNoFlashGrey = np.floor(np.sum(synNoFlash.astype('int32'), axis=2) / 3).astype('uint8')
+    synNoFlashGreyScaled = synNoFlashGrey
     noFlashGrey = np.floor(np.sum(noFlashCapture.image.astype('int32'), axis=2) / 3).astype('uint8')
 
     #cv2.imshow('before scaling', cv2.resize(synNoFlashGrey, (0, 0), fx=1/2, fy=1/2))
-    synNoFlashMultiplier = noFlashLuminosity / synNoFlashLuminosity
-    synNoFlashGreyScaled = np.clip(np.floor(synNoFlashGrey * synNoFlashMultiplier), 0, 255).astype('uint8')
+    #synNoFlashMultiplier = noFlashLuminosity / synNoFlashLuminosity
+    #synNoFlashGreyScaled = np.clip(np.floor(synNoFlashGrey * synNoFlashMultiplier), 0, 255).astype('uint8')
     #cv2.imshow('after scaling', cv2.resize(synNoFlashGreyScaled, (0, 0), fx=1/2, fy=1/2))
     #cv2.waitKey(0)
 
@@ -468,8 +471,50 @@ def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
 #    cv2.imshow('no flash :: ', cv2.resize(noFlashGrey, (0, 0), fx=1/2, fy=1/2))
 #    cv2.waitKey(0)
 
-    preparedSynNoFlashImage = getPreparedNoFlash(synNoFlashGreyScaled, halfFlashCapture.landmarks.getInteriorPoints(), halfFlashCapture.landmarks.landmarkPoints)
-    preparedNoFlashImage = getPreparedNoFlash(noFlashGrey, noFlashCapture.landmarks.getInteriorPoints(), noFlashCapture.landmarks.landmarkPoints)
+    synNoFlashGreyMask = getMask(synNoFlashGreyScaled, halfFlashCapture.landmarks.getInteriorPoints())
+    #cv2.imshow('before stretch', cv2.resize(synNoFlashGreyScaled, (0, 0), fx=1/2, fy=1/2))
+    synNoFlashGreyScaled = stretchHistogram(synNoFlashGreyScaled, synNoFlashGreyMask)
+    #cv2.imshow('after stretch', cv2.resize(synNoFlashGreyScaled, (0, 0), fx=1/2, fy=1/2))
+    #cv2.waitKey(0)
+
+    noFlashGreyMask = getMask(noFlashGrey, noFlashCapture.landmarks.getInteriorPoints())
+    #cv2.imshow('before stretch', cv2.resize(noFlashGrey, (0, 0), fx=1/2, fy=1/2))
+    noFlashGrey = stretchHistogram(noFlashGrey, noFlashGreyMask)
+    #cv2.imshow('after stretch', cv2.resize(noFlashGrey, (0, 0), fx=1/2, fy=1/2))
+    #cv2.waitKey(0)
+
+
+    synNoFlashLuminosity = getLuminosity(synNoFlashGreyScaled, 201, 2)
+    noFlashLuminosity = getLuminosity(noFlashGrey, 201, 2)
+
+    synNoFlashMultiplier = noFlashLuminosity / synNoFlashLuminosity
+    #cv2.imshow('before scale', cv2.resize(synNoFlashGreyScaled, (0, 0), fx=1/2, fy=1/2))
+    synNoFlashGreyScaled = np.clip(np.floor(synNoFlashGreyScaled * synNoFlashMultiplier), 0, 255).astype('uint8')
+    #synNoFlashGreyScaled = cv2.GaussianBlur(synNoFlashGreyScaled, (51, 51), 0)
+    #cv2.imshow('syn scale', cv2.resize(synNoFlashGreyScaled, (0, 0), fx=1/2, fy=1/2))
+    #cv2.imshow('actual scale', cv2.resize(noFlashGrey, (0, 0), fx=1/2, fy=1/2))
+
+    #blur = 11
+    #subtractFromSyn = np.clip(synNoFlashGreyScaled.astype('int32') - noFlashGrey.astype('int32'), 0, 255).astype('uint8')
+    #subtractLowPass = cv2.GaussianBlur(subtractFromSyn, (blur, blur), 0)
+    #subtractLowPass = np.clip(subtractFromSyn.astype('int32') - subtractLowPass.astype('int32'), 0, 255).astype('uint8')
+
+    #addToSyn =  np.clip(noFlashGrey.astype('int32') - synNoFlashGreyScaled.astype('int32'), 0, 255).astype('uint8')
+    #addLowPass = cv2.GaussianBlur(addToSyn, (blur, blur), 0)
+    #addLowPass = np.clip(addToSyn.astype('int32') - addLowPass.astype('int32'), 0, 255).astype('uint8')
+
+    ##cv2.imshow('SubDiff', np.clip(subtractLowPass, 0, 255).astype('uint8'))
+    ##cv2.imshow('AddDiff', np.clip(addLowPass, 0, 255).astype('uint8'))
+    ##cv2.waitKey(0)
+
+    #cv2.imshow('before add/sub', cv2.resize(synNoFlashGreyScaled, (0, 0), fx=1/2, fy=1/2))
+    #synNoFlashGreyScaled += addLowPass
+    #synNoFlashGreyScaled -= subtractLowPass
+    #cv2.imshow('after add/sub', cv2.resize(synNoFlashGreyScaled, (0, 0), fx=1/2, fy=1/2))
+    cv2.waitKey(0)
+
+    preparedSynNoFlashImage = getPreparedNoFlash(synNoFlashGreyScaled, synNoFlashGreyMask)
+    preparedNoFlashImage = getPreparedNoFlash(noFlashGrey, noFlashGreyMask)
 
     noFlashOffset = calculateOffset(preparedNoFlashImage, preparedSynNoFlashImage)
     halfFlashOffset = [0, 0]#calculateOffset(preparedHalfFlashImage, preparedFullFlashImage)
