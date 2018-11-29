@@ -198,7 +198,7 @@ class Landmarks:
         return cv2.boundingRect(np.array(sourceLandmarkPoints))
 
     def getInteriorPoints(self):
-        return self.landmarkPoints[11:]
+        return np.array(list(self.landmarkPoints[11:]) + list(self.landmarkPoints[4:7]))
 
     def getEyesPoints(self):
         return self.landmarkPoints[11:34]
