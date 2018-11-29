@@ -128,8 +128,8 @@ def getPreparedNoFlash(gray, points, allPoints):
     stretched = (numerator.astype('int32') / denominator.astype('int32'))
     stretched = np.clip(stretched * 255, 0, 255).astype('uint8')
 
-    cv2.imshow('stretched', cv2.resize(stretched, (0, 0), fx=1/2, fy=1/2))
-    cv2.imshow('original', cv2.resize(gray, (0, 0), fx=1/2, fy=1/2))
+#    cv2.imshow('stretched', cv2.resize(stretched, (0, 0), fx=1/2, fy=1/2))
+#    cv2.imshow('original', cv2.resize(gray, (0, 0), fx=1/2, fy=1/2))
     #END TEST
     gray = stretched
 
@@ -158,8 +158,8 @@ def getPreparedNoFlash(gray, points, allPoints):
     preppedMasked = prepped * fullFaceMask#mask
     
     #cv2.imshow('prepped masked', preppedMasked.astype('uint8'))
-    cv2.imshow('prepped masked',cv2.resize(preppedMasked.astype('uint8'), (0, 0), fx=1/2, fy=1/2))
-    cv2.waitKey(0)
+    #cv2.imshow('prepped masked',cv2.resize(preppedMasked.astype('uint8'), (0, 0), fx=1/2, fy=1/2))
+    #cv2.waitKey(0)
     return np.float32(preppedMasked)
 
 #def getPreparedNoFlashImage(noFlashImage, noFlashShape):
@@ -448,9 +448,9 @@ def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
     #synNoFlash = np.clip((2 * halfFlashImageBlur.astype('int32')) - (fullFlashImageBlur.astype('int32')), 0, 255).astype('uint8')
     synNoFlash = np.clip((2 * halfFlashCapture.image.astype('int32')) - (fullFlashCapture.image.astype('int32')), 0, 255).astype('uint8')
 
-    cv2.imshow('checker', cv2.resize(synNoFlash, (0, 0), fx=1/2, fy=1/2))
-    cv2.imshow('actual', cv2.resize(noFlashCapture.image, (0, 0), fx=1/2, fy=1/2))
-    cv2.waitKey(0)
+    #cv2.imshow('checker', cv2.resize(synNoFlash, (0, 0), fx=1/2, fy=1/2))
+    #cv2.imshow('actual', cv2.resize(noFlashCapture.image, (0, 0), fx=1/2, fy=1/2))
+    #cv2.waitKey(0)
 
     synNoFlashLuminosity = getLuminosity(synNoFlash)
     noFlashLuminosity = getLuminosity(noFlashCapture.image)
@@ -458,11 +458,11 @@ def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
     synNoFlashGrey = np.floor(np.sum(synNoFlash.astype('int32'), axis=2) / 3).astype('uint8')
     noFlashGrey = np.floor(np.sum(noFlashCapture.image.astype('int32'), axis=2) / 3).astype('uint8')
 
-    cv2.imshow('before scaling', cv2.resize(synNoFlashGrey, (0, 0), fx=1/2, fy=1/2))
+    #cv2.imshow('before scaling', cv2.resize(synNoFlashGrey, (0, 0), fx=1/2, fy=1/2))
     synNoFlashMultiplier = noFlashLuminosity / synNoFlashLuminosity
     synNoFlashGreyScaled = np.clip(np.floor(synNoFlashGrey * synNoFlashMultiplier), 0, 255).astype('uint8')
-    cv2.imshow('after scaling', cv2.resize(synNoFlashGreyScaled, (0, 0), fx=1/2, fy=1/2))
-    cv2.waitKey(0)
+    #cv2.imshow('after scaling', cv2.resize(synNoFlashGreyScaled, (0, 0), fx=1/2, fy=1/2))
+    #cv2.waitKey(0)
 
 #    cv2.imshow('synthetic no flash scaled :: ', cv2.resize(synNoFlashGreyScaled, (0, 0), fx=1/2, fy=1/2))
 #    cv2.imshow('no flash :: ', cv2.resize(noFlashGrey, (0, 0), fx=1/2, fy=1/2))
