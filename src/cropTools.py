@@ -6,7 +6,6 @@ def getSecond(arr):
 def cropToAxis(captures, offsets, axis):
     print('Cropping to Axis')
     #imageSets = np.dstack((images, offset, np.arange(len(offset))))
-    CAPTURE = 0
     OFFSET = 1
 
     #captureSets = zip(captures, offsets)
@@ -45,3 +44,42 @@ def cropToOffsets(captures, offsets):
     print('Offsets :: ' + str(offsets))
     cropToAxis(captures, offsets[:, 0], 0)
     cropToAxis(captures, offsets[:, 1], 1)
+
+def cropImagesToAxis(images, offsets, axis):
+    print('Cropping to Axis')
+    OFFSET = 1
+
+    imageSets = []
+    for index, capture in enumerate(images):
+        imageSets.append([capture, offsets[index], index])
+
+    imageSets = np.array(sorted(imageSets, key=getSecond))
+
+    if imageSets[0, 1] < 0:
+        imageSets[:, 1] += abs(imageSets[0, OFFSET])
+
+    #print('Capture Sets :: ' + str(imageSets))
+
+    maxOffset = imageSets[-1, OFFSET]
+
+    cropped = []
+    for imageSet in imageSets:
+        [image, offset, order] = imageSet
+        start = offset#maxCrop - offset
+        end = image.shape[axis] - (maxOffset - offset)
+
+        if axis == 0:
+            image = image[start:end, :]
+        else:
+            image = image[:, start:end]
+
+        cropped.append([image, order])
+
+    croppedImages = np.array(sorted(cropped, key=getSecond))
+    return croppedImages[:, 0]
+
+def cropImagesToOffsets(images, offsets):
+    print('Offsets :: ' + str(offsets))
+    images = cropImagesToAxis(images, offsets[:, 0], 0)
+    images = cropImagesToAxis(images, offsets[:, 1], 1)
+    return images

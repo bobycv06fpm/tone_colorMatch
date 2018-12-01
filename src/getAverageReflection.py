@@ -3,6 +3,7 @@ import saveStep
 import cv2
 import numpy as np
 import colorTools
+import alignImages
 
 #import matplotlib.pyplot as plt
 #from mpl_toolkits.mplot3d import Axes3D
@@ -296,55 +297,85 @@ def getMinimumBrightnessReflectionThreshold(eyeHSV):
     mean = np.mean(values)
     return mean + (2 * SD)
 
+def getEyeCrops(capture):
+    (x, y, w, h) = capture.landmarks.getLeftEyeBB()
+    leftEye = capture.image[y:y+h, x:x+w]
 
+    (x, y, w, h) = capture.landmarks.getRightEyeBB()
+    rightEye = capture.image[y:y+h, x:x+w]
 
-def getAverageScreenReflectionColor(username, imageName, image, fullFlash_sBGR, imageShape, cameraWB_CIE_xy_coords):
-    leftEye, left_sBGR = getLeftEye(username, imageName, image, fullFlash_sBGR, imageShape)
-    rightEye, right_sBGR = getRightEye(username, imageName, image, fullFlash_sBGR, imageShape)
+    return [leftEye, rightEye]
 
-    #if leftEyeError is not None:
-    eyeWidth = getEyeWidth(username, imageName, image, imageShape)
-    print('Eye Width :: ' + str(eyeWidth))
+def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, cameraWB_CIE_xy_coords):
+    [noFlashLeftEyeCrop, noFlashRightEyeCrop] = getEyeCrops(noFlashCapture)
+    [halfFlashLeftEyeCrop, halfFlashRightEyeCrop] = getEyeCrops(halfFlashCapture)
+    [fullFlashLeftEyeCrop, fullFlashRightEyeCrop] = getEyeCrops(fullFlashCapture)
 
-    leftWidth = 0
-    leftHeight = 0
-    rightWidth = 0
-    rightHeight = 0
+    [noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop] = alignImages.cropAndAlignEyes(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop)
+    [noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop] = alignImages.cropAndAlignEyes(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop)
 
-    try:
-        leftEyeReflection = getScreenReflection(username, imageName, leftEye, left_sBGR, 'leftEye', cameraWB_CIE_xy_coords)
-    except:
-        print('Setting Left to None!')
-        leftAverageBGR = None
-        leftFluxish = None
-    else:
-        [leftSumBGR, leftNumPixels, [leftWidth, leftHeight]] = leftEyeReflection
-        leftAverageBGR = leftSumBGR / leftNumPixels
-
-        leftWidth = leftWidth / eyeWidth
-        leftHeight = leftHeight / eyeWidth
-
-        leftFluxish = leftWidth * leftHeight * max(leftAverageBGR)
-        print('Left Num Pixels :: ' + str(leftNumPixels))
-        print('Left reflection Width, Height, Area, Fluxish :: ' + str(leftWidth) + ' ' + str(leftHeight) + ' ' + str(leftWidth * leftHeight) + ' ' + str(leftWidth * leftHeight * max(leftAverageBGR)))
-
-    try:
-        rightEyeReflection = getScreenReflection(username, imageName, rightEye, right_sBGR, 'rightEye', cameraWB_CIE_xy_coords)
-    except:
-        print('Setting Right to None!')
-        rightAverageBGR = None
-        rightFluxish = None
-    else:
-        [rightSumBGR, rightNumPixels, [rightWidth, rightHeight]] = rightEyeReflection
-        rightAverageBGR = rightSumBGR / rightNumPixels
-
-        rightWidth = rightWidth / eyeWidth
-        rightHeight = rightHeight / eyeWidth
-
-        rightFluxish = rightWidth * rightHeight * max(rightAverageBGR)
-        print('Right Num Pixels :: ' + str(rightNumPixels))
-        print('Right reflection Width, Height, Area, Fluxish :: ' + str(rightWidth) + ' ' + str(rightHeight) + ' ' + str(rightWidth * rightHeight) + ' ' + str(rightWidth * rightHeight * max(rightAverageBGR)))
+    cv2.imshow('no flash left eye', noFlashLeftEyeCrop)
+    cv2.imshow('no flash right eye', noFlashRightEyeCrop)
+    cv2.imshow('half flash left eye', halfFlashLeftEyeCrop)
+    cv2.imshow('half flash right eye', halfFlashRightEyeCrop)
+    cv2.imshow('full flash left eye', fullFlashLeftEyeCrop)
+    cv2.imshow('full flash right eye', fullFlashRightEyeCrop)
+    cv2.waitKey(0)
 
 
 
-    return [[leftAverageBGR, leftFluxish, [leftWidth, leftHeight]], [rightAverageBGR, rightFluxish, [rightWidth, rightHeight]]]
+
+
+
+
+
+#def getAverageScreenReflectionColor(username, imageName, image, fullFlash_sBGR, imageShape, cameraWB_CIE_xy_coords):
+#    leftEye, left_sBGR = getLeftEye(username, imageName, image, fullFlash_sBGR, imageShape)
+#    rightEye, right_sBGR = getRightEye(username, imageName, image, fullFlash_sBGR, imageShape)
+#
+#    #if leftEyeError is not None:
+#    eyeWidth = getEyeWidth(username, imageName, image, imageShape)
+#    print('Eye Width :: ' + str(eyeWidth))
+#
+#    leftWidth = 0
+#    leftHeight = 0
+#    rightWidth = 0
+#    rightHeight = 0
+#
+#    try:
+#        leftEyeReflection = getScreenReflection(username, imageName, leftEye, left_sBGR, 'leftEye', cameraWB_CIE_xy_coords)
+#    except:
+#        print('Setting Left to None!')
+#        leftAverageBGR = None
+#        leftFluxish = None
+#    else:
+#        [leftSumBGR, leftNumPixels, [leftWidth, leftHeight]] = leftEyeReflection
+#        leftAverageBGR = leftSumBGR / leftNumPixels
+#
+#        leftWidth = leftWidth / eyeWidth
+#        leftHeight = leftHeight / eyeWidth
+#
+#        leftFluxish = leftWidth * leftHeight * max(leftAverageBGR)
+#        print('Left Num Pixels :: ' + str(leftNumPixels))
+#        print('Left reflection Width, Height, Area, Fluxish :: ' + str(leftWidth) + ' ' + str(leftHeight) + ' ' + str(leftWidth * leftHeight) + ' ' + str(leftWidth * leftHeight * max(leftAverageBGR)))
+#
+#    try:
+#        rightEyeReflection = getScreenReflection(username, imageName, rightEye, right_sBGR, 'rightEye', cameraWB_CIE_xy_coords)
+#    except:
+#        print('Setting Right to None!')
+#        rightAverageBGR = None
+#        rightFluxish = None
+#    else:
+#        [rightSumBGR, rightNumPixels, [rightWidth, rightHeight]] = rightEyeReflection
+#        rightAverageBGR = rightSumBGR / rightNumPixels
+#
+#        rightWidth = rightWidth / eyeWidth
+#        rightHeight = rightHeight / eyeWidth
+#
+#        rightFluxish = rightWidth * rightHeight * max(rightAverageBGR)
+#        print('Right Num Pixels :: ' + str(rightNumPixels))
+#        print('Right reflection Width, Height, Area, Fluxish :: ' + str(rightWidth) + ' ' + str(rightHeight) + ' ' + str(rightWidth * rightHeight) + ' ' + str(rightWidth * rightHeight * max(rightAverageBGR)))
+#
+#
+#
+#    return [[leftAverageBGR, leftFluxish, [leftWidth, leftHeight]], [rightAverageBGR, rightFluxish, [rightWidth, rightHeight]]]

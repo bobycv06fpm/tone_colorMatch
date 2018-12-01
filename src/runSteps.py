@@ -451,6 +451,7 @@ def run(username, imageName, fast=False, saveStats=False):
     howLinearMax = np.max(howLinear, axis=2)
     #howLinearMaxBlur = howLinearMax#cv2.GaussianBlur(howLinearMax, (7, 7), 0)
 
+
     #mean = np.mean(howLinearMaxBlur)
     #med = np.median(howLinearMaxBlur)
     #sd = np.std(howLinearMaxBlur)
@@ -459,6 +460,19 @@ def run(username, imageName, fast=False, saveStats=False):
 
     #nonLinearMask = howLinearMax > .03 #med
     nonLinearMask = howLinearMax > 6#8 #12 #med
+
+    #TEST MAYBE USE?
+    #howLinearMaxTest = nonLinearMask.astype('uint8') * 255
+    #cv2.imshow('How Linear', cv2.resize(howLinearMaxTest, (0, 0), fx=1/2, fy=1/2))
+    #howLinearMaxBlur = cv2.GaussianBlur(howLinearMaxTest, (51, 51), 0)
+    #cv2.imshow('How Linear Blur', cv2.resize(howLinearMaxBlur, (0, 0), fx=1/2, fy=1/2))
+    #howLinearMaxBlur[howLinearMaxBlur < 200] = 0
+    #cv2.imshow('How Linear Reduced', cv2.resize(howLinearMaxBlur, (0, 0), fx=1/2, fy=1/2))
+    #cv2.waitKey(0)
+    #END TEST
+
+
+
     #cv2.imshow('non linear mask', nonLinearMask.astype('uint8') * 255)
     #howLinearMaxBlurMasked = howLinearMaxBlur + nonLinearMask
     allPointsMask = np.logical_or(allPointsMask, nonLinearMask)
@@ -514,11 +528,15 @@ def run(username, imageName, fast=False, saveStats=False):
         saveStep.saveImageStep(diffCapture.image, 1)
         saveStep.saveMaskStep(allPointsMask, 1, 'clippedMask')
 
-    alignImages.alignEyes(noFlashCapture, halfFlashCapture, fullFlashCapture)
-    return
+    #alignImages.alignEyes(noFlashCapture, halfFlashCapture, fullFlashCapture)
     whiteBalance_CIE1931_coord_asShot = saveStep.getAsShotWhiteBalance()
     print('White Balance As Shot :: ' + str(whiteBalance_CIE1931_coord_asShot))
 
+    noFlashCapture.landmarks = halfFlashCapture.landmarks
+    fullFlashCapture.landmarks = halfFlashCapture.landmarks
+
+    getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, whiteBalance_CIE1931_coord_asShot)
+    return
     averageReflectionBGR = getAverageScreenReflectionColor(username, imageName, image, fullFlashImage_sBGR, imageShape, whiteBalance_CIE1931_coord_asShot)
 
     [[leftAverageReflectionBGR, leftFluxish, leftDimensions], [rightAverageReflectionBGR, rightFluxish, rightDimensions]] = averageReflectionBGR
