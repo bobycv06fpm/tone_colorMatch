@@ -413,7 +413,8 @@ def cropAndAlignEyes(noFlashEye, halfFlashEye, fullFlashEye):
 
     noFlashOffset = [0, 0]#calculateOffset(preparedNoFlashImage, preparedHalfFlashImage)
     halfFlashOffset = [0, 0]
-    fullFlashOffset = calculateOffset(preparedHalfFlashImage, preparedFullFlashImage)
+    #fullFlashOffset = calculateOffset(preparedHalfFlashImage, preparedFullFlashImage)
+    fullFlashOffset = calculateOffset(preparedFullFlashImage, preparedHalfFlashImage)
 
     print('no flash offset :: ' + str(noFlashOffset))
     print('half flash offset :: ' + str(halfFlashOffset))

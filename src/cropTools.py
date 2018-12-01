@@ -56,9 +56,9 @@ def cropImagesToAxis(images, offsets, axis):
     imageSets = np.array(sorted(imageSets, key=getSecond))
 
     if imageSets[0, 1] < 0:
-        imageSets[:, 1] += abs(imageSets[0, OFFSET])
+        imageSets[:, 1] += abs(imageSets[0, 1])
 
-    #print('Capture Sets :: ' + str(imageSets))
+    print('Capture Sets :: ' + str(imageSets))
 
     maxOffset = imageSets[-1, OFFSET]
 
