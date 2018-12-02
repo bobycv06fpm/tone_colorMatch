@@ -1,5 +1,10 @@
 import numpy as np
 
+X = 0
+Y = 1
+SHAPE_X = 1
+SHAPE_Y = 0
+
 def getSecond(arr):
     return arr[1]
 
@@ -15,8 +20,8 @@ def cropToAxis(captures, offsets, axis):
 
     captureSets = np.array(sorted(captureSets, key=getSecond))
 
-    if captureSets[0, 1] < 0:
-        captureSets[:, 1] += abs(captureSets[0, OFFSET])
+    if captureSets[0, OFFSET] < 0:
+        captureSets[:, OFFSET] += abs(captureSets[0, OFFSET])
 
     print('Capture Sets :: ' + str(captureSets))
 
@@ -25,25 +30,26 @@ def cropToAxis(captures, offsets, axis):
     #cropped = []
     for captureSet in captureSets:
         [capture, offset] = captureSet
-        start = offset#maxCrop - offset
-        end = capture.image.shape[axis] - (maxOffset - offset)
+        start = offset
 
-        if axis == 0:
+        if axis == Y:
+            end = capture.image.shape[SHAPE_Y] - (maxOffset - offset)
             capture.image = capture.image[start:end, :]
             capture.mask = capture.mask[start:end, :]
-            capture.landmarks.landmarkPoints[:, 1] -= start
+            capture.landmarks.landmarkPoints[:, Y] -= start
             #capture.landmarks.sourceLandmarkPoints[:, 1] -= start
 
         else:
+            end = capture.image.shape[SHAPE_X] - (maxOffset - offset)
             capture.image = capture.image[:, start:end]
             capture.mask = capture.mask[:, start:end]
-            capture.landmarks.landmarkPoints[:, 0] -= start
+            capture.landmarks.landmarkPoints[:, X] -= start
             #capture.landmarks.sourceLandmarkPoints[:, 0] -= start
 
 def cropToOffsets(captures, offsets):
     print('Offsets :: ' + str(offsets))
-    cropToAxis(captures, offsets[:, 0], 0)
-    cropToAxis(captures, offsets[:, 1], 1)
+    cropToAxis(captures, offsets[:, X], X)
+    cropToAxis(captures, offsets[:, Y], Y)
 
 def cropImagesToAxis(images, offsets, axis):
     print('Cropping to Axis')
@@ -55,22 +61,25 @@ def cropImagesToAxis(images, offsets, axis):
 
     imageSets = np.array(sorted(imageSets, key=getSecond))
 
-    if imageSets[0, 1] < 0:
-        imageSets[:, 1] += abs(imageSets[0, 1])
+    if imageSets[0, OFFSET] < 0:
+        imageSets[:, OFFSET] += abs(imageSets[0, OFFSET])
 
     print('Capture Sets :: ' + str(imageSets))
 
     maxOffset = imageSets[-1, OFFSET]
 
+    print('Max Offset :: ' + str(maxOffset))
+
     cropped = []
     for imageSet in imageSets:
         [image, offset, order] = imageSet
-        start = offset#maxCrop - offset
-        end = image.shape[axis] - (maxOffset - offset)
+        start = offset
 
-        if axis == 0:
+        if axis == Y:
+            end = image.shape[SHAPE_Y] - (maxOffset - offset)
             image = image[start:end, :]
         else:
+            end = image.shape[SHAPE_X] - (maxOffset - offset)
             image = image[:, start:end]
 
         cropped.append([image, order])
@@ -80,6 +89,6 @@ def cropImagesToAxis(images, offsets, axis):
 
 def cropImagesToOffsets(images, offsets):
     print('Offsets :: ' + str(offsets))
-    images = cropImagesToAxis(images, offsets[:, 0], 0)
-    images = cropImagesToAxis(images, offsets[:, 1], 1)
+    images = cropImagesToAxis(images, offsets[:, X], X)
+    images = cropImagesToAxis(images, offsets[:, Y], Y)
     return images

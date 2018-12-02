@@ -239,8 +239,10 @@ def getPrepared(gray, mask):
 #    edgeFlash = edgeFlash * flashMask
 #    return edgeFlash
 
-def calculateOffset(preparedNoFlashImage, preparedFlashImage):
-    (offset, response) = cv2.phaseCorrelate(preparedNoFlashImage, preparedFlashImage)
+#def calculateOffset(preparedNoFlashImage, preparedFlashImage):
+def calculateOffset(offsetImage, targetImage):
+    #(offset, response) = cv2.phaseCorrelate(offsetImage, targetImage)
+    (offset, response) = cv2.phaseCorrelate(targetImage, offsetImage)
     offset = list(offset)
     offset = [round(value) for value in offset]
     print("Offset :: " + str(offset))
@@ -413,23 +415,23 @@ def cropAndAlignEyes(noFlashEye, halfFlashEye, fullFlashEye):
 
     noFlashOffset = [0, 0]#calculateOffset(preparedNoFlashImage, preparedHalfFlashImage)
     halfFlashOffset = [0, 0]
-    #fullFlashOffset = calculateOffset(preparedHalfFlashImage, preparedFullFlashImage)
     fullFlashOffset = calculateOffset(preparedFullFlashImage, preparedHalfFlashImage)
+
 
     print('no flash offset :: ' + str(noFlashOffset))
     print('half flash offset :: ' + str(halfFlashOffset))
     print('full flash offset :: ' + str(fullFlashOffset))
 
-    cv2.imshow('no flash', noFlashGreyStretched)
-    cv2.imshow('half flash', halfFlashGreyStretched)
-    cv2.imshow('full flash', fullFlashGreyStretched)
+    #cv2.imshow('no flash', noFlashGreyStretched)
+    #cv2.imshow('half flash', halfFlashGreyStretched)
+    #cv2.imshow('full flash', fullFlashGreyStretched)
 
     [noFlashGrey, halfFlashGrey, fullFlashGrey] = cropTools.cropImagesToOffsets([noFlashGreyStretched, halfFlashGreyStretched, fullFlashGreyStretched], np.array([noFlashOffset, halfFlashOffset, fullFlashOffset]))
 
-    cv2.imshow('no flash cropped', noFlashGrey)
-    cv2.imshow('half flash cropped', halfFlashGrey)
-    cv2.imshow('full flash cropped', fullFlashGrey)
-    cv2.waitKey(0)
+    #cv2.imshow('no flash cropped', noFlashGrey)
+    #cv2.imshow('half flash cropped', halfFlashGrey)
+    #cv2.imshow('full flash cropped', fullFlashGrey)
+    #cv2.waitKey(0)
 
     return [noFlashEye, halfFlashEye, fullFlashEye]
 

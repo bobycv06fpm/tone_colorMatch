@@ -314,13 +314,13 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     [noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop] = alignImages.cropAndAlignEyes(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop)
     [noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop] = alignImages.cropAndAlignEyes(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop)
 
-    cv2.imshow('no flash left eye', noFlashLeftEyeCrop)
-    cv2.imshow('no flash right eye', noFlashRightEyeCrop)
-    cv2.imshow('half flash left eye', halfFlashLeftEyeCrop)
-    cv2.imshow('half flash right eye', halfFlashRightEyeCrop)
-    cv2.imshow('full flash left eye', fullFlashLeftEyeCrop)
-    cv2.imshow('full flash right eye', fullFlashRightEyeCrop)
-    cv2.waitKey(0)
+    #cv2.imshow('no flash left eye', noFlashLeftEyeCrop)
+    #cv2.imshow('no flash right eye', noFlashRightEyeCrop)
+    #cv2.imshow('half flash left eye', halfFlashLeftEyeCrop)
+    #cv2.imshow('half flash right eye', halfFlashRightEyeCrop)
+    #cv2.imshow('full flash left eye', fullFlashLeftEyeCrop)
+    #cv2.imshow('full flash right eye', fullFlashRightEyeCrop)
+    #cv2.waitKey(0)
 
 
 
