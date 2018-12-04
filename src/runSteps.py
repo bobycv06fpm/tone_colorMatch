@@ -297,6 +297,10 @@ def run(username, imageName, fast=False, saveStats=False):
     halfFlashCapture = Capture('Half Flash', halfFlashImage, halfFlashMetadata)
     fullFlashCapture = Capture('Full Flash', fullFlashImage, fullFlashMetadata)
 
+#    noFlashCapture.show(False)
+#    halfFlashCapture.show(False)
+#    fullFlashCapture.show(False)
+
 #    noFlashCapture.showImageWithLandmarks()
 #    halfFlashCapture.showImageWithLandmarks()
 #    fullFlashCapture.showImageWithLandmarks()

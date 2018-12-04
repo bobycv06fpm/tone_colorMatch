@@ -306,6 +306,31 @@ def getEyeCrops(capture):
 
     return [leftEye, rightEye]
 
+def maskReflection(noFlash, halfFlash, fullFlash):
+    noFlashGrey = np.sum(noFlash, axis=2)
+    halfFlashGrey = np.sum(halfFlash, axis=2)
+    fullFlashGrey = np.sum(fullFlash, axis=2)
+
+    halfFlashGrey = np.clip(halfFlashGrey.astype('int32') - noFlashGrey, 0, (256 * 3))
+    fullFlashGrey = np.clip(fullFlashGrey.astype('int32') - noFlashGrey, 0, (256 * 3))
+
+    noFlashMin = np.min(noFlashGrey)
+    noFlashMask = noFlashGrey > (noFlashMin + 10)
+
+    halfFlashMedian = np.median(halfFlashGrey)
+    halfFlashStd = np.std(halfFlashGrey)
+    halfFlashUpper = halfFlashMedian + (3 * halfFlashStd)
+    halfFlashMask = halfFlashGrey > halfFlashUpper
+
+    fullFlashMedian = np.median(fullFlashGrey)
+    fullFlashStd = np.std(fullFlashGrey)
+    fullFlashUpper = fullFlashMedian + (2 * fullFlashStd)
+    fullFlashMask = fullFlashGrey > fullFlashUpper
+
+    flashMask = np.logical_and(halfFlashMask, fullFlashMask)
+    flashMask = np.logical_and(flashMask, np.logical_not(noFlashMask))
+    return flashMask
+
 def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, cameraWB_CIE_xy_coords):
     [noFlashLeftEyeCrop, noFlashRightEyeCrop] = getEyeCrops(noFlashCapture)
     [halfFlashLeftEyeCrop, halfFlashRightEyeCrop] = getEyeCrops(halfFlashCapture)
@@ -314,19 +339,21 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     [noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop] = alignImages.cropAndAlignEyes(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop)
     [noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop] = alignImages.cropAndAlignEyes(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop)
 
-    #cv2.imshow('no flash left eye', noFlashLeftEyeCrop)
-    #cv2.imshow('no flash right eye', noFlashRightEyeCrop)
-    #cv2.imshow('half flash left eye', halfFlashLeftEyeCrop)
-    #cv2.imshow('half flash right eye', halfFlashRightEyeCrop)
-    #cv2.imshow('full flash left eye', fullFlashLeftEyeCrop)
-    #cv2.imshow('full flash right eye', fullFlashRightEyeCrop)
-    #cv2.waitKey(0)
+    leftRemainder = np.clip(np.abs((2 * halfFlashLeftEyeCrop.astype('int32')) - (fullFlashLeftEyeCrop.astype('int32') + noFlashLeftEyeCrop.astype('int32'))), 0, 255)
+    rightRemainder = np.clip(np.abs((2 * halfFlashRightEyeCrop.astype('int32')) - (fullFlashRightEyeCrop.astype('int32') + noFlashRightEyeCrop.astype('int32'))), 0, 255)
 
+    leftEyeReflectionMask = maskReflection(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop)
+    rightEyeReflectionMask = maskReflection(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop)
 
+    leftEyeReflectionMask = np.stack((leftEyeReflectionMask, leftEyeReflectionMask, leftEyeReflectionMask), axis=-1)
+    rightEyeReflectionMask = np.stack((rightEyeReflectionMask, rightEyeReflectionMask, rightEyeReflectionMask), axis=-1)
 
+    leftEye = halfFlashLeftEyeCrop * leftEyeReflectionMask
+    rightEye = halfFlashRightEyeCrop * rightEyeReflectionMask
 
-
-
+    cv2.imshow('left eye', leftEye)
+    cv2.imshow('right eye', rightEye)
+    cv2.waitKey(0)
 
 
 #def getAverageScreenReflectionColor(username, imageName, image, fullFlash_sBGR, imageShape, cameraWB_CIE_xy_coords):

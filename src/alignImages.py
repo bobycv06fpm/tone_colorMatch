@@ -392,15 +392,12 @@ def getLuminosity(image):#, image, blur=101, dimensions=3):
 #
 #    print("Done Preparing Images")
 def getPreparedEye(gray):
-    #cv2.imshow('gray', gray)
     gray = cv2.bilateralFilter(gray,30,300,300)
-    #cv2.imshow('filtered', gray)
     prepped = cv2.Sobel(gray, cv2.CV_16S, 1, 1, ksize=5)
-    #cv2.imshow('prepped', prepped.astype('uint8'))
-    #cv2.waitKey(0)
     return np.float32(prepped)
 
 def cropAndAlignEyes(noFlashEye, halfFlashEye, fullFlashEye):
+
     noFlashGrey = np.sum(noFlashEye, axis=2) / 3
     halfFlashGrey = np.sum(halfFlashEye, axis=2) / 3
     fullFlashGrey = np.sum(fullFlashEye, axis=2) / 3
@@ -413,29 +410,17 @@ def cropAndAlignEyes(noFlashEye, halfFlashEye, fullFlashEye):
     preparedHalfFlashImage = getPreparedEye(halfFlashGreyStretched)
     preparedFullFlashImage = getPreparedEye(fullFlashGreyStretched)
 
-    noFlashOffset = [0, 0]#calculateOffset(preparedNoFlashImage, preparedHalfFlashImage)
+    noFlashOffset = [0, 0]
     halfFlashOffset = [0, 0]
     fullFlashOffset = calculateOffset(preparedFullFlashImage, preparedHalfFlashImage)
-
 
     print('no flash offset :: ' + str(noFlashOffset))
     print('half flash offset :: ' + str(halfFlashOffset))
     print('full flash offset :: ' + str(fullFlashOffset))
 
-    #cv2.imshow('no flash', noFlashGreyStretched)
-    #cv2.imshow('half flash', halfFlashGreyStretched)
-    #cv2.imshow('full flash', fullFlashGreyStretched)
+    [noFlashEyeCropped, halfFlashEyeCropped, fullFlashEyeCropped] = cropTools.cropImagesToOffsets([noFlashEye, halfFlashEye, fullFlashEye], np.array([noFlashOffset, halfFlashOffset, fullFlashOffset]))
 
-    [noFlashGrey, halfFlashGrey, fullFlashGrey] = cropTools.cropImagesToOffsets([noFlashGreyStretched, halfFlashGreyStretched, fullFlashGreyStretched], np.array([noFlashOffset, halfFlashOffset, fullFlashOffset]))
-
-    #cv2.imshow('no flash cropped', noFlashGrey)
-    #cv2.imshow('half flash cropped', halfFlashGrey)
-    #cv2.imshow('full flash cropped', fullFlashGrey)
-    #cv2.waitKey(0)
-
-    return [noFlashEye, halfFlashEye, fullFlashEye]
-
-
+    return [noFlashEyeCropped, halfFlashEyeCropped, fullFlashEyeCropped]
 
 def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
     #(noFlashImage, noFlashShape, noFlashMask) = noFlash
@@ -535,9 +520,9 @@ def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
 #    (x, y, w, h) = fullFlashCapture.landmarks.getLeftEyeInnerBB()
 #    fullFlashGreyScaled[y:y+h, x:x+w] = 0
 
-    #cv2.imshow('no flash scaled :: ', cv2.resize(noFlashGreyScaled, (0, 0), fx=1/2, fy=1/2))
-    #cv2.imshow('half flash scaled :: ', cv2.resize(halfFlashGrey, (0, 0), fx=1/2, fy=1/2))
-    #cv2.imshow('full flash scaled :: ', cv2.resize(fullFlashGreyScaled, (0, 0), fx=1/2, fy=1/2))
+    #cv2.imshow('no flash scaled :: ', cv2.resize(noFlashGreyScaled.astype('uint8'), (0, 0), fx=1/2, fy=1/2))
+    #cv2.imshow('half flash scaled :: ', cv2.resize(halfFlashGrey.astype('uint8'), (0, 0), fx=1/2, fy=1/2))
+    #cv2.imshow('full flash scaled :: ', cv2.resize(fullFlashGreyScaled.astype('uint8'), (0, 0), fx=1/2, fy=1/2))
     #cv2.waitKey(0)
 
     print("Preparing Images")

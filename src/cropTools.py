@@ -64,11 +64,7 @@ def cropImagesToAxis(images, offsets, axis):
     if imageSets[0, OFFSET] < 0:
         imageSets[:, OFFSET] += abs(imageSets[0, OFFSET])
 
-    print('Capture Sets :: ' + str(imageSets))
-
     maxOffset = imageSets[-1, OFFSET]
-
-    print('Max Offset :: ' + str(maxOffset))
 
     cropped = []
     for imageSet in imageSets:
@@ -88,7 +84,6 @@ def cropImagesToAxis(images, offsets, axis):
     return croppedImages[:, 0]
 
 def cropImagesToOffsets(images, offsets):
-    print('Offsets :: ' + str(offsets))
     images = cropImagesToAxis(images, offsets[:, X], X)
     images = cropImagesToAxis(images, offsets[:, Y], Y)
     return images
