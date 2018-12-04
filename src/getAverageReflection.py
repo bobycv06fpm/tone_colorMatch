@@ -306,10 +306,84 @@ def getEyeCrops(capture):
 
     return [leftEye, rightEye]
 
+def blur(img):
+    return cv2.GaussianBlur(img, (3, 3), 0)
+
+def getGroupings(mask):
+    #Find all consecutive elements in Y
+    #Find all consecutive elements in X
+    #Find Intersect of Y and X?
+
+    maskOffsetX = mask[:, 1:]
+    maskOffsetXPair = mask[:, :-1]
+
+    maskOffsetY = mask[1:, :]
+    maskOffsetYPair = mask[:-1, :]
+
+    maskOffsetXY = mask[1:, 1:]
+    maskOffsetXYPair = mask[:-1, :-1]
+
+    diffX = np.logical_xor(maskOffsetXPair, maskOffsetX)
+    diffY = np.logical_xor(maskOffsetYPair, maskOffsetY)
+    diffXY = np.logical_xor(maskOffsetXYPair, maskOffsetXY)
+
+    cv2.imshow('diffX', diffX.astype('uint8') * 255)
+    cv2.imshow('diffY', diffY.astype('uint8') * 255)
+    cv2.imshow('diffXY', diffXY.astype('uint8') * 255)
+    cv2.waitKey(0)
+
+
+
+    #groupings = []
+    #groupingsMembership = {}
+
+    #for y in range(0, mask.shape[0]):
+    #    for x in range(0, mask.shape[1]):
+    #        if mask[y, x] == False:
+    #            continue
+
+    #        index = (y, x)
+
+    #        if x > 0:
+    #            leftNeighbor = (y, x - 1)
+    #            if leftNeighbor in groupingsMembership:
+    #                groupIndex = groupingsMembership[leftNeighbor]
+    #                groupingsMembership[index] = groupIndex
+    #                groupings[groupIndex].append(index)
+    #                continue
+
+    #        if y > 0:
+    #            topNeighbor = (y - 1, x)
+    #            if topNeighbor in groupingsMembership:
+    #                groupIndex = groupingsMembership[topNeighbor]
+    #                groupingsMembership[index] = groupIndex
+    #                groupings[groupIndex].append(index)
+    #                continue
+
+    #        if y > 0 and x > 0:
+    #            topLeftNeighbor = (y - 1, x - 1)
+    #            if topNeighbor in groupingsMembership:
+    #                groupIndex = groupingsMembership[topNeighbor]
+    #                groupingsMembership[index] = groupIndex
+    #                groupings[groupIndex].append(index)
+    #                continue
+
+
+    #        if index not in groupingsMembership:
+    #            groupings.append([])
+    #            groupingsMembership[index] = (len(groupings) - 1)
+
+    #        groupings[groupingsMembership[index]].append(index)
+
+    #print('Groupings :: ' + str(groupings))
+    #print('Groupings Membership :: ' + str(groupingsMembership))
+                
+
+
 def maskReflection(noFlash, halfFlash, fullFlash):
-    noFlashGrey = np.sum(noFlash, axis=2)
-    halfFlashGrey = np.sum(halfFlash, axis=2)
-    fullFlashGrey = np.sum(fullFlash, axis=2)
+    noFlashGrey = np.sum(blur(noFlash), axis=2)
+    halfFlashGrey = np.sum(blur(halfFlash), axis=2)
+    fullFlashGrey = np.sum(blur(fullFlash), axis=2)
 
     halfFlashGrey = np.clip(halfFlashGrey.astype('int32') - noFlashGrey, 0, (256 * 3))
     fullFlashGrey = np.clip(fullFlashGrey.astype('int32') - noFlashGrey, 0, (256 * 3))
@@ -342,11 +416,11 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     leftRemainder = np.clip(np.abs((2 * halfFlashLeftEyeCrop.astype('int32')) - (fullFlashLeftEyeCrop.astype('int32') + noFlashLeftEyeCrop.astype('int32'))), 0, 255)
     rightRemainder = np.clip(np.abs((2 * halfFlashRightEyeCrop.astype('int32')) - (fullFlashRightEyeCrop.astype('int32') + noFlashRightEyeCrop.astype('int32'))), 0, 255)
 
-    leftEyeReflectionMask = maskReflection(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop)
-    rightEyeReflectionMask = maskReflection(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop)
+    leftEyeGreyReflectionMask = maskReflection(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop)
+    rightEyeGreyReflectionMask = maskReflection(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop)
 
-    leftEyeReflectionMask = np.stack((leftEyeReflectionMask, leftEyeReflectionMask, leftEyeReflectionMask), axis=-1)
-    rightEyeReflectionMask = np.stack((rightEyeReflectionMask, rightEyeReflectionMask, rightEyeReflectionMask), axis=-1)
+    leftEyeReflectionMask = np.stack((leftEyeGreyReflectionMask, leftEyeGreyReflectionMask, leftEyeGreyReflectionMask), axis=-1)
+    rightEyeReflectionMask = np.stack((rightEyeGreyReflectionMask, rightEyeGreyReflectionMask, rightEyeGreyReflectionMask), axis=-1)
 
     leftEye = halfFlashLeftEyeCrop * leftEyeReflectionMask
     rightEye = halfFlashRightEyeCrop * rightEyeReflectionMask
@@ -354,6 +428,9 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     cv2.imshow('left eye', leftEye)
     cv2.imshow('right eye', rightEye)
     cv2.waitKey(0)
+
+    getGroupings(leftEyeGreyReflectionMask)
+    getGroupings(rightEyeGreyReflectionMask)
 
 
 #def getAverageScreenReflectionColor(username, imageName, image, fullFlash_sBGR, imageShape, cameraWB_CIE_xy_coords):
