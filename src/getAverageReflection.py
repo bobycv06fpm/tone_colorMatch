@@ -309,28 +309,161 @@ def getEyeCrops(capture):
 def blur(img):
     return cv2.GaussianBlur(img, (3, 3), 0)
 
-def getGroupings(mask):
-    #Find all consecutive elements in Y
-    #Find all consecutive elements in X
-    #Find Intersect of Y and X?
 
-    maskOffsetX = mask[:, 1:]
-    maskOffsetXPair = mask[:, :-1]
+def getReflectionBB(mask):
+    img = mask.astype('uint8') * 255
+    im2, contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    areas = [cv2.contourArea(c) for c in contours]
+    max_index = np.argmax(areas)
+    contour = contours[max_index]
 
-    maskOffsetY = mask[1:, :]
-    maskOffsetYPair = mask[:-1, :]
+    return cv2.boundingRect(contour)
 
-    maskOffsetXY = mask[1:, 1:]
-    maskOffsetXYPair = mask[:-1, :-1]
+    #referenceMask = np.copy(mask)
+    #groupings = []
+    #for y in range(0, referenceMask.shape[0]):
+    #    for x in range(0, referenceMask.shape[1]):
+    #        if referenceMask[y, x] == False:
+    #            continue
 
-    diffX = np.logical_xor(maskOffsetXPair, maskOffsetX)
-    diffY = np.logical_xor(maskOffsetYPair, maskOffsetY)
-    diffXY = np.logical_xor(maskOffsetXYPair, maskOffsetXY)
+    #        group = []
+    #        unexplored = []
 
-    cv2.imshow('diffX', diffX.astype('uint8') * 255)
-    cv2.imshow('diffY', diffY.astype('uint8') * 255)
-    cv2.imshow('diffXY', diffXY.astype('uint8') * 255)
-    cv2.waitKey(0)
+    #        unexplored.append([y, x])
+
+
+    #        while unexplored:
+    #            [ly, lx] = unexplored.pop()
+    #            group.append([ly, lx])
+    #            referenceMask[ly, lx] = False
+
+    #            if lx < referenceMask.shape[1] and referenceMask[ly, lx + 1]:
+    #                unexplored.append([ly, lx + 1])
+
+    #            if lx > 0 and referenceMask[ly, lx - 1]:
+    #                unexplored.append([ly, lx - 1])
+
+    #            if ly < referenceMask.shape[0] and referenceMask[ly + 1, lx]:
+    #                unexplored.append([ly + 1, lx])
+
+    #            if ly > 0 and referenceMask[ly - 1, lx]:
+    #                unexplored.append([ly - 1, lx])
+
+    #        groupings.append(group)
+
+    #
+    #for grouping in groupings:
+    #    grouping = np.array(grouping)
+    #    groupingSize = grouping.shape
+    #    print('grouping size :: ' + str(groupingSize))
+    #    [x, y, w, h] = cv2.boundingRect(grouping)
+
+    #    print('------')
+    #    print('Group! :: ' + str(grouping))
+    #    print('Group Size :: ' + str(groupingSize))
+    #    print('x, y, w, h :: ' + str(x) + ' ' + str(y) + ' '+ str(w) + ' '+ str(h))
+    #    reflectionBBRatio = groupingSize / (w * h)
+    #    print('reflection BB ratio :: ' + str(reflectionBBRatio))
+
+
+
+
+    #print('Groupings :: ' + str(groupings))
+
+
+
+
+
+
+
+
+#def getGroupings(mask):
+#    groupings = []
+#    groupingsMembership = {}
+#
+#    for y in range(0, mask.shape[0]):
+#        for x in range(0, mask.shape[1]):
+#            if mask[y, x] == False:
+#                continue
+#
+#            index = (y, x)
+#            currentGroup = None
+#
+#            if x > 0:
+#                leftNeighbor = (y, x - 1)
+#                if leftNeighbor in groupingsMembership:
+#                    groupIndex = groupingsMembership[leftNeighbor]
+#                    groupingsMembership[index] = groupIndex
+#                    groupings[groupIndex].append(index)
+#
+#                    if currentGroup is None:
+#                        currentGroup = groupIndex
+#
+#            if y > 0:
+#                topNeighbor = (y - 1, x)
+#                if topNeighbor in groupingsMembership:
+#                    groupIndex = groupingsMembership[topNeighbor]
+#                    groupingsMembership[index] = groupIndex
+#                    groupings[groupIndex].append(index)
+#
+#                    if currentGroup is None:
+#                        currentGroup = groupIndex
+#                    else:
+#                        
+#
+#            if y > 0 and x > 0:
+#                topLeftNeighbor = (y - 1, x - 1)
+#                if topNeighbor in groupingsMembership:
+#                    groupIndex = groupingsMembership[topNeighbor]
+#                    groupingsMembership[index] = groupIndex
+#                    groupings[groupIndex].append(index)
+#
+#                    if currentGroup is None:
+#                        currentGroup = groupIndex
+#                    else:
+#
+#
+#
+#            if index not in groupingsMembership:
+#                groupings.append([])
+#                groupingsMembership[index] = (len(groupings) - 1)
+#
+#            groupings[groupingsMembership[index]].append(index)
+#
+#    print('Groupings :: ' + str(groupings))
+#    print('Groupings Membership :: ' + str(groupingsMembership))
+#
+#
+#def getGroupings(mask):
+#    #Find all consecutive elements in Y
+#    #Find all consecutive elements in X
+#    #Find Intersect of Y and X?
+#
+#    offsetColumn = np.zeros(mask.shape[0]).astype('bool').reshape((mask.shape[0], 1))
+#    offsetRow = np.zeros(mask.shape[1]).astype('bool').reshape((1, mask.shape[1]))
+#
+#    maskOffsetX = np.hstack((mask, offsetColumn))
+#    maskOffsetXPair = np.hstack((offsetColumn, mask))
+#
+#    maskOffsetY = np.vstack((mask, offsetRow))
+#    maskOffsetYPair = np.vstack((offsetRow, mask))
+#
+#
+#    diffX = np.logical_xor(maskOffsetXPair, maskOffsetX)
+#    diffY = np.logical_xor(maskOffsetYPair, maskOffsetY)
+#
+#    cv2.imshow('diffX', diffX.astype('uint8') * 255)
+#    cv2.imshow('diffY', diffY.astype('uint8') * 255)
+#    cv2.waitKey(0)
+#
+#    columnIndexes = np.arange(maskOffsetY.shape[0])
+#    rowIndexes = np.arange(maskOffsetX.shape[1])
+#
+#    columnRanges = [ columnIndexes[column] for column in diffY[:]]
+#    rowRanges = [ rowIndexes[row] for row in diffX]
+#
+#    print('Column Ranges :: ' + str(columnRanges))
+#    print('Row Ranges :: ' + str(rowRanges))
 
 
 
@@ -425,12 +558,18 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     leftEye = halfFlashLeftEyeCrop * leftEyeReflectionMask
     rightEye = halfFlashRightEyeCrop * rightEyeReflectionMask
 
-    cv2.imshow('left eye', leftEye)
-    cv2.imshow('right eye', rightEye)
-    cv2.waitKey(0)
+    leftEyeReflectionBB = getReflectionBB(leftEyeGreyReflectionMask)
 
-    getGroupings(leftEyeGreyReflectionMask)
-    getGroupings(rightEyeGreyReflectionMask)
+    #x, y, w, h = getReflectionBB(leftEyeGreyReflectionMask)
+    #cv2.rectangle(fullFlashLeftEyeCrop, (x, y), (x + w, y + h), (0, 255, 0), 2)
+    #cv2.imshow('Left Reflection', fullFlashLeftEyeCrop)
+
+    rightEyeReflectionBB = getReflectionBB(rightEyeGreyReflectionMask)
+
+    #x, y, w, h = getReflectionBB(rightEyeGreyReflectionMask)
+    #cv2.rectangle(fullFlashRightEyeCrop, (x, y), (x + w, y + h), (0, 255, 0), 2)
+    #cv2.imshow('Right Reflection', fullFlashRightEyeCrop)
+    #cv2.waitKey(0)
 
 
 #def getAverageScreenReflectionColor(username, imageName, image, fullFlash_sBGR, imageShape, cameraWB_CIE_xy_coords):
