@@ -539,9 +539,11 @@ def run(username, imageName, fast=False, saveStats=False):
     noFlashCapture.landmarks = halfFlashCapture.landmarks
     fullFlashCapture.landmarks = halfFlashCapture.landmarks
 
-    getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, whiteBalance_CIE1931_coord_asShot)
+    [leftReflection, rightReflection] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, whiteBalance_CIE1931_coord_asShot)
+    print("Left Reflection Median :: " + str(leftReflection))
+    print("Right Reflection Median :: " + str(rightReflection))
+    #averageReflectionBGR = getAverageScreenReflectionColor(username, imageName, image, fullFlashImage_sBGR, imageShape, whiteBalance_CIE1931_coord_asShot)
     return
-    averageReflectionBGR = getAverageScreenReflectionColor(username, imageName, image, fullFlashImage_sBGR, imageShape, whiteBalance_CIE1931_coord_asShot)
 
     [[leftAverageReflectionBGR, leftFluxish, leftDimensions], [rightAverageReflectionBGR, rightFluxish, rightDimensions]] = averageReflectionBGR
     print('average left reflection :: ' + str(leftAverageReflectionBGR))
