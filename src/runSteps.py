@@ -28,27 +28,27 @@ import multiprocessing as mp
 #root = '/home/dmacewen/Projects/tone/'
 #root = os.path.expanduser('~/Projects/tone/')
 
-def getLast(arr):
-    return arr[-1]
+#def getLast(arr):
+#    return arr[-1]
 
 def getSecond(arr):
     return arr[1]
 
-def getCropWidth(shapeA, shapeB, shapeC, heightMargin, heightMax, widthMargin, widthMax):
-    allShapes = np.append(shapeA, shapeB, axis=0)
-    allShapes = np.append(allShapes, shapeC, axis=0)
-    BB = np.asarray(cv2.boundingRect(allShapes))
-    newX = BB[0] - widthMargin if BB[0] - widthMargin > 0 else 0
-    newY = BB[1] - heightMargin if BB[1] - heightMargin > 0 else 0
-    newWidth = BB[2] + 2*widthMargin if BB[2] + widthMargin < widthMax else widthMax
-    newHeight = BB[3] + 2*heightMargin if BB[3] + heightMargin < heightMax else heightMax
-    return [newX, newWidth, newY, newHeight]
+#def getCropWidth(shapeA, shapeB, shapeC, heightMargin, heightMax, widthMargin, widthMax):
+#    allShapes = np.append(shapeA, shapeB, axis=0)
+#    allShapes = np.append(allShapes, shapeC, axis=0)
+#    BB = np.asarray(cv2.boundingRect(allShapes))
+#    newX = BB[0] - widthMargin if BB[0] - widthMargin > 0 else 0
+#    newY = BB[1] - heightMargin if BB[1] - heightMargin > 0 else 0
+#    newWidth = BB[2] + 2*widthMargin if BB[2] + widthMargin < widthMax else widthMax
+#    newHeight = BB[3] + 2*heightMargin if BB[3] + heightMargin < heightMax else heightMax
+#    return [newX, newWidth, newY, newHeight]
 
-def extractHistogramValues(username, imageName, image, polygons):
-    mask = np.zeros(image.shape[0:2])
-    [points, averageFlashContribution] = extractMask(username, image, polygons, mask, imageName)
-    values = np.max(points, axis=1)
-    return values
+#def extractHistogramValues(username, imageName, image, polygons):
+#    mask = np.zeros(image.shape[0:2])
+#    [points, averageFlashContribution] = extractMask(username, image, polygons, mask, imageName)
+#    values = np.max(points, axis=1)
+#    return values
     #plt.hist(values, bins=range(0,255))
     #plt.show()
 
@@ -89,191 +89,191 @@ def scalePointstoFluxish(points, fluxish):
     scaledPoints = (points * fluxishMultiplier).astype('int32')
     return scaledPoints
 
-def getLeftEye(image, shape):
-    (x, y, w, h) = cv2.boundingRect(np.array([shape[43], shape[44], shape[47], shape[46]]))
-    leftEye = image[y:y+h, x:x+w]
-    return leftEye
+#def getLeftEye(image, shape):
+#    (x, y, w, h) = cv2.boundingRect(np.array([shape[43], shape[44], shape[47], shape[46]]))
+#    leftEye = image[y:y+h, x:x+w]
+#    return leftEye
+#
+#def getRightEye(image, shape):
+#    (x, y, w, h) = cv2.boundingRect(np.array([shape[37], shape[38], shape[41], shape[40]]))
+#    rightEye = image[y:y+h, x:x+w]
+#    return rightEye
 
-def getRightEye(image, shape):
-    (x, y, w, h) = cv2.boundingRect(np.array([shape[37], shape[38], shape[41], shape[40]]))
-    rightEye = image[y:y+h, x:x+w]
-    return rightEye
+#def prepEye(image):
+#    image_gray = cv2.cvtColor(np.clip(image * 255, 0, 255).astype('uint8'), cv2.COLOR_BGR2GRAY)
+#    #image_gray = cv2.GaussianBlur(image_gray, (11, 11), 0)
+#    #image_gray = cv2.GaussianBlur(image_gray, (19, 19), 0)
+#
+#
+#    original = np.copy(image_gray)
+#    median = np.median(image_gray)
+#    sd = np.std(image_gray)
+#    lower = median - (2 * sd)
+#    upper = median + (2 * sd)
+#    test = np.copy(image_gray)
+#    test[test < lower] = lower
+#    test[test > upper] = upper
+#
+#    numerator = test - lower
+#    denominator = upper - lower
+#    stretched = (numerator / denominator)
+#    stretched = np.clip(stretched * 255, 0, 255).astype('uint8')
+#
+#
+#    #stretched = cv2.GaussianBlur(stretched, (19, 19), 0)
+#    #stretched = cv2.GaussianBlur(stretched, (25, 25), 0)
+#    stretched = cv2.GaussianBlur(stretched, (5, 5), 0)
+#    #cv2.imshow('stretched', np.hstack((original, stretched)))
+#    #cv2.waitKey(0)
+#    #stackAndShow([[original, stretched]], 'Stretched')
+#
+#    image_prepped = cv2.Laplacian(stretched, cv2.CV_64F)
+#    return image_prepped
 
-def prepEye(image):
-    image_gray = cv2.cvtColor(np.clip(image * 255, 0, 255).astype('uint8'), cv2.COLOR_BGR2GRAY)
-    #image_gray = cv2.GaussianBlur(image_gray, (11, 11), 0)
-    #image_gray = cv2.GaussianBlur(image_gray, (19, 19), 0)
-
-
-    original = np.copy(image_gray)
-    median = np.median(image_gray)
-    sd = np.std(image_gray)
-    lower = median - (2 * sd)
-    upper = median + (2 * sd)
-    test = np.copy(image_gray)
-    test[test < lower] = lower
-    test[test > upper] = upper
-
-    numerator = test - lower
-    denominator = upper - lower
-    stretched = (numerator / denominator)
-    stretched = np.clip(stretched * 255, 0, 255).astype('uint8')
-
-
-    #stretched = cv2.GaussianBlur(stretched, (19, 19), 0)
-    #stretched = cv2.GaussianBlur(stretched, (25, 25), 0)
-    stretched = cv2.GaussianBlur(stretched, (5, 5), 0)
-    #cv2.imshow('stretched', np.hstack((original, stretched)))
-    #cv2.waitKey(0)
-    #stackAndShow([[original, stretched]], 'Stretched')
-
-    image_prepped = cv2.Laplacian(stretched, cv2.CV_64F)
-    return image_prepped
-
-def alignEye(imageA, imageB):
-    (offset, response) = cv2.phaseCorrelate(np.float64(imageA), np.float64(imageB))
-    offset = list(offset)
-    offset = [round(value) for value in offset]
-    print("EYE Offset :: " + str(offset))
-    return offset
+#def alignEye(imageA, imageB):
+#    (offset, response) = cv2.phaseCorrelate(np.float64(imageA), np.float64(imageB))
+#    offset = list(offset)
+#    offset = [round(value) for value in offset]
+#    print("EYE Offset :: " + str(offset))
+#    return offset
 
 #Eventually change to stretch histogram?
-def trimHistogram(greyImage):
-    #median = np.median(greyImage)
-    #sd = np.std(greyImage)
-    #lower = median - (2 * sd)
-    #upper = median + (2 * sd)
-    #greyImage[greyImage < lower] = 0
-    #greyImage[greyImage > upper] = 0
-    return greyImage
+#def trimHistogram(greyImage):
+#    #median = np.median(greyImage)
+#    #sd = np.std(greyImage)
+#    #lower = median - (2 * sd)
+#    #upper = median + (2 * sd)
+#    #greyImage[greyImage < lower] = 0
+#    #greyImage[greyImage > upper] = 0
+#    return greyImage
 
-def cropToBB(images, imageShapes, start, end):
-    points = []
-    for imageShape in imageShapes:
-        points += list(imageShape[start:end])
+#def cropToBB(images, imageShapes, start, end):
+#    points = []
+#    for imageShape in imageShapes:
+#        points += list(imageShape[start:end])
+#
+#    (BB_X, BB_Y, BB_W, BB_H) = cv2.boundingRect(np.array(points))
+#
+#    croppedImages = []
+#    for image in images:
+#        croppedImages.append(image[BB_Y:BB_Y+BB_H, BB_X:BB_X+BB_W])
+#
+#    return np.array(croppedImages)
 
-    (BB_X, BB_Y, BB_W, BB_H) = cv2.boundingRect(np.array(points))
+#def scaleImages(images):
+#    images = np.copy(images)
+#    medians = np.array([np.median(np.max(image, axis=2)) for image in images])
+#    images[0:3] = images[0:3] * (medians[-1] / medians[0:3])
+#    return images
 
-    croppedImages = []
-    for image in images:
-        croppedImages.append(image[BB_Y:BB_Y+BB_H, BB_X:BB_X+BB_W])
-
-    return np.array(croppedImages)
-
-def scaleImages(images):
-    images = np.copy(images)
-    medians = np.array([np.median(np.max(image, axis=2)) for image in images])
-    images[0:3] = images[0:3] * (medians[-1] / medians[0:3])
-    return images
-
-def stackAndShow(imageSets, name):
-    counter = 0
-    for imageSet in imageSets:
-        imageStack = np.hstack([*imageSet])
-        #cv2.imshow('{} :: {}'.format(name, counter), imageStack)
-        #print('Displaying Image....(not really)')
-        counter += 1
-
-    #cv2.waitKey(0)
+#def stackAndShow(imageSets, name):
+#    counter = 0
+#    for imageSet in imageSets:
+#        imageStack = np.hstack([*imageSet])
+#        #cv2.imshow('{} :: {}'.format(name, counter), imageStack)
+#        #print('Displaying Image....(not really)')
+#        counter += 1
+#
+#    #cv2.waitKey(0)
 
 #Order Not Maintained
-def cropToAxis(images, offset, axis):
-    #imageSets = np.dstack((images, offset, np.arange(len(offset))))
-    imageSets = []
-    for index, image in enumerate(images):
-        imageSets.append([np.array(image), offset[index], index])
-
-    imageSets = np.array(sorted(imageSets, key=getSecond))
-
-    if imageSets[0, 1] < 0:
-        imageSets[:, 1] += abs(imageSets[0, 1])
-
-    maxCrop = imageSets[-1, 1]
-
-    cropped = []
-    for imageSet in imageSets:
-        [image, offset, order] = imageSet
-        start = maxCrop - offset
-        end = image.shape[axis] - offset
-
-        if axis == 0:
-            image = image[start:end, :]
-            #image = image[:, start:end]
-        else:
-            image = image[:, start:end]
-            #image = image[start:end, :]
-
-        cropped.append([image, order])
-
-    originalOrder = np.array(sorted(cropped, key=getSecond))
-    return originalOrder[:, 0]
-
-
-def cropToOffsets(images, offsets):
-    print('Offsets :: ' + str(offsets))
-    images = cropToAxis(images, offsets[:, 0], 0)
-    images = cropToAxis(images, offsets[:, 1], 1)
-    return images
+#def cropToAxis(images, offset, axis):
+#    #imageSets = np.dstack((images, offset, np.arange(len(offset))))
+#    imageSets = []
+#    for index, image in enumerate(images):
+#        imageSets.append([np.array(image), offset[index], index])
+#
+#    imageSets = np.array(sorted(imageSets, key=getSecond))
+#
+#    if imageSets[0, 1] < 0:
+#        imageSets[:, 1] += abs(imageSets[0, 1])
+#
+#    maxCrop = imageSets[-1, 1]
+#
+#    cropped = []
+#    for imageSet in imageSets:
+#        [image, offset, order] = imageSet
+#        start = maxCrop - offset
+#        end = image.shape[axis] - offset
+#
+#        if axis == 0:
+#            image = image[start:end, :]
+#            #image = image[:, start:end]
+#        else:
+#            image = image[:, start:end]
+#            #image = image[start:end, :]
+#
+#        cropped.append([image, order])
+#
+#    originalOrder = np.array(sorted(cropped, key=getSecond))
+#    return originalOrder[:, 0]
+#
+#
+#def cropToOffsets(images, offsets):
+#    print('Offsets :: ' + str(offsets))
+#    images = cropToAxis(images, offsets[:, 0], 0)
+#    images = cropToAxis(images, offsets[:, 1], 1)
+#    return images
     
 
-def experimentalReflectionDetection(B, BS, BF, BFS, TF, TFS, FF, FFS):
-    images = [B, BF, TF, FF]
-    shapes = [BS, BFS, TFS, FFS]
-
-    leftEyes = cropToBB(images, shapes, 42, 48)
-    rightEyes = cropToBB(images, shapes, 36, 42)
-    #stackAndShow([leftEyes, rightEyes], 'Unscaled')
-
-    #Scale Values Left
-    leftEyesScaled = scaleImages(leftEyes)
-    rightEyesScaled = scaleImages(rightEyes)
-    #stackAndShow([leftEyesScaled, rightEyesScaled], 'Scaled')
-
-    #Align left
-    print('LEFT')
-    leftEyesPrepped = [prepEye(eye) for eye in leftEyesScaled]
-    leftEyesTrimmed = [trimHistogram(eye) for eye in leftEyesPrepped]
-    leftEyeOffsets = np.array([alignEye(leftEyesTrimmed[3], eye) for eye in leftEyesTrimmed])
-
-    #Align right
-    print('RIGHT')
-    rightEyesPrepped = [prepEye(eye) for eye in rightEyesScaled]
-    rightEyesTrimmed = [trimHistogram(eye) for eye in rightEyesPrepped]
-    rightEyeOffsets = np.array([alignEye(rightEyesTrimmed[3], eye) for eye in rightEyesTrimmed])
-
-    #stackAndShow([leftEyesPrepped, rightEyesPrepped], 'Prepped')
-    #stackAndShow([leftEyesTrimmed, rightEyesTrimmed], 'Trimmed')
-
-    leftEyesCropped = cropToOffsets(leftEyes, leftEyeOffsets)
-    rightEyesCropped = cropToOffsets(rightEyes, rightEyeOffsets)
-    #stackAndShow([leftEyesCropped, rightEyesCropped], 'Cropped')
-
-    [BLE, BFLE, TFLE, FFLE] = leftEyesCropped
-    leftEyeDiff = np.absolute(FFLE - BFLE - TFLE + BLE)
-    leftEyeDiff2 = np.absolute(FFLE - BFLE - TFLE)
-
-    l_t = np.clip((TFLE - BLE) * 255, 0, 255).astype('uint8')
-    l_b = np.clip((BFLE - BLE) * 255, 0, 255).astype('uint8')
-    l_ff = np.clip((FFLE - BLE) * 255, 0, 255).astype('uint8')
-    l_test_ff = np.clip((TFLE + BFLE - BLE) * 255, 0, 255).astype('uint8')
-
-    l_test_t = np.clip((FFLE - BFLE - BLE) * 255, 0, 255).astype('uint8')
-    l_test_b = np.clip((FFLE - TFLE - BLE) * 255, 0, 255).astype('uint8')
-    #cv2.imshow('Left Eye Diff', (leftEyeDiff * 255 * 10).astype('uint8'))
-    #cv2.waitKey(0)
-
-    [BRE, BFRE, TFRE, FFRE] = rightEyesCropped
-    rightEyeDiff = np.absolute(FFRE - BFRE - TFRE + BRE)
-    rightEyeDiff2 = np.absolute(FFRE - BFRE - TFRE)
-
-    r_t = np.clip((TFRE - BRE) * 255, 0, 255).astype('uint8')
-    r_b = np.clip((BFRE - BRE) * 255, 0, 255).astype('uint8')
-    r_ff = np.clip((FFRE - BRE) * 255, 0, 255).astype('uint8')
-    r_test_ff = np.clip((TFRE + BFRE - BRE) * 255, 0, 255).astype('uint8')
-
-    r_test_t = np.clip((FFRE - BFRE - BRE) * 255, 0, 255).astype('uint8')
-    r_test_t = np.clip((FFRE - BFRE - BRE) * 255, 0, 255).astype('uint8')
-    r_test_b = np.clip((FFRE - TFRE - BRE) * 255, 0, 255).astype('uint8')
+#def experimentalReflectionDetection(B, BS, BF, BFS, TF, TFS, FF, FFS):
+#    images = [B, BF, TF, FF]
+#    shapes = [BS, BFS, TFS, FFS]
+#
+#    leftEyes = cropToBB(images, shapes, 42, 48)
+#    rightEyes = cropToBB(images, shapes, 36, 42)
+#    #stackAndShow([leftEyes, rightEyes], 'Unscaled')
+#
+#    #Scale Values Left
+#    leftEyesScaled = scaleImages(leftEyes)
+#    rightEyesScaled = scaleImages(rightEyes)
+#    #stackAndShow([leftEyesScaled, rightEyesScaled], 'Scaled')
+#
+#    #Align left
+#    print('LEFT')
+#    leftEyesPrepped = [prepEye(eye) for eye in leftEyesScaled]
+#    leftEyesTrimmed = [trimHistogram(eye) for eye in leftEyesPrepped]
+#    leftEyeOffsets = np.array([alignEye(leftEyesTrimmed[3], eye) for eye in leftEyesTrimmed])
+#
+#    #Align right
+#    print('RIGHT')
+#    rightEyesPrepped = [prepEye(eye) for eye in rightEyesScaled]
+#    rightEyesTrimmed = [trimHistogram(eye) for eye in rightEyesPrepped]
+#    rightEyeOffsets = np.array([alignEye(rightEyesTrimmed[3], eye) for eye in rightEyesTrimmed])
+#
+#    #stackAndShow([leftEyesPrepped, rightEyesPrepped], 'Prepped')
+#    #stackAndShow([leftEyesTrimmed, rightEyesTrimmed], 'Trimmed')
+#
+#    leftEyesCropped = cropToOffsets(leftEyes, leftEyeOffsets)
+#    rightEyesCropped = cropToOffsets(rightEyes, rightEyeOffsets)
+#    #stackAndShow([leftEyesCropped, rightEyesCropped], 'Cropped')
+#
+#    [BLE, BFLE, TFLE, FFLE] = leftEyesCropped
+#    leftEyeDiff = np.absolute(FFLE - BFLE - TFLE + BLE)
+#    leftEyeDiff2 = np.absolute(FFLE - BFLE - TFLE)
+#
+#    l_t = np.clip((TFLE - BLE) * 255, 0, 255).astype('uint8')
+#    l_b = np.clip((BFLE - BLE) * 255, 0, 255).astype('uint8')
+#    l_ff = np.clip((FFLE - BLE) * 255, 0, 255).astype('uint8')
+#    l_test_ff = np.clip((TFLE + BFLE - BLE) * 255, 0, 255).astype('uint8')
+#
+#    l_test_t = np.clip((FFLE - BFLE - BLE) * 255, 0, 255).astype('uint8')
+#    l_test_b = np.clip((FFLE - TFLE - BLE) * 255, 0, 255).astype('uint8')
+#    #cv2.imshow('Left Eye Diff', (leftEyeDiff * 255 * 10).astype('uint8'))
+#    #cv2.waitKey(0)
+#
+#    [BRE, BFRE, TFRE, FFRE] = rightEyesCropped
+#    rightEyeDiff = np.absolute(FFRE - BFRE - TFRE + BRE)
+#    rightEyeDiff2 = np.absolute(FFRE - BFRE - TFRE)
+#
+#    r_t = np.clip((TFRE - BRE) * 255, 0, 255).astype('uint8')
+#    r_b = np.clip((BFRE - BRE) * 255, 0, 255).astype('uint8')
+#    r_ff = np.clip((FFRE - BRE) * 255, 0, 255).astype('uint8')
+#    r_test_ff = np.clip((TFRE + BFRE - BRE) * 255, 0, 255).astype('uint8')
+#
+#    r_test_t = np.clip((FFRE - BFRE - BRE) * 255, 0, 255).astype('uint8')
+#    r_test_t = np.clip((FFRE - BFRE - BRE) * 255, 0, 255).astype('uint8')
+#    r_test_b = np.clip((FFRE - TFRE - BRE) * 255, 0, 255).astype('uint8')
 
     #This One...
     #stackAndShow([[l_ff, l_b, l_t, l_test_ff, l_test_t, l_test_b], [r_ff, r_b, r_t, r_test_ff, r_test_t, r_test_b]], 'Diffs')
