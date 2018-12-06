@@ -260,14 +260,19 @@ def convertSingle_sValue_to_linearValue(value):
     else:
         return sBGR_to_linearBGR_image_largeValues(value)
 
-def whitebalanceBGR_float(image, wb):
-    wbMultiplier = [1, 1, 1]
-    #sortedWB = sorted(wb)
-    #targetValue = sortedWB[1]
-    targetValue = max(wb)
-    #targetValue = min(wb)
+#def whitebalanceBGR_float(image, wb):
+#    #wbMultiplier = [1, 1, 1]
+#    #sortedWB = sorted(wb)
+#    #targetValue = sortedWB[1]
+#    targetValue = max(wb)
+#    #targetValue = min(wb)
+#    wbMultiplier = [targetValue, targetValue, targetValue] / wb
+#    return image * wbMultiplier
+
+def whitebalanceBGR(capture, wb):
+    targetValue = min(wb)
     wbMultiplier = [targetValue, targetValue, targetValue] / wb
-    return image * wbMultiplier
+    capture.image = capture.image.astype('int32') * wbMultiplier
 
 def get_sRGB_and_sHSV(points_float):
     print('Points Float :: ' + str(points_float))

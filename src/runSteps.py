@@ -52,25 +52,25 @@ def extractHistogramValues(username, imageName, image, polygons):
     #plt.hist(values, bins=range(0,255))
     #plt.show()
 
-def scaleHSVtoFluxish(hsvValues, fluxish):
-    #Calculated From Scatter Plot.... could be wrong...
-    #hueFluxishSlope = -10.6641
-    #saturationFluxishSlope = -70.53
-    #valueFluxishSlope = 163.8858
-
-    hueFluxishSlope = 0
-    saturationFluxishSlope = 0
-    valueFluxishSlope = 0
-
-    fluxishSlopes = np.array([hueFluxishSlope, saturationFluxishSlope, valueFluxishSlope])
-
-    targetFluxish = .00150
-
-    fluxishDiff = targetFluxish - fluxish
-
-    hsvDiffs = (fluxishSlopes * fluxishDiff)
-    hsvValues += hsvDiffs
-    return hsvValues
+#def scaleHSVtoFluxish(hsvValues, fluxish):
+#    #Calculated From Scatter Plot.... could be wrong...
+#    #hueFluxishSlope = -10.6641
+#    #saturationFluxishSlope = -70.53
+#    #valueFluxishSlope = 163.8858
+#
+#    hueFluxishSlope = 0
+#    saturationFluxishSlope = 0
+#    valueFluxishSlope = 0
+#
+#    fluxishSlopes = np.array([hueFluxishSlope, saturationFluxishSlope, valueFluxishSlope])
+#
+#    targetFluxish = .00150
+#
+#    fluxishDiff = targetFluxish - fluxish
+#
+#    hsvDiffs = (fluxishSlopes * fluxishDiff)
+#    hsvValues += hsvDiffs
+#    return hsvValues
 
     #hueDiff = hueFluxishSlope * fluxishDiff
     #saturationDiff = saturationFluxishSlope * fluxishDiff
@@ -81,6 +81,13 @@ def scaleHSVtoFluxish(hsvValues, fluxish):
     #hsvMedians[0] = hsvMedians[0] + hueDiff
     #hsvMedians[1] = hsvMedians[1] + saturationDiff
     #hsvMedians[2] = hsvMedians[2] + valueDiff
+
+def scalePointstoFluxish(points, fluxish):
+    #targetFluxish = 100000
+    targetFluxish = 50000
+    fluxishMultiplier = targetFluxish / fluxish
+    scaledPoints = (points * fluxishMultiplier).astype('int32')
+    return scaledPoints
 
 def getLeftEye(image, shape):
     (x, y, w, h) = cv2.boundingRect(np.array([shape[43], shape[44], shape[47], shape[46]]))
@@ -516,15 +523,15 @@ def run(username, imageName, fast=False, saveStats=False):
     print('Getting Polygons')
     #imageShape = fullFlashImageShape
     polygons = getPolygons(diffCapture)
-    try:
-        [points, averageFlashContribution] = extractMask(diffCapture, polygons, saveStep)
-    except NameError as err:
-        #print('error extracting left side of face')
-        #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))
-        return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err)
-    else:
-        faceValues = np.max(points, axis=1)
-        medianFaceValue = np.median(faceValues)
+    #try:
+    #    [points, averageFlashContribution] = extractMask(diffCapture, polygons, saveStep)
+    #except NameError as err:
+    #    #print('error extracting left side of face')
+    #    #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))
+    #    return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err)
+    #else:
+    #    faceValues = np.max(points, axis=1)
+    #    medianFaceValue = np.median(faceValues)
 
     if not fast:
         print('Saving Step 1')
@@ -539,183 +546,208 @@ def run(username, imageName, fast=False, saveStats=False):
     noFlashCapture.landmarks = halfFlashCapture.landmarks
     fullFlashCapture.landmarks = halfFlashCapture.landmarks
 
-    [leftReflection, rightReflection] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, whiteBalance_CIE1931_coord_asShot)
-    print("Left Reflection Median :: " + str(leftReflection))
-    print("Right Reflection Median :: " + str(rightReflection))
+    [reflectionValue, fluxish] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, whiteBalance_CIE1931_coord_asShot)
+    print("Reflection Value:: " + str(reflectionValue))
+    print("Fluxish :: " + str(fluxish))
+    #cv2.imshow('No WB', diffImage.astype('uint8'))
+    diffCapture.show()
+    saveStep.saveReferenceImageBGR(diffCapture.image, 'noWhitebalancedImage')
+    colorTools.whitebalanceBGR(diffCapture, reflectionValue)
+    saveStep.saveReferenceImageBGR(diffCapture.image, 'WhitebalancedImage')
+    #cv2.imshow('WB', diffWB.astype('uint8'))
+    diffCapture.show()
+
+    try:
+        [points, averageFlashContribution] = extractMask(diffCapture, polygons, saveStep)
+    except NameError as err:
+        #print('error extracting left side of face')
+        #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))
+        return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err)
+    else:
+        print('Points :: ' + str(points))
+        faceValues = np.max(points, axis=1)
+        print('face values :: ' + str(faceValues))
+        medianFaceValue = np.median(faceValues)
+        print('median face value :: ' + str(medianFaceValue))
+
+    #scaledDiff = scalePointstoFluxish(diffWB, fluxish)
+    #cv2.imshow('Scaled', scaledDiff.astype('uint8'))
+
+    #cv2.waitKey(0)
     #averageReflectionBGR = getAverageScreenReflectionColor(username, imageName, image, fullFlashImage_sBGR, imageShape, whiteBalance_CIE1931_coord_asShot)
     return
 
-    [[leftAverageReflectionBGR, leftFluxish, leftDimensions], [rightAverageReflectionBGR, rightFluxish, rightDimensions]] = averageReflectionBGR
-    print('average left reflection :: ' + str(leftAverageReflectionBGR))
-    print('average right reflection :: ' + str(rightAverageReflectionBGR))
+    #[[leftAverageReflectionBGR, leftFluxish, leftDimensions], [rightAverageReflectionBGR, rightFluxish, rightDimensions]] = averageReflectionBGR
+    #print('average left reflection :: ' + str(leftAverageReflectionBGR))
+    #print('average right reflection :: ' + str(rightAverageReflectionBGR))
 
-    faceMidPoint = np.mean(imageShape[27:30, 0]).astype('uint') #average nose x values
-    #Users Right and Users Left
-    rightFaceImage = image[:, :faceMidPoint, :]
-    leftFaceImage = image[:, faceMidPoint:, :]
+    #faceMidPoint = np.mean(imageShape[27:30, 0]).astype('uint') #average nose x values
+    ##Users Right and Users Left
+    #rightFaceImage = image[:, :faceMidPoint, :]
+    #leftFaceImage = image[:, faceMidPoint:, :]
 
-    averageMaxReflectionSum = 0
-    maxReflectionZones = 0
-    testFluxish = 0
-    averageReflectionDimensions = np.array([0, 0], dtype=np.float)
+    #averageMaxReflectionSum = 0
+    #maxReflectionZones = 0
+    #testFluxish = 0
+    #averageReflectionDimensions = np.array([0, 0], dtype=np.float)
 
-    left_hsvMedians = None
-    right_hsvMedians = None
-    #medianFaceValue = 0
+    #left_hsvMedians = None
+    #right_hsvMedians = None
+    ##medianFaceValue = 0
 
-    print('Left Dimensions ({}, {})'.format(*leftDimensions))
-    if (leftAverageReflectionBGR is not None) and (leftFluxish > .0007) and ((leftDimensions[0] * leftDimensions[1]) >= .0017):# and (max(leftAverageReflectionBGR) > .2):
-        #print('here')
-        leftFaceImageWB = colorTools.whitebalanceBGR_float(leftFaceImage, leftAverageReflectionBGR)
-        #leftFaceImageWB *= ( / leftFluxish)
+    #print('Left Dimensions ({}, {})'.format(*leftDimensions))
+    #if (leftAverageReflectionBGR is not None) and (leftFluxish > .0007) and ((leftDimensions[0] * leftDimensions[1]) >= .0017):# and (max(leftAverageReflectionBGR) > .2):
+    #    #print('here')
+    #    leftFaceImageWB = colorTools.whitebalanceBGR_float(leftFaceImage, leftAverageReflectionBGR)
+    #    #leftFaceImageWB *= ( / leftFluxish)
 
-        averageMaxReflectionSum = averageMaxReflectionSum + max(leftAverageReflectionBGR)
+    #    averageMaxReflectionSum = averageMaxReflectionSum + max(leftAverageReflectionBGR)
 
-        #Extract Value from Non WB image using recovered pixels
-        valuesMask = recoveredMask[:, faceMidPoint:]
-        try:
-            #valuesPoints = extractMask(username, leftFaceImage, polygons, valuesMask, imageName)
-            valuesPoints = extractMask(leftCapture, polygons, saveStep)
+    #    #Extract Value from Non WB image using recovered pixels
+    #    valuesMask = recoveredMask[:, faceMidPoint:]
+    #    try:
+    #        #valuesPoints = extractMask(username, leftFaceImage, polygons, valuesMask, imageName)
+    #        valuesPoints = extractMask(leftCapture, polygons, saveStep)
 
-        except NameError as err:
-            #print('error extracting left side of face')
-            #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))
-            return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err)
-        else:
-            (valuesPoints, averageFlashContribution) = valuesPoints
-            leftFaceValues = np.max(valuesPoints, axis=1)
-            medianLeftFaceValue = np.median(leftFaceValues)
-
-
-        hueSatMask = allPointsMask[:, faceMidPoint:]
-        try:
-            #maskedLeftPoints = extractMask(username, leftFaceImageWB, polygons, hueSatMask, imageName)
-            #maskedLeftPoints = extractMask(username, leftFaceImageWB, polygons, hueSatMask, imageName)
-            maskedLeftPoints = extractMask(leftCapture, polygons, saveStep)
-        except NameError as err:
-            #print('error extracting left side of face')
-            #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))
-            return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err)
-        else:
-            (maskedLeftPoints, left_averageFlashContribution) = maskedLeftPoints
-            left_sBGR = colorTools.convert_linearBGR_float_to_sBGR(np.array([maskedLeftPoints]))
-            left_hsvPoints = colorTools.convert_linearBGR_float_to_linearHSV_float(left_sBGR / 255)[0]
-            left_hsvMedians = np.median(left_hsvPoints, axis=0)
-            left_hsvMedians[2] = medianLeftFaceValue
-            left_hsvMedians = scaleHSVtoFluxish(left_hsvMedians, leftFluxish)
-
-        
-        testFluxish = testFluxish + leftFluxish
-        averageReflectionDimensions += np.array(leftDimensions)
-        maxReflectionZones = maxReflectionZones + 1
-    else:
-        allPointsMask[:, faceMidPoint:] = True
-        leftFaceImageWB = leftFaceImage #Just dont white balance this part. will get masked out
+    #    except NameError as err:
+    #        #print('error extracting left side of face')
+    #        #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))
+    #        return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err)
+    #    else:
+    #        (valuesPoints, averageFlashContribution) = valuesPoints
+    #        leftFaceValues = np.max(valuesPoints, axis=1)
+    #        medianLeftFaceValue = np.median(leftFaceValues)
 
 
-    print('Right Dimensions ({}, {})'.format(*rightDimensions))
-    if (rightAverageReflectionBGR is not None) and (rightFluxish > .0007) and ((rightDimensions[0] * rightDimensions[1]) >= .0017):# and (max(rightAverageReflectionBGR) > .2):
-        #print('there')
-        rightFaceImageWB = colorTools.whitebalanceBGR_float(rightFaceImage, rightAverageReflectionBGR)
-        #rightFaceImageWB *= (150 / rightFluxish)
+    #    hueSatMask = allPointsMask[:, faceMidPoint:]
+    #    try:
+    #        #maskedLeftPoints = extractMask(username, leftFaceImageWB, polygons, hueSatMask, imageName)
+    #        #maskedLeftPoints = extractMask(username, leftFaceImageWB, polygons, hueSatMask, imageName)
+    #        maskedLeftPoints = extractMask(leftCapture, polygons, saveStep)
+    #    except NameError as err:
+    #        #print('error extracting left side of face')
+    #        #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))
+    #        return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err)
+    #    else:
+    #        (maskedLeftPoints, left_averageFlashContribution) = maskedLeftPoints
+    #        left_sBGR = colorTools.convert_linearBGR_float_to_sBGR(np.array([maskedLeftPoints]))
+    #        left_hsvPoints = colorTools.convert_linearBGR_float_to_linearHSV_float(left_sBGR / 255)[0]
+    #        left_hsvMedians = np.median(left_hsvPoints, axis=0)
+    #        left_hsvMedians[2] = medianLeftFaceValue
+    #        left_hsvMedians = scaleHSVtoFluxish(left_hsvMedians, leftFluxish)
 
-        averageMaxReflectionSum = averageMaxReflectionSum + max(rightAverageReflectionBGR)
+    #    
+    #    testFluxish = testFluxish + leftFluxish
+    #    averageReflectionDimensions += np.array(leftDimensions)
+    #    maxReflectionZones = maxReflectionZones + 1
+    #else:
+    #    allPointsMask[:, faceMidPoint:] = True
+    #    leftFaceImageWB = leftFaceImage #Just dont white balance this part. will get masked out
 
-        #Extract Value from Non WB image using recovered pixels
-        valuesMask = recoveredMask[:, :faceMidPoint]
-        try:
-            #[valuesPoints, averageFlashContribution] = extractMask(username, rightFaceImage, polygons, valuesMask, imageName)
-            valuesPoints = extractMask(rightCapture, polygons, saveStep)
-        except NameError as err:
-            #print('error extracting right side of face')
-            #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting right side of face', err))
-            return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting right side of face', err)
-        else:
-            (valuesPoints, averageFlashContribution) = valuesPoints
-            rightFaceValues = np.max(valuesPoints, axis=1)
-            medianRightFaceValue = np.median(rightFaceValues)
 
-        hueSatMask = allPointsMask[:, :faceMidPoint]
-        try:
-            #[maskedRightPoints, right_averageFlashContribution] = extractMask(username, rightFaceImageWB, polygons, hueSatMask, imageName)
-            maskedRightPoints = extractMask(rightCapture, polygons, saveStep)
-        except NameError as err:
-            #print('error extracting right side of face')
-            #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting right side of face', err))
-            return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting right side of face', err)
-        else:
-            (maskedRightPoints, right_averageFlashContribution) = maskedRightPoints
-            right_sBGR = colorTools.convert_linearBGR_float_to_sBGR(np.array([maskedRightPoints]))
-            right_hsvPoints = colorTools.convert_linearBGR_float_to_linearHSV_float(right_sBGR / 255)[0]
-            right_hsvMedians = np.median(right_hsvPoints, axis=0)
-            right_hsvMedians[2] = medianRightFaceValue
-            right_hsvMedians = scaleHSVtoFluxish(right_hsvMedians, rightFluxish)
+    #print('Right Dimensions ({}, {})'.format(*rightDimensions))
+    #if (rightAverageReflectionBGR is not None) and (rightFluxish > .0007) and ((rightDimensions[0] * rightDimensions[1]) >= .0017):# and (max(rightAverageReflectionBGR) > .2):
+    #    #print('there')
+    #    rightFaceImageWB = colorTools.whitebalanceBGR_float(rightFaceImage, rightAverageReflectionBGR)
+    #    #rightFaceImageWB *= (150 / rightFluxish)
 
-        testFluxish = testFluxish + rightFluxish
-        averageReflectionDimensions += np.array(rightDimensions)
-        maxReflectionZones = maxReflectionZones + 1
-    else:
-        allPointsMask[:, :faceMidPoint] = True
-        rightFaceImageWB = rightFaceImage #Just dont white balance this part. will get masked out
+    #    averageMaxReflectionSum = averageMaxReflectionSum + max(rightAverageReflectionBGR)
 
-    if maxReflectionZones != 0:
-        averageMaxReflection = averageMaxReflectionSum / maxReflectionZones
-        testFluxish = testFluxish / maxReflectionZones
-        averageReflectionDimensions /= maxReflectionZones
-    else:
-        #raise NameError('User :: {} | Image :: {} | Error :: {}'.format(username, imageName, 'No valid reflection zones on face'))
-        return 'User :: {} | Image :: {} | Error :: {}'.format(username, imageName, 'No valid reflection zones on face')
+    #    #Extract Value from Non WB image using recovered pixels
+    #    valuesMask = recoveredMask[:, :faceMidPoint]
+    #    try:
+    #        #[valuesPoints, averageFlashContribution] = extractMask(username, rightFaceImage, polygons, valuesMask, imageName)
+    #        valuesPoints = extractMask(rightCapture, polygons, saveStep)
+    #    except NameError as err:
+    #        #print('error extracting right side of face')
+    #        #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting right side of face', err))
+    #        return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting right side of face', err)
+    #    else:
+    #        (valuesPoints, averageFlashContribution) = valuesPoints
+    #        rightFaceValues = np.max(valuesPoints, axis=1)
+    #        medianRightFaceValue = np.median(rightFaceValues)
 
-    imageWB = np.hstack((rightFaceImageWB, leftFaceImageWB))
-    image = imageWB
+    #    hueSatMask = allPointsMask[:, :faceMidPoint]
+    #    try:
+    #        #[maskedRightPoints, right_averageFlashContribution] = extractMask(username, rightFaceImageWB, polygons, hueSatMask, imageName)
+    #        maskedRightPoints = extractMask(rightCapture, polygons, saveStep)
+    #    except NameError as err:
+    #        #print('error extracting right side of face')
+    #        #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting right side of face', err))
+    #        return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting right side of face', err)
+    #    else:
+    #        (maskedRightPoints, right_averageFlashContribution) = maskedRightPoints
+    #        right_sBGR = colorTools.convert_linearBGR_float_to_sBGR(np.array([maskedRightPoints]))
+    #        right_hsvPoints = colorTools.convert_linearBGR_float_to_linearHSV_float(right_sBGR / 255)[0]
+    #        right_hsvMedians = np.median(right_hsvPoints, axis=0)
+    #        right_hsvMedians[2] = medianRightFaceValue
+    #        right_hsvMedians = scaleHSVtoFluxish(right_hsvMedians, rightFluxish)
 
-    print('Extracting Mask')
-    [points, averageFlashContribution] = extractMask(username, image, polygons, allPointsMask, imageName)
+    #    testFluxish = testFluxish + rightFluxish
+    #    averageReflectionDimensions += np.array(rightDimensions)
+    #    maxReflectionZones = maxReflectionZones + 1
+    #else:
+    #    allPointsMask[:, :faceMidPoint] = True
+    #    rightFaceImageWB = rightFaceImage #Just dont white balance this part. will get masked out
 
-    if not fast:
-        print('Saving Step 2')
-        saveStep.logMeasurement("Average Flash Contribution", str(averageFlashContribution))
-        saveStep.saveReferenceImageBGR(image, 'WhitebalancedImage')
+    #if maxReflectionZones != 0:
+    #    averageMaxReflection = averageMaxReflectionSum / maxReflectionZones
+    #    testFluxish = testFluxish / maxReflectionZones
+    #    averageReflectionDimensions /= maxReflectionZones
+    #else:
+    #    #raise NameError('User :: {} | Image :: {} | Error :: {}'.format(username, imageName, 'No valid reflection zones on face'))
+    #    return 'User :: {} | Image :: {} | Error :: {}'.format(username, imageName, 'No valid reflection zones on face')
 
-    print('Getting Median')
-    sBGR = colorTools.convert_linearBGR_float_to_sBGR(np.array([points]))
-    hsvPoints = colorTools.convert_linearBGR_float_to_linearHSV_float(sBGR / 255)[0]
+    #imageWB = np.hstack((rightFaceImageWB, leftFaceImageWB))
+    #image = imageWB
 
-    #plt.clf()
-    #plt.hist(hsvPoints[:, 2], bins='auto')
-    #plt.hist(faceValues, bins='auto')
-    #plt.savefig('maskedLinearValuesHist')
-    #saveStep.savePlot(username, imageName,'maskedLinearValuesHist', plt)
-    #plt.show()
+    #print('Extracting Mask')
+    #[points, averageFlashContribution] = extractMask(username, image, polygons, allPointsMask, imageName)
 
-    print('Median Face Value :: ' + str(medianFaceValue))
-    hsvMedians = np.median(hsvPoints, axis=0)
-    hsvMedians[2] = medianFaceValue
+    #if not fast:
+    #    print('Saving Step 2')
+    #    saveStep.logMeasurement("Average Flash Contribution", str(averageFlashContribution))
+    #    saveStep.saveReferenceImageBGR(image, 'WhitebalancedImage')
 
-    fluxishRatio = hsvMedians[2] / testFluxish
-    temp = scaleHSVtoFluxish(hsvMedians, testFluxish)
-    hsvMedians[2] = temp[2]
+    #print('Getting Median')
+    #sBGR = colorTools.convert_linearBGR_float_to_sBGR(np.array([points]))
+    #hsvPoints = colorTools.convert_linearBGR_float_to_linearHSV_float(sBGR / 255)[0]
 
-    saveStep.savePointsStep([hsvMedians], 4)
+    ##plt.clf()
+    ##plt.hist(hsvPoints[:, 2], bins='auto')
+    ##plt.hist(faceValues, bins='auto')
+    ##plt.savefig('maskedLinearValuesHist')
+    ##saveStep.savePlot(username, imageName,'maskedLinearValuesHist', plt)
+    ##plt.show()
 
-    if saveStats:
-        saveStep.saveImageStat('reflectionStrength', [averageMaxReflection])
-        saveStep.saveImageStat('testFluxish', [testFluxish])
-        saveStep.saveImageStat('meanReflectionDimensions', averageReflectionDimensions)
-        saveStep.saveImageStat('fluxishRatio', [fluxishRatio])
-        saveStep.saveImageStat('medianHSV', hsvMedians)
+    #print('Median Face Value :: ' + str(medianFaceValue))
+    #hsvMedians = np.median(hsvPoints, axis=0)
+    #hsvMedians[2] = medianFaceValue
 
-        if (leftAverageReflectionBGR is not None) and (left_hsvMedians is not None) and (leftFluxish > .0007) and ((leftDimensions[0] * leftDimensions[1]) >= .0017):
-            saveStep.saveImageStat('splitReflectionStrength', [max(leftAverageReflectionBGR)])
-            saveStep.saveImageStat('splitTestFluxish', [leftFluxish])
-            saveStep.saveImageStat('splitMedianHSV', left_hsvMedians)
-            saveStep.saveImageStat('splitDimensions', leftDimensions)
+    #fluxishRatio = hsvMedians[2] / testFluxish
+    #temp = scaleHSVtoFluxish(hsvMedians, testFluxish)
+    #hsvMedians[2] = temp[2]
 
-        if (rightAverageReflectionBGR is not None) and (right_hsvMedians is not None) and (rightFluxish > .0007) and ((rightDimensions[0] * rightDimensions[1]) >= .0017):
-            saveStep.saveImageStat('splitReflectionStrength', [max(rightAverageReflectionBGR)])
-            saveStep.saveImageStat('splitTestFluxish', [rightFluxish])
-            saveStep.saveImageStat('splitMedianHSV', right_hsvMedians)
-            saveStep.saveImageStat('splitDimensions', rightDimensions)
+    #saveStep.savePointsStep([hsvMedians], 4)
 
-    #print('Done!')
-    return None
+    #if saveStats:
+    #    saveStep.saveImageStat('reflectionStrength', [averageMaxReflection])
+    #    saveStep.saveImageStat('testFluxish', [testFluxish])
+    #    saveStep.saveImageStat('meanReflectionDimensions', averageReflectionDimensions)
+    #    saveStep.saveImageStat('fluxishRatio', [fluxishRatio])
+    #    saveStep.saveImageStat('medianHSV', hsvMedians)
+
+    #    if (leftAverageReflectionBGR is not None) and (left_hsvMedians is not None) and (leftFluxish > .0007) and ((leftDimensions[0] * leftDimensions[1]) >= .0017):
+    #        saveStep.saveImageStat('splitReflectionStrength', [max(leftAverageReflectionBGR)])
+    #        saveStep.saveImageStat('splitTestFluxish', [leftFluxish])
+    #        saveStep.saveImageStat('splitMedianHSV', left_hsvMedians)
+    #        saveStep.saveImageStat('splitDimensions', leftDimensions)
+
+    #    if (rightAverageReflectionBGR is not None) and (right_hsvMedians is not None) and (rightFluxish > .0007) and ((rightDimensions[0] * rightDimensions[1]) >= .0017):
+    #        saveStep.saveImageStat('splitReflectionStrength', [max(rightAverageReflectionBGR)])
+    #        saveStep.saveImageStat('splitTestFluxish', [rightFluxish])
+    #        saveStep.saveImageStat('splitMedianHSV', right_hsvMedians)
+    #        saveStep.saveImageStat('splitDimensions', rightDimensions)
+
+    ##print('Done!')
+    #return None

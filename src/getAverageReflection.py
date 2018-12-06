@@ -307,7 +307,9 @@ def getEyeCrops(capture):
     return [leftEye, rightEye]
 
 def blur(img):
-    return cv2.GaussianBlur(img, (3, 3), 0)
+    #return cv2.GaussianBlur(img, (15, 15), 0)
+    #return cv2.bilateralFilter(img,15,75,75)
+    return cv2.medianBlur(img, 9)
 
 
 def getReflectionBB(mask):
@@ -366,26 +368,46 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
 
     [x, y, w, h] = getReflectionBB(leftEyeGreyReflectionMask)
     leftEyeReflection = halfFlashLeftEyeCrop[y:y+h, x:x+w]
-    leftReflectionMedian = np.median(leftEyeReflection, axis=[0, 1])
-    #print('Left Reflection Median :: ' + str(leftReflectionMedian))
-    #cv2.imshow('leftReflection', leftEyeReflection)
 
-    #x, y, w, h = getReflectionBB(leftEyeGreyReflectionMask)
-    #cv2.rectangle(fullFlashLeftEyeCrop, (x, y), (x + w, y + h), (0, 255, 0), 2)
-    #cv2.imshow('Left Reflection', fullFlashLeftEyeCrop)
+    tooHighMask = np.max(leftEyeReflection, axis=2) <= 253
+    tooLowMask = np.min(leftEyeReflection, axis=2) >= 2
+
+    leftEyeMask = np.logical_and(tooHighMask, tooLowMask)
+    leftEyePoints = leftEyeReflection[leftEyeMask]
+    clipRatio = leftEyePoints.shape[0] / (leftEyeMask.shape[0] * leftEyeMask.shape[1])
+    if clipRatio < .5:
+        print("TOO MUCH CLIPPING!")
+    #print("LEFT EYE POINTS :: " + str(leftEyePoints))
+
+    leftReflectionMedian = np.median(leftEyePoints, axis=0)
+    leftReflectionArea = w * h
+    leftReflectionValue = np.max(leftReflectionMedian) * 2 #Multiply by 2 because we got the value from the half flash
 
     [x, y, w, h] = getReflectionBB(rightEyeGreyReflectionMask)
     rightEyeReflection = halfFlashRightEyeCrop[y:y+h, x:x+w]
-    rightReflectionMedian = np.median(rightEyeReflection, axis=[0, 1])
-    #print('Right Reflection Median :: ' + str(rightReflectionMedian))
-    return [leftReflectionMedian, rightReflectionMedian]
-    #cv2.imshow('rightReflection', rightEyeReflection)
-    #cv2.waitKey(0)
 
-    #x, y, w, h = getReflectionBB(rightEyeGreyReflectionMask)
-    #cv2.rectangle(fullFlashRightEyeCrop, (x, y), (x + w, y + h), (0, 255, 0), 2)
-    #cv2.imshow('Right Reflection', fullFlashRightEyeCrop)
-    #cv2.waitKey(0)
+
+    tooHighMask = np.max(rightEyeReflection, axis=2) <= 253
+    tooLowMask = np.min(rightEyeReflection, axis=2) >= 2
+
+    rightEyeMask = np.logical_and(tooHighMask, tooLowMask)
+    rightEyePoints = rightEyeReflection[rightEyeMask]
+    clipRatio = rightEyePoints.shape[0] / (rightEyeMask.shape[0] * rightEyeMask.shape[1])
+    if clipRatio < .5:
+        print("TOO MUCH CLIPPING!")
+    #print("RIGHT EYE POINTS :: " + str(rightEyePoints))
+
+
+    rightReflectionMedian = np.median(rightEyePoints, axis=0)
+    rightReflectionArea = w * h
+    rightReflectionValue = np.max(rightReflectionMedian) * 2 #Multiply by 2 because we got the value from the half flash
+
+    averageMedian = (leftReflectionMedian + rightReflectionMedian) / 2
+    averageArea = (leftReflectionArea + rightReflectionArea) / 2
+    averageValue = (leftReflectionValue + rightReflectionValue) / 2
+    fluxish = averageArea * averageValue
+
+    return [averageMedian, fluxish]
 
 
 #def getAverageScreenReflectionColor(username, imageName, image, fullFlash_sBGR, imageShape, cameraWB_CIE_xy_coords):
