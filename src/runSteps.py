@@ -19,6 +19,7 @@ import math
 from capture import Capture 
 
 import multiprocessing as mp
+import colorsys
 #from multiprocessing.sharedctypes import RawValue
 
 #import pympler
@@ -31,9 +32,9 @@ import multiprocessing as mp
 #def getLast(arr):
 #    return arr[-1]
 
-def getSecond(arr):
-    return arr[1]
-
+#def getSecond(arr):
+#    return arr[1]
+#
 #def getCropWidth(shapeA, shapeB, shapeC, heightMargin, heightMax, widthMargin, widthMax):
 #    allShapes = np.append(shapeA, shapeB, axis=0)
 #    allShapes = np.append(allShapes, shapeC, axis=0)
@@ -82,12 +83,12 @@ def getSecond(arr):
     #hsvMedians[1] = hsvMedians[1] + saturationDiff
     #hsvMedians[2] = hsvMedians[2] + valueDiff
 
-def scalePointstoFluxish(points, fluxish):
+def scalePointstoFluxish(capture, fluxish):
     #targetFluxish = 100000
     targetFluxish = 50000
     fluxishMultiplier = targetFluxish / fluxish
-    scaledPoints = (points * fluxishMultiplier).astype('int32')
-    return scaledPoints
+    capture.image *= fluxishMultiplier#).astype('int32')
+    #return scaledPoints
 
 #def getLeftEye(image, shape):
 #    (x, y, w, h) = cv2.boundingRect(np.array([shape[43], shape[44], shape[47], shape[46]]))
@@ -549,13 +550,16 @@ def run(username, imageName, fast=False, saveStats=False):
     [reflectionValue, fluxish] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, whiteBalance_CIE1931_coord_asShot)
     print("Reflection Value:: " + str(reflectionValue))
     print("Fluxish :: " + str(fluxish))
-    #cv2.imshow('No WB', diffImage.astype('uint8'))
-    diffCapture.show()
+    #diffCapture.show()
     saveStep.saveReferenceImageBGR(diffCapture.image, 'noWhitebalancedImage')
     colorTools.whitebalanceBGR(diffCapture, reflectionValue)
     saveStep.saveReferenceImageBGR(diffCapture.image, 'WhitebalancedImage')
-    #cv2.imshow('WB', diffWB.astype('uint8'))
-    diffCapture.show()
+    #diffCapture.show()
+
+    scalePointstoFluxish(diffCapture, fluxish)
+    saveStep.saveReferenceImageBGR(diffCapture.image, 'scaledWhitebalancedImage')
+
+    #diffCapture.show()
 
     try:
         [points, averageFlashContribution] = extractMask(diffCapture, polygons, saveStep)
@@ -566,11 +570,14 @@ def run(username, imageName, fast=False, saveStats=False):
     else:
         print('Points :: ' + str(points))
         faceValues = np.max(points, axis=1)
+        #faceMedian = np.median(points, axis=0)
+        faceMedian = np.mean(points, axis=0)
         print('face values :: ' + str(faceValues))
         medianFaceValue = np.median(faceValues)
         print('median face value :: ' + str(medianFaceValue))
+        print('median face :: ' + str(faceMedian))
+        print('median face HSV :: ' + str(colorsys.rgb_to_hsv(faceMedian[2], faceMedian[1], faceMedian[0])))
 
-    #scaledDiff = scalePointstoFluxish(diffWB, fluxish)
     #cv2.imshow('Scaled', scaledDiff.astype('uint8'))
 
     #cv2.waitKey(0)

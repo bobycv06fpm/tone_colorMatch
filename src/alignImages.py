@@ -420,7 +420,7 @@ def cropAndAlignEyes(noFlashEye, halfFlashEye, fullFlashEye):
 
     [noFlashEyeCropped, halfFlashEyeCropped, fullFlashEyeCropped] = cropTools.cropImagesToOffsets([noFlashEye, halfFlashEye, fullFlashEye], np.array([noFlashOffset, halfFlashOffset, fullFlashOffset]))
 
-    return [noFlashEyeCropped, halfFlashEyeCropped, fullFlashEyeCropped]
+    return [[noFlashOffset, halfFlashOffset, fullFlashOffset], [noFlashEyeCropped, halfFlashEyeCropped, fullFlashEyeCropped]]
 
 def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
     #(noFlashImage, noFlashShape, noFlashMask) = noFlash

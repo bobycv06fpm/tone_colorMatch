@@ -4,6 +4,8 @@ import cv2
 import numpy as np
 import colorTools
 import alignImages
+import cropTools
+import colorsys
 
 #import matplotlib.pyplot as plt
 #from mpl_toolkits.mplot3d import Axes3D
@@ -306,6 +308,15 @@ def getEyeCrops(capture):
 
     return [leftEye, rightEye]
 
+def getEyeRegionCrops(capture):
+    (x, y, w, h) = capture.landmarks.getLeftEyeRegionBB()
+    leftEye = capture.image[y:y+h, x:x+w]
+
+    (x, y, w, h) = capture.landmarks.getRightEyeRegionBB()
+    rightEye = capture.image[y:y+h, x:x+w]
+
+    return [leftEye, rightEye]
+
 def blur(img):
     #return cv2.GaussianBlur(img, (15, 15), 0)
     #return cv2.bilateralFilter(img,15,75,75)
@@ -351,11 +362,31 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     [halfFlashLeftEyeCrop, halfFlashRightEyeCrop] = getEyeCrops(halfFlashCapture)
     [fullFlashLeftEyeCrop, fullFlashRightEyeCrop] = getEyeCrops(fullFlashCapture)
 
-    [noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop] = alignImages.cropAndAlignEyes(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop)
-    [noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop] = alignImages.cropAndAlignEyes(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop)
+    #[noFlashLeftEyeRegionCrop, noFlashRightEyeRegionCrop] = getEyeRegionCrops(noFlashCapture)
+    #[halfFlashLeftEyeRegionCrop, halfFlashRightEyeRegionCrop] = getEyeRegionCrops(halfFlashCapture)
+    #[fullFlashLeftEyeRegionCrop, fullFlashRightEyeRegionCrop] = getEyeRegionCrops(fullFlashCapture)
 
-    #leftRemainder = np.clip(np.abs((2 * halfFlashLeftEyeCrop.astype('int32')) - (fullFlashLeftEyeCrop.astype('int32') + noFlashLeftEyeCrop.astype('int32'))), 0, 255)
-    #rightRemainder = np.clip(np.abs((2 * halfFlashRightEyeCrop.astype('int32')) - (fullFlashRightEyeCrop.astype('int32') + noFlashRightEyeCrop.astype('int32'))), 0, 255)
+    [leftEyeOffsets, [noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop]] = alignImages.cropAndAlignEyes(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop)
+    [rightEyeOffsets, [noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop]] = alignImages.cropAndAlignEyes(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop)
+
+    #[noFlashLeftEyeRegionCropped, halfFlashLeftEyeRegionCropped, fullFlashLeftEyeRegionCropped] = cropTools.cropImagesToOffsets([noFlashLeftEyeRegionCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeRegionCrop], np.array(leftEyeOffsets))
+    #[noFlashRightEyeRegionCropped, halfFlashRightEyeRegionCropped, fullFlashRightEyeRegionCropped] = cropTools.cropImagesToOffsets([noFlashRightEyeRegionCrop, halfFlashRightEyeCrop, fullFlashRightEyeRegionCrop], np.array(rightEyeOffsets))
+    
+
+
+    #leftRemainder = np.clip(np.abs((2 * halfFlashLeftEyeRegionCrop.astype('int32')) - (fullFlashLeftEyeRegionCrop.astype('int32') + noFlashLeftEyeRegionCrop.astype('int32'))), 0, 255).astype('uint8')
+    #rightRemainder = np.clip(np.abs((2 * halfFlashRightEyeRegionCrop.astype('int32')) - (fullFlashRightEyeRegionCrop.astype('int32') + noFlashRightEyeRegionCrop.astype('int32'))), 0, 255).astype('uint8')
+
+    #leftRemainderMask = np.max(leftRemainder, axis=2) > 6
+    #leftRemainderMask = leftRemainderMask.astype('uint8') * 255
+    #leftRemainderMask = np.stack((leftRemainderMask, leftRemainderMask, leftRemainderMask), axis=-1)
+    #rightRemainderMask = np.max(rightRemainder, axis=2) > 6
+    #rightRemainderMask = np.stack((rightRemainderMask, rightRemainderMask, rightRemainderMask), axis=-1)
+    #rightRemainderMask = rightRemainderMask.astype('uint8') * 255
+
+    #cv2.imshow('left linearity', np.hstack((leftRemainder, leftRemainderMask)))
+    #cv2.imshow('right linearity', np.hstack((rightRemainder, rightRemainderMask)))
+    #cv2.waitKey(0)
 
     leftEyeGreyReflectionMask = maskReflection(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop)
     rightEyeGreyReflectionMask = maskReflection(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop)
@@ -366,45 +397,91 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     #leftEye = halfFlashLeftEyeCrop * leftEyeReflectionMask
     #rightEye = halfFlashRightEyeCrop * rightEyeReflectionMask
 
+    #reflections = []
+
     [x, y, w, h] = getReflectionBB(leftEyeGreyReflectionMask)
     leftEyeReflection = halfFlashLeftEyeCrop[y:y+h, x:x+w]
 
-    tooHighMask = np.max(leftEyeReflection, axis=2) <= 253
-    tooLowMask = np.min(leftEyeReflection, axis=2) >= 2
+    leftHighMask = np.max(leftEyeReflection, axis=2) < 253
+    leftLowMask = np.min(leftEyeReflection, axis=2) >= 2
 
-    leftEyeMask = np.logical_and(tooHighMask, tooLowMask)
+    leftEyeMask = np.logical_and(leftHighMask, leftLowMask)
     leftEyePoints = leftEyeReflection[leftEyeMask]
-    clipRatio = leftEyePoints.shape[0] / (leftEyeMask.shape[0] * leftEyeMask.shape[1])
-    if clipRatio < .5:
+    leftClipRatio = leftEyePoints.shape[0] / (leftEyeMask.shape[0] * leftEyeMask.shape[1])
+    print('LEFT CLIP RATIO :: ' + str(leftClipRatio))
+    if leftClipRatio < .9:
         print("TOO MUCH CLIPPING!")
+        raise NameError('Not enough clean non-clipped pixels in left eye reflections')
+    #else:
+    #    leftReflectionMedian = np.median(leftEyePoints, axis=0) * 2 #Multiply by 2 because we got the value from the half flash
+    #    leftReflectionArea = w * h
+    #    #leftReflectionValue = np.max(leftReflectionMedian)
+    #    reflections.append([leftReflectionMedian, leftReflectionArea])
     #print("LEFT EYE POINTS :: " + str(leftEyePoints))
-
-    leftReflectionMedian = np.median(leftEyePoints, axis=0)
+    leftReflectionMedian = np.median(leftEyePoints, axis=0) * 2 #Multiply by 2 because we got the value from the half flash
     leftReflectionArea = w * h
-    leftReflectionValue = np.max(leftReflectionMedian) * 2 #Multiply by 2 because we got the value from the half flash
+    leftReflectionValue = np.max(leftReflectionMedian)
+
 
     [x, y, w, h] = getReflectionBB(rightEyeGreyReflectionMask)
     rightEyeReflection = halfFlashRightEyeCrop[y:y+h, x:x+w]
 
+    rightHighMask = np.max(rightEyeReflection, axis=2) < 253
+    rightLowMask = np.min(rightEyeReflection, axis=2) >= 2
 
-    tooHighMask = np.max(rightEyeReflection, axis=2) <= 253
-    tooLowMask = np.min(rightEyeReflection, axis=2) >= 2
-
-    rightEyeMask = np.logical_and(tooHighMask, tooLowMask)
+    rightEyeMask = np.logical_and(rightHighMask, rightLowMask)
     rightEyePoints = rightEyeReflection[rightEyeMask]
-    clipRatio = rightEyePoints.shape[0] / (rightEyeMask.shape[0] * rightEyeMask.shape[1])
-    if clipRatio < .5:
+    rightClipRatio = rightEyePoints.shape[0] / (rightEyeMask.shape[0] * rightEyeMask.shape[1])
+    print('RIGHT CLIP RATIO :: ' + str(rightClipRatio))
+    if rightClipRatio < .9:
         print("TOO MUCH CLIPPING!")
+        raise NameError('Not enough clean non-clipped pixels in right eye reflections')
+    #else:
+    #    rightReflectionMedian = np.median(rightEyePoints, axis=0) * 2 #Multiply by 2 because we got the value from the half flash
+    #    rightReflectionArea = w * h
+    #    #rightReflectionValue = np.max(rightReflectionMedian)
+    #    reflections.append([rightReflectionMedian, rightReflectionArea])
     #print("RIGHT EYE POINTS :: " + str(rightEyePoints))
-
-
-    rightReflectionMedian = np.median(rightEyePoints, axis=0)
+    rightReflectionMedian = np.median(rightEyePoints, axis=0) * 2 #Multiply by 2 because we got the value from the half flash
     rightReflectionArea = w * h
-    rightReflectionValue = np.max(rightReflectionMedian) * 2 #Multiply by 2 because we got the value from the half flash
+    rightReflectionValue = np.max(rightReflectionMedian)
+
+    #if not reflections:
+    #    raise NameError('Not enough clean non-clipped pixels in eye reflections')
+
+    #averageMedian = [0, 0, 0]
+    #averageArea = 0
+    #averageValue = 0
+    #for [reflectionMedian, area] in reflections:
+    #    averageMedian += reflectionMedian
+    #    averageArea += area
+    #    averageValue += np.max(reflectionMedian)
+
+    #averageMedian = averageMedian / len(reflections)
+    #averageArea = averageArea / len(reflections)
+    #averageValue = averageValue / len(reflections)
+
+    valuesDiff = np.abs((rightReflectionMedian - leftReflectionMedian))
+    leftReflectionHSV = colorsys.rgb_to_hsv(leftReflectionMedian[2], leftReflectionMedian[1], leftReflectionMedian[0])
+    rightReflectionHSV = colorsys.rgb_to_hsv(rightReflectionMedian[2], rightReflectionMedian[1], rightReflectionMedian[0])
+
+    print('rightReflectionMedian :: ' + str(rightReflectionMedian))
+    print('right HSV :: ' + str(rightReflectionHSV))
+    print('leftReflectionMedian :: ' + str(leftReflectionMedian))
+    print('left HSV :: ' + str(leftReflectionHSV))
+
+    hueDiff = np.abs(leftReflectionHSV[0] - rightReflectionHSV[0])
+    satDiff = np.abs(leftReflectionHSV[1] - rightReflectionHSV[1])
+
+    print('HUE and SAT diff :: ' + str(hueDiff) + ' | ' + str(satDiff)) 
+
+    print('Values Diff :: ' + str(valuesDiff))
+
 
     averageMedian = (leftReflectionMedian + rightReflectionMedian) / 2
-    averageArea = (leftReflectionArea + rightReflectionArea) / 2
     averageValue = (leftReflectionValue + rightReflectionValue) / 2
+    averageArea = (leftReflectionArea + rightReflectionArea) / 2
+
     fluxish = averageArea * averageValue
 
     return [averageMedian, fluxish]
@@ -416,27 +493,6 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
 #
 #    #if leftEyeError is not None:
 #    eyeWidth = getEyeWidth(username, imageName, image, imageShape)
-#    print('Eye Width :: ' + str(eyeWidth))
-#
-#    leftWidth = 0
-#    leftHeight = 0
-#    rightWidth = 0
-#    rightHeight = 0
-#
-#    try:
-#        leftEyeReflection = getScreenReflection(username, imageName, leftEye, left_sBGR, 'leftEye', cameraWB_CIE_xy_coords)
-#    except:
-#        print('Setting Left to None!')
-#        leftAverageBGR = None
-#        leftFluxish = None
-#    else:
-#        [leftSumBGR, leftNumPixels, [leftWidth, leftHeight]] = leftEyeReflection
-#        leftAverageBGR = leftSumBGR / leftNumPixels
-#
-#        leftWidth = leftWidth / eyeWidth
-#        leftHeight = leftHeight / eyeWidth
-#
-#        leftFluxish = leftWidth * leftHeight * max(leftAverageBGR)
 #        print('Left Num Pixels :: ' + str(leftNumPixels))
 #        print('Left reflection Width, Height, Area, Fluxish :: ' + str(leftWidth) + ' ' + str(leftHeight) + ' ' + str(leftWidth * leftHeight) + ' ' + str(leftWidth * leftHeight * max(leftAverageBGR)))
 #
