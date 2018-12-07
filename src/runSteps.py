@@ -556,8 +556,8 @@ def run(username, imageName, fast=False, saveStats=False):
     saveStep.saveReferenceImageBGR(diffCapture.image, 'WhitebalancedImage')
     #diffCapture.show()
 
-    scalePointstoFluxish(diffCapture, fluxish)
-    saveStep.saveReferenceImageBGR(diffCapture.image, 'scaledWhitebalancedImage')
+    #scalePointstoFluxish(diffCapture, fluxish)
+    #saveStep.saveReferenceImageBGR(diffCapture.image, 'scaledWhitebalancedImage')
 
     #diffCapture.show()
 
@@ -568,7 +568,7 @@ def run(username, imageName, fast=False, saveStats=False):
     except NameError as err:
         #print('error extracting left side of face')
         #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))
-        return 'User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err)
+        raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
     else:
         print('Points :: ' + str(points))
         faceValues = np.max(points, axis=1)
@@ -578,13 +578,14 @@ def run(username, imageName, fast=False, saveStats=False):
         medianFaceValue = np.median(faceValues)
         print('median face value :: ' + str(medianFaceValue))
         print('median face :: ' + str(faceMedian))
-        print('median face HSV :: ' + str(colorsys.rgb_to_hsv(faceMedian[2], faceMedian[1], faceMedian[0])))
+        medianFaceHSV = colorsys.rgb_to_hsv(faceMedian[2], faceMedian[1], faceMedian[0])
+        print('median face HSV :: ' + str(medianFaceHSV))
+        return [medianFaceHSV, fluxish]
 
     #cv2.imshow('Scaled', scaledDiff.astype('uint8'))
 
     #cv2.waitKey(0)
     #averageReflectionBGR = getAverageScreenReflectionColor(username, imageName, image, fullFlashImage_sBGR, imageShape, whiteBalance_CIE1931_coord_asShot)
-    return medianFaceValue
 
     #[[leftAverageReflectionBGR, leftFluxish, leftDimensions], [rightAverageReflectionBGR, rightFluxish, rightDimensions]] = averageReflectionBGR
     #print('average left reflection :: ' + str(leftAverageReflectionBGR))

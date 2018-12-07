@@ -10,7 +10,8 @@ import json
 class Save:
 
     def __init__(self, username, fileName):
-        self.root = os.path.expanduser('~/Projects/tone/')
+        #self.root = os.path.expanduser('~/Projects/tone/')
+        self.root = '/home/dmacewen/Projects/tone/'
         self.username = username
         self.fileName = fileName
 
