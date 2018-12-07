@@ -547,7 +547,7 @@ def run(username, imageName, fast=False, saveStats=False):
     noFlashCapture.landmarks = halfFlashCapture.landmarks
     fullFlashCapture.landmarks = halfFlashCapture.landmarks
 
-    [reflectionValue, fluxish] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, whiteBalance_CIE1931_coord_asShot)
+    [reflectionValue, fluxish] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep)
     print("Reflection Value:: " + str(reflectionValue))
     print("Fluxish :: " + str(fluxish))
     #diffCapture.show()
@@ -560,6 +560,8 @@ def run(username, imageName, fast=False, saveStats=False):
     saveStep.saveReferenceImageBGR(diffCapture.image, 'scaledWhitebalancedImage')
 
     #diffCapture.show()
+
+    medianFaceValue = None
 
     try:
         [points, averageFlashContribution] = extractMask(diffCapture, polygons, saveStep)
@@ -582,7 +584,7 @@ def run(username, imageName, fast=False, saveStats=False):
 
     #cv2.waitKey(0)
     #averageReflectionBGR = getAverageScreenReflectionColor(username, imageName, image, fullFlashImage_sBGR, imageShape, whiteBalance_CIE1931_coord_asShot)
-    return
+    return medianFaceValue
 
     #[[leftAverageReflectionBGR, leftFluxish, leftDimensions], [rightAverageReflectionBGR, rightFluxish, rightDimensions]] = averageReflectionBGR
     #print('average left reflection :: ' + str(leftAverageReflectionBGR))

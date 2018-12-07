@@ -357,36 +357,40 @@ def maskReflection(noFlash, halfFlash, fullFlash):
     flashMask = np.logical_and(flashMask, np.logical_not(noFlashMask))
     return flashMask
 
-def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, cameraWB_CIE_xy_coords):
+def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep):
     [noFlashLeftEyeCrop, noFlashRightEyeCrop] = getEyeCrops(noFlashCapture)
     [halfFlashLeftEyeCrop, halfFlashRightEyeCrop] = getEyeCrops(halfFlashCapture)
     [fullFlashLeftEyeCrop, fullFlashRightEyeCrop] = getEyeCrops(fullFlashCapture)
 
-    #[noFlashLeftEyeRegionCrop, noFlashRightEyeRegionCrop] = getEyeRegionCrops(noFlashCapture)
-    #[halfFlashLeftEyeRegionCrop, halfFlashRightEyeRegionCrop] = getEyeRegionCrops(halfFlashCapture)
-    #[fullFlashLeftEyeRegionCrop, fullFlashRightEyeRegionCrop] = getEyeRegionCrops(fullFlashCapture)
+    [noFlashLeftEyeRegionCrop, noFlashRightEyeRegionCrop] = getEyeRegionCrops(noFlashCapture)
+    [halfFlashLeftEyeRegionCrop, halfFlashRightEyeRegionCrop] = getEyeRegionCrops(halfFlashCapture)
+    [fullFlashLeftEyeRegionCrop, fullFlashRightEyeRegionCrop] = getEyeRegionCrops(fullFlashCapture)
 
     [leftEyeOffsets, [noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop]] = alignImages.cropAndAlignEyes(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop)
     [rightEyeOffsets, [noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop]] = alignImages.cropAndAlignEyes(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop)
 
-    #[noFlashLeftEyeRegionCropped, halfFlashLeftEyeRegionCropped, fullFlashLeftEyeRegionCropped] = cropTools.cropImagesToOffsets([noFlashLeftEyeRegionCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeRegionCrop], np.array(leftEyeOffsets))
-    #[noFlashRightEyeRegionCropped, halfFlashRightEyeRegionCropped, fullFlashRightEyeRegionCropped] = cropTools.cropImagesToOffsets([noFlashRightEyeRegionCrop, halfFlashRightEyeCrop, fullFlashRightEyeRegionCrop], np.array(rightEyeOffsets))
+    [noFlashLeftEyeRegionCrop, halfFlashLeftEyeRegionCrop, fullFlashLeftEyeRegionCrop] = cropTools.cropImagesToOffsets([noFlashLeftEyeRegionCrop, halfFlashLeftEyeRegionCrop, fullFlashLeftEyeRegionCrop], np.array(leftEyeOffsets))
+    #[noFlashLeftEyeRegionCrop, halfFlashLeftEyeRegionCrop, fullFlashLeftEyeRegionCrop] = [noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop]
+    [noFlashRightEyeRegionCrop, halfFlashRightEyeRegionCrop, fullFlashRightEyeRegionCrop] = cropTools.cropImagesToOffsets([noFlashRightEyeRegionCrop, halfFlashRightEyeRegionCrop, fullFlashRightEyeRegionCrop], np.array(rightEyeOffsets))
+    #[noFlashRightEyeRegionCrop, halfFlashRightEyeRegionCrop, fullFlashRightEyeRegionCrop] = [noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop]
     
 
 
-    #leftRemainder = np.clip(np.abs((2 * halfFlashLeftEyeRegionCrop.astype('int32')) - (fullFlashLeftEyeRegionCrop.astype('int32') + noFlashLeftEyeRegionCrop.astype('int32'))), 0, 255).astype('uint8')
-    #rightRemainder = np.clip(np.abs((2 * halfFlashRightEyeRegionCrop.astype('int32')) - (fullFlashRightEyeRegionCrop.astype('int32') + noFlashRightEyeRegionCrop.astype('int32'))), 0, 255).astype('uint8')
+    leftRemainder = np.clip(np.abs((2 * halfFlashLeftEyeRegionCrop.astype('int32')) - (fullFlashLeftEyeRegionCrop.astype('int32') + noFlashLeftEyeRegionCrop.astype('int32'))), 0, 255).astype('uint8')
+    rightRemainder = np.clip(np.abs((2 * halfFlashRightEyeRegionCrop.astype('int32')) - (fullFlashRightEyeRegionCrop.astype('int32') + noFlashRightEyeRegionCrop.astype('int32'))), 0, 255).astype('uint8')
 
-    #leftRemainderMask = np.max(leftRemainder, axis=2) > 6
-    #leftRemainderMask = leftRemainderMask.astype('uint8') * 255
+    leftRemainderMask = np.max(leftRemainder, axis=2) > 6
+    leftRemainderMask = leftRemainderMask.astype('uint8') * 255
     #leftRemainderMask = np.stack((leftRemainderMask, leftRemainderMask, leftRemainderMask), axis=-1)
-    #rightRemainderMask = np.max(rightRemainder, axis=2) > 6
+    rightRemainderMask = np.max(rightRemainder, axis=2) > 6
+    rightRemainderMask = rightRemainderMask.astype('uint8') * 255
     #rightRemainderMask = np.stack((rightRemainderMask, rightRemainderMask, rightRemainderMask), axis=-1)
-    #rightRemainderMask = rightRemainderMask.astype('uint8') * 255
 
     #cv2.imshow('left linearity', np.hstack((leftRemainder, leftRemainderMask)))
     #cv2.imshow('right linearity', np.hstack((rightRemainder, rightRemainderMask)))
     #cv2.waitKey(0)
+    saveStep.saveReferenceImageBGR(leftRemainderMask, 'Left Remainder Eye Mask')
+    saveStep.saveReferenceImageBGR(rightRemainderMask, 'Right Remainder Eye Mask')
 
     leftEyeGreyReflectionMask = maskReflection(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop)
     rightEyeGreyReflectionMask = maskReflection(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop)
@@ -479,8 +483,11 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
 
 
     averageMedian = (leftReflectionMedian + rightReflectionMedian) / 2
+    #averageMedian = rightReflectionMedian
     averageValue = (leftReflectionValue + rightReflectionValue) / 2
+    #averageValue = rightReflectionValue
     averageArea = (leftReflectionArea + rightReflectionArea) / 2
+    #averageArea = rightReflectionArea
 
     fluxish = averageArea * averageValue
 
