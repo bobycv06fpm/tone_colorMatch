@@ -578,9 +578,15 @@ def run(username, imageName, fast=False, saveStats=False):
         medianFaceValue = np.median(faceValues)
         print('median face value :: ' + str(medianFaceValue))
         print('median face :: ' + str(faceMedian))
-        medianFaceHSV = colorsys.rgb_to_hsv(faceMedian[2], faceMedian[1], faceMedian[0])
-        print('median face HSV :: ' + str(medianFaceHSV))
-        return [medianFaceHSV, fluxish]
+        sBGR_median = colorTools.convertSingle_linearValue_to_sValue(faceMedian)
+
+        medianFaceLinearHSV = colorsys.rgb_to_hsv(faceMedian[2], faceMedian[1], faceMedian[0])
+        medianFacesHSV = colorsys.rgb_to_hsv(sBGR_median[2], sBGR_median[1], sBGR_median[0])
+
+        print('median face linear HSV :: ' + str(medianFaceLinearHSV))
+        print('median face sHSV :: ' + str(medianFacesHSV))
+
+        return [medianFacesHSV, fluxish]
 
     #cv2.imshow('Scaled', scaledDiff.astype('uint8'))
 

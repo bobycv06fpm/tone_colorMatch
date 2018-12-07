@@ -260,6 +260,20 @@ def convertSingle_sValue_to_linearValue(value):
     else:
         return sBGR_to_linearBGR_image_largeValues(value)
 
+def convertSingle_linearValue_to_sValue(point):
+    point = point / 255
+    print('Point :: ' + str(point))
+    sBGR_point = []
+    for value in point:
+        if value <= .0031308:
+            sBGR_point.append(linearBGR_to_sBGR_image_smallValues(value))
+        else:
+            sBGR_point.append(linearBGR_to_sBGR_image_largeValues(value))
+
+    sBGR_point = np.array(sBGR_point)
+    sBGR_point *= 255
+    return np.clip(sBGR_point, 0, 255).astype('uint8')
+
 #def whitebalanceBGR_float(image, wb):
 #    #wbMultiplier = [1, 1, 1]
 #    #sortedWB = sorted(wb)
