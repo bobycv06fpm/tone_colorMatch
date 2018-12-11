@@ -493,8 +493,8 @@ def run(username, imageName, fast=False, saveStats=False):
     #TEST ENDING NOW
 
     print('Subtracting Base from Flash')
-    diffImage = fullFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
-    #diffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
+    #diffImage = fullFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
+    diffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
 
     #print('Diff Image :: ' + str(diffImage))
     diffCapture = Capture('Diff', diffImage, fullFlashCapture.metadata, allPointsMask)
@@ -579,6 +579,7 @@ def run(username, imageName, fast=False, saveStats=False):
         print('median face value :: ' + str(medianFaceValue))
         print('median face :: ' + str(faceMedian))
         sBGR_median = colorTools.convertSingle_linearValue_to_sValue(faceMedian)
+        print('median face sBGR:: ' + str(sBGR_median))
 
         medianFaceLinearHSV = colorsys.rgb_to_hsv(faceMedian[2], faceMedian[1], faceMedian[0])
         medianFacesHSV = list(colorsys.rgb_to_hsv(sBGR_median[2], sBGR_median[1], sBGR_median[0]))
