@@ -493,11 +493,12 @@ def run(username, imageName, fast=False, saveStats=False):
     #TEST ENDING NOW
 
     print('Subtracting Base from Flash')
-    #diffImage = fullFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
-    diffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
+    fullDiffImage = fullFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
+    halfDiffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
 
     #print('Diff Image :: ' + str(diffImage))
-    diffCapture = Capture('Diff', diffImage, fullFlashCapture.metadata, allPointsMask)
+    fullDiffCapture = Capture('Diff', fullDiffImage, fullFlashCapture.metadata, allPointsMask)
+    halfDiffCapture = Capture('Diff', halfDiffImage, halfFlashCapture.metadata, allPointsMask)
 
 
     #image = fullFlashImage - noFlashImage
@@ -523,7 +524,7 @@ def run(username, imageName, fast=False, saveStats=False):
 
     print('Getting Polygons')
     #imageShape = fullFlashImageShape
-    polygons = getPolygons(diffCapture)
+    polygons = getPolygons(fullDiffCapture)
     #try:
     #    [points, averageFlashContribution] = extractMask(diffCapture, polygons, saveStep)
     #except NameError as err:
@@ -537,7 +538,7 @@ def run(username, imageName, fast=False, saveStats=False):
     if not fast:
         print('Saving Step 1')
         #saveStep.saveShapeStep(username, imageName, imageShape, 1)
-        saveStep.saveImageStep(diffCapture.image, 1)
+        saveStep.saveImageStep(fullDiffCapture.image, 1)
         saveStep.saveMaskStep(allPointsMask, 1, 'clippedMask')
 
     #alignImages.alignEyes(noFlashCapture, halfFlashCapture, fullFlashCapture)
@@ -551,9 +552,12 @@ def run(username, imageName, fast=False, saveStats=False):
     print("Reflection Value:: " + str(reflectionValue))
     print("Fluxish :: " + str(fluxish))
     #diffCapture.show()
-    saveStep.saveReferenceImageBGR(diffCapture.image, 'noWhitebalancedImage')
-    colorTools.whitebalanceBGR(diffCapture, reflectionValue)
-    saveStep.saveReferenceImageBGR(diffCapture.image, 'WhitebalancedImage')
+    saveStep.saveReferenceImageBGR(fullDiffCapture.image, 'full_noWhitebalancedImage')
+    saveStep.saveReferenceImageBGR(halfDiffCapture.image, 'half_noWhitebalancedImage')
+    colorTools.whitebalanceBGR(fullDiffCapture, reflectionValue)
+    colorTools.whitebalanceBGR(halfDiffCapture, reflectionValue)
+    saveStep.saveReferenceImageBGR(fullDiffCapture.image, 'full_WhitebalancedImage')
+    saveStep.saveReferenceImageBGR(halfDiffCapture.image, 'half_WhitebalancedImage')
     #diffCapture.show()
 
     #scalePointstoFluxish(diffCapture, fluxish)
@@ -564,32 +568,39 @@ def run(username, imageName, fast=False, saveStats=False):
     medianFaceValue = None
 
     try:
-        [points, averageFlashContribution] = extractMask(diffCapture, polygons, saveStep)
+        [fullPoints, averageFlashContribution] = extractMask(fullDiffCapture, polygons, saveStep)
+        [halfPoints, averageFlashContribution] = extractMask(halfDiffCapture, polygons, saveStep)
     except NameError as err:
         #print('error extracting left side of face')
         #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))
         raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
     else:
-        print('Points :: ' + str(points))
-        faceValues = np.max(points, axis=1)
-        #faceMedian = np.median(points, axis=0)
-        faceMedian = np.mean(points, axis=0)
-        print('face values :: ' + str(faceValues))
-        medianFaceValue = np.median(faceValues)
-        print('median face value :: ' + str(medianFaceValue))
-        print('median face :: ' + str(faceMedian))
-        sBGR_median = colorTools.convertSingle_linearValue_to_sValue(faceMedian)
-        print('median face sBGR:: ' + str(sBGR_median))
+        fullFaceMedian = np.mean(fullPoints, axis=0)
+        halfFaceMedian = np.mean(halfPoints, axis=0)
 
-        medianFaceLinearHSV = colorsys.rgb_to_hsv(faceMedian[2], faceMedian[1], faceMedian[0])
-        medianFacesHSV = list(colorsys.rgb_to_hsv(sBGR_median[2], sBGR_median[1], sBGR_median[0]))
+        print('full median face :: ' + str(fullFaceMedian))
+        print('half median face :: ' + str(halfFaceMedian))
 
-        print('median face linear HSV :: ' + str(medianFaceLinearHSV))
-        print('median face sHSV :: ' + str(medianFacesHSV))
+        sBGR_fullMedian = colorTools.convertSingle_linearValue_to_sValue(fullFaceMedian)
+        sBGR_halfMedian = colorTools.convertSingle_linearValue_to_sValue(halfFaceMedian)
+        print('full median face sBGR:: ' + str(sBGR_fullMedian))
+        print('half median face sBGR:: ' + str(sBGR_halfMedian))
 
-        medianFacesHSV = [float(value) for value in medianFacesHSV]
+        fullMedianFaceLinearHSV = colorsys.rgb_to_hsv(fullFaceMedian[2], fullFaceMedian[1], fullFaceMedian[0])
+        halfMedianFaceLinearHSV = colorsys.rgb_to_hsv(halfFaceMedian[2], halfFaceMedian[1], halfFaceMedian[0])
 
-        return [medianFacesHSV, fluxish]
+        fullMedianFacesHSV = list(colorsys.rgb_to_hsv(sBGR_fullMedian[2], sBGR_fullMedian[1], sBGR_fullMedian[0]))
+        halfMedianFacesHSV = list(colorsys.rgb_to_hsv(sBGR_halfMedian[2], sBGR_halfMedian[1], sBGR_halfMedian[0]))
+
+        print('full median face linear HSV :: ' + str(fullMedianFaceLinearHSV))
+        print('half median face linear HSV :: ' + str(halfMedianFaceLinearHSV))
+
+        print('full median face sHSV :: ' + str(fullMedianFacesHSV))
+        print('half median face sHSV :: ' + str(halfMedianFacesHSV))
+
+        fullMedianFacesHSV = [float(value) for value in fullMedianFacesHSV]
+
+        return [fullMedianFacesHSV, fluxish]
 
     #cv2.imshow('Scaled', scaledDiff.astype('uint8'))
 
