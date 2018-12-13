@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-def plotPoints(pixels):
+def plotPoints(pixels, markers=[[]]):
     step = 100
     print("Plotting RGB Points")
     print("Printing " + str(len(pixels)) + " pixels in steps of " + str(step))
@@ -24,6 +24,17 @@ def plotPoints(pixels):
         unscaled_x.append(pixel[2])
         unscaled_y.append(pixel[1])
         unscaled_z.append(pixel[0])
+
+    for index, marker in enumerate(markers):
+        for point in marker:
+            if index != 0:
+                scaled.append((0, 0, 1))
+            else:
+                scaled.append((0, 1, 0))
+            unscaled_x.append(point[2])
+            unscaled_y.append(point[1])
+            unscaled_z.append(point[0])
+
 
     ax.scatter(unscaled_x, unscaled_y, unscaled_z, 'z', 20, scaled, True)
     plt.show()

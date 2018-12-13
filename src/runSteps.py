@@ -6,7 +6,7 @@ from saveStep import Save
 from getPolygons import getPolygons, getFullFacePolygon
 from extractMask import extractMask, maskPolygons
 import colorTools
-#import plotTools
+import plotTools
 #import processPoints
 import cv2
 import numpy as np
@@ -575,8 +575,47 @@ def run(username, imageName, fast=False, saveStats=False):
         #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))
         raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
     else:
-        fullFaceMedian = np.mean(fullPoints, axis=0)
-        halfFaceMedian = np.mean(halfPoints, axis=0)
+        fullFaceMedian = np.median(fullPoints, axis=0)
+        halfFaceMedian = np.median(halfPoints, axis=0)
+
+
+        #plotTools.plotPoints(fullPoints)
+        #plotTools.plotPoints(halfPoints)
+        #both = np.array(list(fullPoints) + list(halfPoints))
+
+        #r = both[:, 2]
+        #g = both[:, 1]
+        #b = both[:, 0]
+        #max_b = max(b)
+
+        #b_A = np.vstack([b, np.ones(len(b))]).T
+
+        #gb = g/b
+        #gb_median = np.median(gb)
+        ##g_A = np.vstack([g, np.ones(len(g))]).T
+        #g_m, g_c = np.linalg.lstsq(b_A, g, rcond=None)[0]
+
+
+        #rb = r/b
+        #rb_median = np.median(rb)
+        ##r_A = np.vstack([r, np.ones(len(r))]).T
+        #r_m, r_c = np.linalg.lstsq(b_A, r, rcond=None)[0]
+
+        #print('\tNaive Ratios (G/B, R/B) :: ' + str((gb_median, rb_median)))
+        #print('\tLSTSQR Coeficents (G/B, R/B) :: ' + str(((g_m, g_c), (r_m, r_c))))
+
+        #green = np.arange(max_b) * gb_median
+        #green_fit = (np.arange(max_b) * g_m) + g_c
+
+        #red = np.arange(max_b) * rb_median
+        #red_fit = (np.arange(max_b) * r_m) + r_c
+
+        #blue = np.arange(max_b)
+
+        #line = np.stack((blue, green, red), axis=-1)
+        #line_fit = np.stack((blue, green_fit, red_fit), axis=-1)
+        ##plotTools.plotPoints(both, [fullFaceMedian, halfFaceMedian])
+        #plotTools.plotPoints(both, [line, line_fit])
 
         print('full median face :: ' + str(fullFaceMedian))
         print('half median face :: ' + str(halfFaceMedian))
@@ -586,21 +625,29 @@ def run(username, imageName, fast=False, saveStats=False):
         print('full median face sBGR:: ' + str(sBGR_fullMedian))
         print('half median face sBGR:: ' + str(sBGR_halfMedian))
 
-        fullMedianFaceLinearHSV = colorsys.rgb_to_hsv(fullFaceMedian[2], fullFaceMedian[1], fullFaceMedian[0])
-        halfMedianFaceLinearHSV = colorsys.rgb_to_hsv(halfFaceMedian[2], halfFaceMedian[1], halfFaceMedian[0])
+        #fullMedianFaceLinearHSV = colorsys.rgb_to_hsv(fullFaceMedian[2], fullFaceMedian[1], fullFaceMedian[0])
+        #halfMedianFaceLinearHSV = colorsys.rgb_to_hsv(halfFaceMedian[2], halfFaceMedian[1], halfFaceMedian[0])
 
-        fullMedianFacesHSV = list(colorsys.rgb_to_hsv(sBGR_fullMedian[2], sBGR_fullMedian[1], sBGR_fullMedian[0]))
-        halfMedianFacesHSV = list(colorsys.rgb_to_hsv(sBGR_halfMedian[2], sBGR_halfMedian[1], sBGR_halfMedian[0]))
+        #fullMedianFacesHSV = list(colorsys.rgb_to_hsv(sBGR_fullMedian[2], sBGR_fullMedian[1], sBGR_fullMedian[0]))
+        fullMedianFacesHLS = list(colorsys.rgb_to_hls(sBGR_fullMedian[2] / 255, sBGR_fullMedian[1] / 255, sBGR_fullMedian[0] / 255))
+        #halfMedianFacesHSV = list(colorsys.rgb_to_hsv(sBGR_halfMedian[2], sBGR_halfMedian[1], sBGR_halfMedian[0]))
+        halfMedianFacesHLS = list(colorsys.rgb_to_hls(sBGR_halfMedian[2]/ 255, sBGR_halfMedian[1] / 255, sBGR_halfMedian[0] / 255))
 
-        print('full median face linear HSV :: ' + str(fullMedianFaceLinearHSV))
-        print('half median face linear HSV :: ' + str(halfMedianFaceLinearHSV))
+        #print('full median face linear HSV :: ' + str(fullMedianFaceLinearHSV))
+        #print('half median face linear HSV :: ' + str(halfMedianFaceLinearHSV))
 
-        print('full median face sHSV :: ' + str(fullMedianFacesHSV))
-        print('half median face sHSV :: ' + str(halfMedianFacesHSV))
+        #print('full median face sHSV :: ' + str(fullMedianFacesHSV))
+        print('full median face sHLS :: ' + str((np.array(fullMedianFacesHLS) * [360, 100, 100]).astype('int32')))
+        #print('half median face sHSV :: ' + str(halfMedianFacesHSV))
+        print('half median face sHLS :: ' + str((np.array(halfMedianFacesHLS) * [360, 100, 100]).astype('int32')))
 
-        fullMedianFacesHSV = [float(value) for value in fullMedianFacesHSV]
+        #fullMedianFacesHSV = [float(value) for value in fullMedianFacesHSV]
+        fullMedianFacesHLS = [float(value) for value in fullMedianFacesHLS]
+        #halfMedianFacesHSV = [float(value) for value in halfMedianFacesHSV]
+        halfMedianFacesHLS = [float(value) for value in halfMedianFacesHLS]
 
-        return [fullMedianFacesHSV, fluxish]
+        #return [fullMedianFacesHSV, halfMedianFacesHSV, fluxish]
+        return [fullMedianFacesHLS, halfMedianFacesHLS, fluxish]
 
     #cv2.imshow('Scaled', scaledDiff.astype('uint8'))
 
