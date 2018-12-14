@@ -46,4 +46,34 @@ class Capture:
         cv2.imshow(self.name, smallImage)
         cv2.waitKey(0)
 
+    def saturationDiff(self):
+        img = np.copy(self.image)
+        for point in self.landmarks.landmarkPoints:
+            cv2.circle(img, (point[0], point[1]), 5, (0, 0, 255), -1)
+        
+        x, y, w, h = self.landmarks.getEyeStripBB()
+
+        img = img[y:y + h, x:x + w]
+
+        blur = 101
+        #img = cv2.GaussianBlur(img, (blur, blur), 0)
+        img = cv2.bilateralFilter(img,20,300,300)
+
+
+        hsvImage = cv2.cvtColor(img, cv2.COLOR_BGR2HSV_FULL)
+        saturations = hsvImage[:, :, 1]
+
+        #saturations = cv2.Sobel(saturations, cv2.CV_64F, 1, 0, ksize=5)
+        saturations = cv2.Laplacian(saturations, cv2.CV_64F)
+
+        #hues = hsvImage[:, :, 0]
+        #print('hues :: ' + str(hues))
+
+        ratio = 2
+        smallImage = cv2.resize(saturations, (0, 0), fx=1/ratio, fy=1/ratio)
+        cv2.imshow(self.name + ' Saturation', smallImage)
+        cv2.waitKey(0)
+        print('Saturations :: ' + str(saturations))
+
+
 

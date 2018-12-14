@@ -50,17 +50,17 @@ def plotHLS():
         print('Hue Slope, Constant :: ' + str(h_m) + ' ' + str(h_c))
 
         plt.subplot(131)
-        plt.scatter(hlsPoints[:, 0], hlsPoints[:, 1], 50, colors)
+        plt.scatter(hlsPoints[:, 0], hlsPoints[:, 1], 250, colors)
         plt.xlabel('Hue')
         plt.ylabel('Lightness')
 
         plt.subplot(132)
-        plt.scatter(hlsPoints[:, 0], hlsPoints[:, 2], 50, colors)
+        plt.scatter(hlsPoints[:, 0], hlsPoints[:, 2], 250, colors)
         plt.xlabel('Hue')
         plt.ylabel('Saturation')
 
         plt.subplot(133)
-        plt.scatter(hlsPoints[:, 2], hlsPoints[:, 1], 50, colors)
+        plt.scatter(hlsPoints[:, 2], hlsPoints[:, 1], 250, colors)
         plt.xlabel('Saturation')
         plt.ylabel('Lightness')
 
