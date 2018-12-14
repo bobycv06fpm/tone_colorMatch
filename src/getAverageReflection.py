@@ -404,6 +404,8 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     #reflections = []
 
     [x, y, w, h] = getReflectionBB(leftEyeGreyReflectionMask)
+    leftEyeCenter = [x + int(w / 2), y + int(h / 2)]
+    print('Left Eye Center! :: ' + str(leftEyeCenter))
     leftEyeReflection = halfFlashLeftEyeCrop[y:y+h, x:x+w]
 
     leftHighMask = np.max(leftEyeReflection, axis=2) < 253
@@ -428,6 +430,8 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
 
 
     [x, y, w, h] = getReflectionBB(rightEyeGreyReflectionMask)
+    rightEyeCenter = [x + int(w / 2), y + int(h / 2)]
+    print('Right Eye Center! :: ' + str(rightEyeCenter))
     rightEyeReflection = halfFlashRightEyeCrop[y:y+h, x:x+w]
 
     rightHighMask = np.max(rightEyeReflection, axis=2) < 253

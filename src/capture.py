@@ -64,10 +64,19 @@ class Capture:
         saturations = hsvImage[:, :, 1]
 
         #saturations = cv2.Sobel(saturations, cv2.CV_64F, 1, 0, ksize=5)
-        saturations = cv2.Laplacian(saturations, cv2.CV_64F)
+        #saturations = cv2.Laplacian(saturations, cv2.CV_64F)
 
         #hues = hsvImage[:, :, 0]
+        #hues = (hues / 255) * 360
+        #hueMask = np.logical_or((hues < 60), (hues > 330))
         #print('hues :: ' + str(hues))
+        #print('hues mask :: ' + str(hueMask))
+
+        #saturationMask = saturations > 150
+
+        #mask = np.logical_or(saturationMask, hueMask)
+
+        saturations[hueMask] = 255
 
         ratio = 2
         smallImage = cv2.resize(saturations, (0, 0), fx=1/ratio, fy=1/ratio)
