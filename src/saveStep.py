@@ -6,7 +6,7 @@ import colorTools
 import json
 
 #root = '../../'
-#root = '/home/dmacewen/Projects/tone/'
+root = '/home/dmacewen/Projects/tone/'
 class Save:
 
     def __init__(self, username, fileName):

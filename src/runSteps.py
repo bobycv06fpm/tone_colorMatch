@@ -6,7 +6,7 @@ from saveStep import Save
 from getPolygons import getPolygons, getFullFacePolygon
 from extractMask import extractMask, maskPolygons
 import colorTools
-#import plotTools
+import plotTools
 #import processPoints
 import cv2
 import numpy as np
@@ -305,9 +305,9 @@ def run(username, imageName, fast=False, saveStats=False):
     halfFlashCapture = Capture('Half Flash', halfFlashImage, halfFlashMetadata)
     fullFlashCapture = Capture('Full Flash', fullFlashImage, fullFlashMetadata)
 
-#    noFlashCapture.showImageWithLandmarks()
+    #noFlashCapture.showImageWithLandmarks()
 #    noFlashCapture.saturationDiff()
-#    halfFlashCapture.showImageWithLandmarks()
+    #halfFlashCapture.showImageWithLandmarks()
 #    halfFlashCapture.saturationDiff()
     #fullFlashCapture.showImageWithLandmarks()
     #fullFlashCapture.saturationDiff()
@@ -555,7 +555,6 @@ def run(username, imageName, fast=False, saveStats=False):
     noFlashCapture.landmarks = halfFlashCapture.landmarks
     fullFlashCapture.landmarks = halfFlashCapture.landmarks
 
-    #[reflectionValue, fluxish, eyeCoordinates] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep)
     [reflectionValue, fluxish] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep)
     print("Reflection Value:: " + str(reflectionValue))
     print("Fluxish :: " + str(fluxish))

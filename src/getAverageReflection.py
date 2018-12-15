@@ -300,13 +300,13 @@ import colorsys
 #    return mean + (2 * SD)
 #
 def getEyeCrops(capture):
-    (x, y, w, h) = capture.landmarks.getLeftEyeBB()
-    leftEye = capture.image[y:y+h, x:x+w]
+    (lx, ly, w, h) = capture.landmarks.getLeftEyeBB()
+    leftEye = capture.image[ly:ly+h, lx:lx+w]
 
-    (x, y, w, h) = capture.landmarks.getRightEyeBB()
-    rightEye = capture.image[y:y+h, x:x+w]
+    (rx, ry, w, h) = capture.landmarks.getRightEyeBB()
+    rightEye = capture.image[ry:ry+h, rx:rx+w]
 
-    return [leftEye, rightEye]
+    return [[leftEye, [lx, ly]], [rightEye, [rx, ry]]]
 
 def getEyeRegionCrops(capture):
     (x, y, w, h) = capture.landmarks.getLeftEyeRegionBB()
@@ -358,9 +358,9 @@ def maskReflection(noFlash, halfFlash, fullFlash):
     return flashMask
 
 def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep):
-    [noFlashLeftEyeCrop, noFlashRightEyeCrop] = getEyeCrops(noFlashCapture)
-    [halfFlashLeftEyeCrop, halfFlashRightEyeCrop] = getEyeCrops(halfFlashCapture)
-    [fullFlashLeftEyeCrop, fullFlashRightEyeCrop] = getEyeCrops(fullFlashCapture)
+    [[noFlashLeftEyeCrop, noFlashLeftEyeCoord], [noFlashRightEyeCrop, noFlashRightEyeCoord]] = getEyeCrops(noFlashCapture)
+    [[halfFlashLeftEyeCrop, halfFlashLeftEyeCoord], [halfFlashRightEyeCrop, halfFlashRightEyeCoord]] = getEyeCrops(halfFlashCapture)
+    [[fullFlashLeftEyeCrop, fullFlashLeftEyeCoord], [fullFlashRightEyeCrop, fullFlashRightEyeCoord]] = getEyeCrops(fullFlashCapture)
 
     [noFlashLeftEyeRegionCrop, noFlashRightEyeRegionCrop] = getEyeRegionCrops(noFlashCapture)
     [halfFlashLeftEyeRegionCrop, halfFlashRightEyeRegionCrop] = getEyeRegionCrops(halfFlashCapture)
@@ -395,6 +395,18 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     leftEyeGreyReflectionMask = maskReflection(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop)
     rightEyeGreyReflectionMask = maskReflection(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop)
 
+    fullFlashEyeStripCoords = np.array(fullFlashCapture.landmarks.getEyeStripBB())
+
+    eyeStripCoordDiff_left = np.array(fullFlashLeftEyeCoord) - fullFlashEyeStripCoords[0:2]
+    eyeStripCoordDiff_right = np.array(fullFlashRightEyeCoord) - fullFlashEyeStripCoords[0:2]
+
+    (x, y, w, h) = fullFlashEyeStripCoords
+    fullFlashEyeStrip = fullFlashCapture.image[y:y+h, x:x+w]
+
+    eyeStripCoordDiff_left += leftEyeOffsets[2]
+    eyeStripCoordDiff_right += rightEyeOffsets[2]
+
+
     #leftEyeReflectionMask = np.stack((leftEyeGreyReflectionMask, leftEyeGreyReflectionMask, leftEyeGreyReflectionMask), axis=-1)
     #rightEyeReflectionMask = np.stack((rightEyeGreyReflectionMask, rightEyeGreyReflectionMask, rightEyeGreyReflectionMask), axis=-1)
 
@@ -404,8 +416,11 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     #reflections = []
 
     [x, y, w, h] = getReflectionBB(leftEyeGreyReflectionMask)
-    leftEyeCenter = [x + int(w / 2), y + int(h / 2)]
+    leftEyeCenter = np.array([x + int(w / 2), y + int(h / 2)])
+    eyeStripCoordDiff_left += leftEyeCenter
     print('Left Eye Center! :: ' + str(leftEyeCenter))
+    cv2.circle(fullFlashEyeStrip, (eyeStripCoordDiff_left[0], eyeStripCoordDiff_left[1]), 5, (0, 0, 255), -1)
+
     leftEyeReflection = halfFlashLeftEyeCrop[y:y+h, x:x+w]
 
     leftHighMask = np.max(leftEyeReflection, axis=2) < 253
@@ -432,6 +447,11 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     [x, y, w, h] = getReflectionBB(rightEyeGreyReflectionMask)
     rightEyeCenter = [x + int(w / 2), y + int(h / 2)]
     print('Right Eye Center! :: ' + str(rightEyeCenter))
+    eyeStripCoordDiff_right += rightEyeCenter
+    cv2.circle(fullFlashEyeStrip, (eyeStripCoordDiff_right[0], eyeStripCoordDiff_right[1]), 5, (0, 0, 255), -1)
+    cv2.imshow('full flash eye strip', fullFlashEyeStrip)
+    cv2.waitKey(0)
+
     rightEyeReflection = halfFlashRightEyeCrop[y:y+h, x:x+w]
 
     rightHighMask = np.max(rightEyeReflection, axis=2) < 253

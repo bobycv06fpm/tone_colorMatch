@@ -84,5 +84,3 @@ class Capture:
         cv2.waitKey(0)
         print('Saturations :: ' + str(saturations))
 
-
-
