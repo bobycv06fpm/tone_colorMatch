@@ -401,7 +401,10 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     eyeStripCoordDiff_right = np.array(fullFlashRightEyeCoord) - fullFlashEyeStripCoords[0:2]
 
     (x, y, w, h) = fullFlashEyeStripCoords
-    fullFlashEyeStrip = fullFlashCapture.image[y:y+h, x:x+w]
+    #fullFlashEyeStrip = fullFlashCapture.image[y:y+h, x:x+w]
+    fullFlashEyeStripXStart = x
+    fullFlashEyeStripXEnd = x + w
+    fullFlashEyeStrip = halfFlashCapture.image[y:y+h, x:x+w]
 
     eyeStripCoordDiff_left += leftEyeOffsets[2]
     eyeStripCoordDiff_right += rightEyeOffsets[2]
@@ -416,10 +419,17 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     #reflections = []
 
     [x, y, w, h] = getReflectionBB(leftEyeGreyReflectionMask)
+    #[bb_x, bb_y] = np.array([x, y]) + eyeStripCoordDiff_left
+    #cv2.rectangle(fullFlashEyeStrip, (bb_x, bb_y), (bb_x + w, bb_y + h), (0, 0, 255), 1)
+
+    eyeSlitTop = y + eyeStripCoordDiff_left[1]
+    eyeSlitBottom = y + h + eyeStripCoordDiff_right[1]
+
+
     leftEyeCenter = np.array([x + int(w / 2), y + int(h / 2)])
-    eyeStripCoordDiff_left += leftEyeCenter
     print('Left Eye Center! :: ' + str(leftEyeCenter))
-    cv2.circle(fullFlashEyeStrip, (eyeStripCoordDiff_left[0], eyeStripCoordDiff_left[1]), 5, (0, 0, 255), -1)
+    eyeStripCoordDiff_left += leftEyeCenter
+    #cv2.circle(fullFlashEyeStrip, (eyeStripCoordDiff_left[0], eyeStripCoordDiff_left[1]), 5, (0, 0, 255), -1)
 
     leftEyeReflection = halfFlashLeftEyeCrop[y:y+h, x:x+w]
 
@@ -445,10 +455,22 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
 
 
     [x, y, w, h] = getReflectionBB(rightEyeGreyReflectionMask)
+
+    eyeSlitTop = y + eyeStripCoordDiff_left[1] if y + eyeStripCoordDiff_left[1] < eyeSlitTop else eyeSlitTop
+    eyeSlitBottom = y + h + eyeStripCoordDiff_right[1] if y + h + eyeStripCoordDiff_right[1] > eyeSlitBottom else eyeSlitBottom
+
+    eyeSlitCrop = fullFlashEyeStrip[eyeSlitTop - 15:eyeSlitBottom + 15, :]
+
+    cv2.imshow('Eye Slit Crop', eyeSlitCrop)
+    cv2.waitKey(0)
+
+    #[bb_x, bb_y] = np.array([x, y]) + eyeStripCoordDiff_right
+    #cv2.rectangle(fullFlashEyeStrip, (bb_x, bb_y), (bb_x + w, bb_y + h), (0, 0, 255), 1)
+
     rightEyeCenter = [x + int(w / 2), y + int(h / 2)]
     print('Right Eye Center! :: ' + str(rightEyeCenter))
     eyeStripCoordDiff_right += rightEyeCenter
-    cv2.circle(fullFlashEyeStrip, (eyeStripCoordDiff_right[0], eyeStripCoordDiff_right[1]), 5, (0, 0, 255), -1)
+    #cv2.circle(fullFlashEyeStrip, (eyeStripCoordDiff_right[0], eyeStripCoordDiff_right[1]), 5, (0, 0, 255), -1)
     cv2.imshow('full flash eye strip', fullFlashEyeStrip)
     cv2.waitKey(0)
 
