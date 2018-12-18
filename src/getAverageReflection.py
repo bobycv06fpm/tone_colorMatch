@@ -401,10 +401,10 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     eyeStripCoordDiff_right = np.array(fullFlashRightEyeCoord) - fullFlashEyeStripCoords[0:2]
 
     (x, y, w, h) = fullFlashEyeStripCoords
-    #fullFlashEyeStrip = fullFlashCapture.image[y:y+h, x:x+w]
     fullFlashEyeStripXStart = x
     fullFlashEyeStripXEnd = x + w
-    fullFlashEyeStrip = halfFlashCapture.image[y:y+h, x:x+w]
+    fullFlashEyeStrip = fullFlashCapture.image[y:y+h, x:x+w]
+    #fullFlashEyeStrip = halfFlashCapture.image[y:y+h, x:x+w]
 
     eyeStripCoordDiff_left += leftEyeOffsets[2]
     eyeStripCoordDiff_right += rightEyeOffsets[2]
@@ -429,7 +429,10 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     leftEyeCenter = np.array([x + int(w / 2), y + int(h / 2)])
     print('Left Eye Center! :: ' + str(leftEyeCenter))
     eyeStripCoordDiff_left += leftEyeCenter
-    #cv2.circle(fullFlashEyeStrip, (eyeStripCoordDiff_left[0], eyeStripCoordDiff_left[1]), 5, (0, 0, 255), -1)
+
+    leftEyeX = eyeStripCoordDiff_left[0]
+
+    #cv2.circle(fullFlashEyeStrip, (eyeStripCoordDiff_left[0], eyeStripCoordDiff_left[1]), 5, (0, 255, 0), -1)
 
     leftEyeReflection = halfFlashLeftEyeCrop[y:y+h, x:x+w]
 
@@ -459,10 +462,8 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     eyeSlitTop = y + eyeStripCoordDiff_left[1] if y + eyeStripCoordDiff_left[1] < eyeSlitTop else eyeSlitTop
     eyeSlitBottom = y + h + eyeStripCoordDiff_right[1] if y + h + eyeStripCoordDiff_right[1] > eyeSlitBottom else eyeSlitBottom
 
-    eyeSlitCrop = fullFlashEyeStrip[eyeSlitTop - 15:eyeSlitBottom + 15, :]
 
-    cv2.imshow('Eye Slit Crop', eyeSlitCrop)
-    cv2.waitKey(0)
+    #eyeSlitHSL = colorsys.rgb_to_hsl(leftReflectionMedian[2], leftReflectionMedian[1], leftReflectionMedian[0])
 
     #[bb_x, bb_y] = np.array([x, y]) + eyeStripCoordDiff_right
     #cv2.rectangle(fullFlashEyeStrip, (bb_x, bb_y), (bb_x + w, bb_y + h), (0, 0, 255), 1)
@@ -470,9 +471,12 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     rightEyeCenter = [x + int(w / 2), y + int(h / 2)]
     print('Right Eye Center! :: ' + str(rightEyeCenter))
     eyeStripCoordDiff_right += rightEyeCenter
+    #rightEyeX = eyeStripCoordDiff_right[0] + x
+
     #cv2.circle(fullFlashEyeStrip, (eyeStripCoordDiff_right[0], eyeStripCoordDiff_right[1]), 5, (0, 0, 255), -1)
-    cv2.imshow('full flash eye strip', fullFlashEyeStrip)
-    cv2.waitKey(0)
+    #cv2.imshow('full flash eye strip', fullFlashEyeStrip)
+    #cv2.waitKey(0)
+    #cv2.waitKey(0)
 
     rightEyeReflection = halfFlashRightEyeCrop[y:y+h, x:x+w]
 
@@ -495,6 +499,83 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     rightReflectionMedian = np.median(rightEyePoints, axis=0) * 2 #Multiply by 2 because we got the value from the half flash
     rightReflectionArea = w * h
     rightReflectionValue = np.max(rightReflectionMedian)
+    
+    
+    rightEyeX = eyeStripCoordDiff_right[0]
+    eyeDistance = int((leftEyeX - rightEyeX) / 3)
+
+    print('Eyes left, right :: ' + str(leftEyeX) + ' ' + str(rightEyeX))
+    leftEyeLeftEdge = (leftEyeX + eyeDistance) if (leftEyeX + eyeDistance) < fullFlashEyeStrip.shape[1] else fullFlashEyeStrip.shape[1]
+    leftEyeRightEdge = (leftEyeX - eyeDistance) if (leftEyeX - eyeDistance) > 0 else 0
+
+    rightEyeLeftEdge = (rightEyeX + eyeDistance) if (rightEyeX + eyeDistance) < fullFlashEyeStrip.shape[1] else fullFlashEyeStrip.shape[1]
+    rightEyeRightEdge = (rightEyeX - eyeDistance) if (rightEyeX - eyeDistance) > 0 else 0
+    #print('Edges left, right :: ' + str(leftEdge) + ' ' + str(rightEdge))
+
+    #eyeSlitCrop = fullFlashEyeStrip[eyeSlitTop - 50:eyeSlitBottom + 50, rightEdge:leftEdge]
+    leftEyeSlit = fullFlashEyeStrip[eyeSlitTop - 50:eyeSlitBottom + 50, leftEyeRightEdge:leftEyeLeftEdge]
+    leftEyeSlitMiddle = int(leftEyeSlit.shape[1]/2)
+    leftEyeSlit[:, (leftEyeSlitMiddle - int(leftEyeSlitMiddle / 3)):(leftEyeSlitMiddle + int(leftEyeSlitMiddle / 3))] = 0
+
+    rightEyeSlit = fullFlashEyeStrip[eyeSlitTop - 50:eyeSlitBottom + 50, rightEyeRightEdge:rightEyeLeftEdge]
+    rightEyeSlitMiddle = int(rightEyeSlit.shape[1]/2)
+    rightEyeSlit[:, (rightEyeSlitMiddle - int(rightEyeSlitMiddle / 3)):(rightEyeSlitMiddle + int(rightEyeSlitMiddle / 3))] = 0
+
+    cv2.imshow('left', leftEyeSlit)
+    cv2.imshow('right', rightEyeSlit)
+    #cv2.waitKey(0)
+
+
+    #eyeSlitCrop = fullFlashEyeStrip[eyeSlitTop - 50:eyeSlitBottom + 50, rightEdge:leftEdge]
+    #eyeSlitCrop = fullFlashEyeStrip[eyeSlitTop - 50:eyeSlitBottom + 50, rightEyeX:leftEyeX]
+
+
+    #eyeSlitCrop = cv2.GaussianBlur(eyeSlitCrop, (51, 51), 0)
+    leftEyeSlitHLS = cv2.cvtColor(leftEyeSlit, cv2.COLOR_BGR2HLS_FULL)
+    rightEyeSlitHLS = cv2.cvtColor(rightEyeSlit, cv2.COLOR_BGR2HLS_FULL)
+    #print('Eye Slit HLS :: ' + str(eyeSlitHLS))
+    #eyeSlitH = eyeSlitHLS[:, :, 0]
+    #eyeSlitH = cv2.Sobel(eyeSlitH, cv2.CV_64F, 1, 1, ksize=5)
+    #eyeSlitH = (eyeSlitH < 26).astype('int32') * 255
+    #eyeSlitHOriginal = eyeSlitHLS[:, :, 0]
+    #eyeSlitH = np.copy(eyeSlitHOriginal).astype('int32')
+    #eyeSlitHigh = np.clip(eyeSlitH - 85, 0, 255) #Shift Hue by 1/3 of range to move red/yellow away from Hue boundary
+    #eyeSlitLow = np.clip(eyeSlitH + 170, 0, 255)
+
+    #eyeSlitH[eyeSlitHOriginal >= 85] = eyeSlitHigh[eyeSlitHOriginal >= 85]
+    #eyeSlitH[eyeSlitHOriginal < 85] = eyeSlitLow[eyeSlitHOriginal < 85]
+
+    leftEyeSlitL = (leftEyeSlitHLS[:, :, 1]).astype('int32')
+    rightEyeSlitL = (rightEyeSlitHLS[:, :, 1]).astype('int32')
+    leftEyeSlitS = (leftEyeSlitHLS[:, :, 2]).astype('int32')
+    rightEyeSlitS = (rightEyeSlitHLS[:, :, 2]).astype('int32')
+
+    leftEyeSlitDiff = np.clip(leftEyeSlitS - leftEyeSlitL, 0, 255).astype('uint8')
+    rightEyeSlitDiff = np.clip(rightEyeSlitS - rightEyeSlitL, 0, 255).astype('uint8')
+    #eyeSlitTest = cv2.GaussianBlur(eyeSlitTest, (51, 51), 0)
+
+    #med = np.median(eyeSlitTest)
+    #sd = np.std(eyeSlitTest)
+
+    #lowerbound = med #+ (2 * sd)
+
+    #eyeSlitTest4 = (eyeSlitTest > lowerbound).astype('uint8') * 255
+
+
+    #eyeSlitTest2 = cv2.Sobel(eyeSlitTest, cv2.CV_16U, 1, 1, ksize=5)
+    #eyeSlitTest3 = cv2.GaussianBlur(eyeSlitTest2, (5, 5), 0)
+
+    #cv2.imshow('Eye Slit Crop H', eyeSlitH.astype('uint8'))
+    #cv2.imshow('Eye Slit Crop L', eyeSlitL.astype('uint8'))
+    #cv2.imshow('Eye Slit Crop S', eyeSlitS.astype('uint8'))
+    #cv2.imshow('Eye Slit Crop Test', eyeSlitTest.astype('uint8'))
+   # cv2.imshow('Eye Slit Crop Test 2', eyeSlitTest2.astype('uint8'))
+   # cv2.imshow('Eye Slit Crop Test 3', eyeSlitTest3.astype('uint8'))
+    #cv2.imshow('Eye Slit Crop Test 4', eyeSlitTest4.astype('uint8'))
+    cv2.imshow('Left Slit Crop', leftEyeSlitDiff)
+    cv2.imshow('Right Slit Crop', rightEyeSlitDiff)
+    #cv2.imshow('Eye Slit Crop', eyeSlitCrop)
+    cv2.waitKey(0)
 
     #if not reflections:
     #    raise NameError('Not enough clean non-clipped pixels in eye reflections')
