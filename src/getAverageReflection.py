@@ -482,7 +482,8 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     #    reflections.append([leftReflectionMedian, leftReflectionArea])
     #print("LEFT EYE POINTS :: " + str(leftEyePoints))
     leftReflectionMedian = np.median(leftEyePoints, axis=0) * 2 #Multiply by 2 because we got the value from the half flash
-    leftReflectionArea = w * h
+    leftReflectionWidth = w 
+    leftReflectionHeight = h
     leftReflectionValue = np.max(leftReflectionMedian)
 
 
@@ -526,7 +527,8 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     #    reflections.append([rightReflectionMedian, rightReflectionArea])
     #print("RIGHT EYE POINTS :: " + str(rightEyePoints))
     rightReflectionMedian = np.median(rightEyePoints, axis=0) * 2 #Multiply by 2 because we got the value from the half flash
-    rightReflectionArea = w * h
+    rightReflectionWidth = w
+    rightReflectionHeight = h
     rightReflectionValue = np.max(rightReflectionMedian)
     
     
@@ -704,25 +706,8 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     leftEyeSlitStack = np.vstack((leftEyeSlitH.astype('uint8'), leftEyeSlitS.astype('uint8'), leftEyeSlitDiff1, leftEyeSlitDiff2, leftEyeSlitDiff3))
     rightEyeSlitStack = np.vstack((rightEyeSlitH.astype('uint8'), rightEyeSlitS.astype('uint8'), rightEyeSlitDiff1, rightEyeSlitDiff2, rightEyeSlitDiff3))
 
-    cv2.imshow('Eye Mask Comparison', np.hstack((rightEyeSlitStack, leftEyeSlitStack)))
-    #cv2.imshow('Right Slit Crop mask 2', rightEyeSlitDiff)
-    #cv2.imshow('Eye Slit Crop', eyeSlitCrop)
-    cv2.waitKey(0)
-
-    #if not reflections:
-    #    raise NameError('Not enough clean non-clipped pixels in eye reflections')
-
-    #averageMedian = [0, 0, 0]
-    #averageArea = 0
-    #averageValue = 0
-    #for [reflectionMedian, area] in reflections:
-    #    averageMedian += reflectionMedian
-    #    averageArea += area
-    #    averageValue += np.max(reflectionMedian)
-
-    #averageMedian = averageMedian / len(reflections)
-    #averageArea = averageArea / len(reflections)
-    #averageValue = averageValue / len(reflections)
+    #cv2.imshow('Eye Mask Comparison', np.hstack((rightEyeSlitStack, leftEyeSlitStack)))
+    #cv2.waitKey(0)
 
     valuesDiff = np.abs((rightReflectionMedian - leftReflectionMedian))
     leftReflectionHSV = colorsys.rgb_to_hsv(leftReflectionMedian[2], leftReflectionMedian[1], leftReflectionMedian[0])
@@ -745,6 +730,9 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     #averageMedian = rightReflectionMedian
     averageValue = (leftReflectionValue + rightReflectionValue) / 2
     #averageValue = rightReflectionValue
+
+    leftReflectionArea = (leftReflectionWidth / averageEyeWidth) * (leftReflectionHeight / averageEyeWidth)
+    rightReflectionArea = (rightReflectionWidth / averageEyeWidth) * (rightReflectionHeight / averageEyeWidth)
     averageArea = (leftReflectionArea + rightReflectionArea) / 2
     #averageArea = rightReflectionArea
 
