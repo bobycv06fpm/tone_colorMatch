@@ -357,6 +357,35 @@ def maskReflection(noFlash, halfFlash, fullFlash):
     flashMask = np.logical_and(flashMask, np.logical_not(noFlashMask))
     return flashMask
 
+
+def stretchBW(image):
+    #median = np.median(image)
+    #sd = np.std(image)
+    #lower = median - (3 * sd)
+    #lower = lower if lower > 0 else 0
+    #upper = median + (3 * sd)
+    #upper = upper if upper < 256 else 255
+
+    lower = np.min(image)
+    upper = np.max(image)
+
+    #print('MEDIAN :: ' + str(median))
+    #print('SD :: ' + str(sd))
+    #print('LOWER :: ' + str(lower))
+    #print('UPPER :: ' + str(upper))
+
+    #bounds = np.copy(gray)
+    #bounds[bounds < lower] = lower
+    #bounds[bounds > upper] = upper
+
+    numerator = (image - lower).astype('int32')
+    denominator = (upper - lower).astype('int32')
+    #stretched = (numerator.astype('int32') / denominator.astype('int32'))
+    stretched = (numerator / denominator)
+    #stretched = np.clip(stretched * 255, 0, 255).astype('uint8')
+    stretched = np.clip(stretched * 255, 0, 255).astype('uint8')
+    return stretched
+
 def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep):
     [[noFlashLeftEyeCrop, noFlashLeftEyeCoord], [noFlashRightEyeCrop, noFlashRightEyeCoord]] = getEyeCrops(noFlashCapture)
     [[halfFlashLeftEyeCrop, halfFlashLeftEyeCoord], [halfFlashRightEyeCrop, halfFlashRightEyeCoord]] = getEyeCrops(halfFlashCapture)
@@ -513,16 +542,18 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     #print('Edges left, right :: ' + str(leftEdge) + ' ' + str(rightEdge))
 
     #eyeSlitCrop = fullFlashEyeStrip[eyeSlitTop - 50:eyeSlitBottom + 50, rightEdge:leftEdge]
-    leftEyeSlit = fullFlashEyeStrip[eyeSlitTop - 50:eyeSlitBottom + 50, leftEyeRightEdge:leftEyeLeftEdge]
+
+    margin = 50
+    leftEyeSlit = fullFlashEyeStrip[eyeSlitTop - margin:eyeSlitBottom + margin, leftEyeRightEdge:leftEyeLeftEdge]
     leftEyeSlitMiddle = int(leftEyeSlit.shape[1]/2)
     leftEyeSlit[:, (leftEyeSlitMiddle - int(leftEyeSlitMiddle / 3)):(leftEyeSlitMiddle + int(leftEyeSlitMiddle / 3))] = 0
 
-    rightEyeSlit = fullFlashEyeStrip[eyeSlitTop - 50:eyeSlitBottom + 50, rightEyeRightEdge:rightEyeLeftEdge]
+    rightEyeSlit = fullFlashEyeStrip[eyeSlitTop - margin:eyeSlitBottom + margin, rightEyeRightEdge:rightEyeLeftEdge]
     rightEyeSlitMiddle = int(rightEyeSlit.shape[1]/2)
     rightEyeSlit[:, (rightEyeSlitMiddle - int(rightEyeSlitMiddle / 3)):(rightEyeSlitMiddle + int(rightEyeSlitMiddle / 3))] = 0
 
-    cv2.imshow('left', leftEyeSlit)
-    cv2.imshow('right', rightEyeSlit)
+    #cv2.imshow('left', leftEyeSlit)
+    #cv2.imshow('right', rightEyeSlit)
     #cv2.waitKey(0)
 
 
@@ -544,6 +575,16 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
 
     #eyeSlitH[eyeSlitHOriginal >= 85] = eyeSlitHigh[eyeSlitHOriginal >= 85]
     #eyeSlitH[eyeSlitHOriginal < 85] = eyeSlitLow[eyeSlitHOriginal < 85]
+
+    #hueBound = 230
+    leftEyeSlitH = (leftEyeSlitHLS[:, :, 0]).astype('int32')
+    #leftEyeSlitH[leftEyeSlitH > hueBound] = 0
+    #leftEyeSlitH = stretchBW(leftEyeSlitH)
+    rightEyeSlitH = (rightEyeSlitHLS[:, :, 0]).astype('int32')
+    #rightEyeSlitH[rightEyeSlitH > hueBound] = 0
+    #rightEyeSlitH = stretchBW(rightEyeSlitH)
+
+
 
     leftEyeSlitL = (leftEyeSlitHLS[:, :, 1]).astype('int32')
     rightEyeSlitL = (rightEyeSlitHLS[:, :, 1]).astype('int32')
@@ -572,8 +613,99 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
    # cv2.imshow('Eye Slit Crop Test 2', eyeSlitTest2.astype('uint8'))
    # cv2.imshow('Eye Slit Crop Test 3', eyeSlitTest3.astype('uint8'))
     #cv2.imshow('Eye Slit Crop Test 4', eyeSlitTest4.astype('uint8'))
-    cv2.imshow('Left Slit Crop', leftEyeSlitDiff)
-    cv2.imshow('Right Slit Crop', rightEyeSlitDiff)
+
+
+    #cv2.imshow('left no stretch', leftEyeSlitDiff)
+    #cv2.imshow('right no stretch', rightEyeSlitDiff)
+
+    leftEyeSlitDiff1 = stretchBW(leftEyeSlitDiff)
+    rightEyeSlitDiff1 = stretchBW(rightEyeSlitDiff)
+    
+    #margin = 20
+    #leftCenter = int(leftEyeSlitDiff.shape[0] / 2)
+    #cv2.line(leftEyeSlitDiff, (0, leftCenter), (leftEyeSlitDiff.shape[1], leftCenter), (255, 255, 255))
+    #cv2.line(leftEyeSlitDiff, (0, leftCenter + margin), (leftEyeSlitDiff.shape[1], leftCenter + margin), (255, 255, 255))
+    #cv2.line(leftEyeSlitDiff, (0, leftCenter - margin), (leftEyeSlitDiff.shape[1], leftCenter - margin), (255, 255, 255))
+
+    #rightCenter = int(rightEyeSlitDiff.shape[0] / 2)
+    #cv2.line(rightEyeSlitDiff, (0, rightCenter), (rightEyeSlitDiff.shape[1], rightCenter), (255, 255, 255))
+    #cv2.line(rightEyeSlitDiff, (0, rightCenter + margin), (rightEyeSlitDiff.shape[1], rightCenter + margin), (255, 255, 255))
+    #cv2.line(rightEyeSlitDiff, (0, rightCenter - margin), (rightEyeSlitDiff.shape[1], rightCenter - margin), (255, 255, 255))
+
+    #cv2.imshow('Left Slit Crop', leftEyeSlitDiff1)
+    #cv2.imshow('Right Slit Crop', rightEyeSlitDiff1)
+
+    threshold = 20
+    leftEyeSlitDiff2 = (leftEyeSlitDiff1 > threshold).astype('uint8') * 255
+    rightEyeSlitDiff2 = (rightEyeSlitDiff1 > threshold).astype('uint8') * 255
+
+    #cv2.imshow('Left Slit Crop mask', leftEyeSlitDiff)
+    #cv2.imshow('Right Slit Crop mask', rightEyeSlitDiff)
+
+    kernel = np.ones((7, 5), np.uint8)
+    #kernel = np.ones((7, 3), np.uint8)
+    #algo = cv2.MORPH_CLOSE
+    algo = cv2.MORPH_CROSS
+    print('ALGO :: ' + str(algo))
+
+    leftEyeSlitDiff3 = cv2.morphologyEx(leftEyeSlitDiff2, algo, kernel)
+    rightEyeSlitDiff3 = cv2.morphologyEx(rightEyeSlitDiff2, algo, kernel)
+
+    leftEyeSlitDiff3 = cv2.morphologyEx(leftEyeSlitDiff3, cv2.MORPH_OPEN, kernel)
+    rightEyeSlitDiff3 = cv2.morphologyEx(rightEyeSlitDiff3, cv2.MORPH_OPEN, kernel)
+
+    margin = 40
+    leftCenter = int(leftEyeSlitDiff.shape[0] / 2)
+#    cv2.line(leftEyeSlitDiff3, (0, leftCenter), (leftEyeSlitDiff3.shape[1], leftCenter), (255, 255, 255))
+#    cv2.line(leftEyeSlitDiff3, (0, leftCenter + margin), (leftEyeSlitDiff3.shape[1], leftCenter + margin), (255, 255, 255))
+#    cv2.line(leftEyeSlitDiff3, (0, leftCenter - margin), (leftEyeSlitDiff3.shape[1], leftCenter - margin), (255, 255, 255))
+#
+    rightCenter = int(rightEyeSlitDiff.shape[0] / 2)
+#    cv2.line(rightEyeSlitDiff3, (0, rightCenter), (rightEyeSlitDiff3.shape[1], rightCenter), (255, 255, 255))
+#    cv2.line(rightEyeSlitDiff3, (0, rightCenter + margin), (rightEyeSlitDiff3.shape[1], rightCenter + margin), (255, 255, 255))
+#    cv2.line(rightEyeSlitDiff3, (0, rightCenter - margin), (rightEyeSlitDiff3.shape[1], rightCenter - margin), (255, 255, 255))
+
+    leftEyeRows = leftEyeSlitDiff3[leftCenter - margin:leftCenter + margin]
+    leftEyeRows = leftEyeRows == 0
+    rightEyeRows = rightEyeSlitDiff3[rightCenter - margin:rightCenter + margin]
+    rightEyeRows = rightEyeRows == 0
+
+    #cv2.imshow('left eye rows', leftEyeRows.astype('uint8')*255)
+    #cv2.imshow('right eye rows', rightEyeRows.astype('uint8')*255)
+
+
+    leftEyeBB = getReflectionBB(leftEyeRows)
+    cv2.line(leftEyeSlitDiff1, (leftEyeBB[0], leftEyeBB[1]), (leftEyeBB[0], leftEyeBB[1] + leftEyeBB[3]), (255, 255, 255))
+    cv2.line(leftEyeSlitDiff1, (leftEyeBB[0] + leftEyeBB[2], leftEyeBB[1]), (leftEyeBB[0] + leftEyeBB[2], leftEyeBB[1] + leftEyeBB[3]), (255, 255, 255))
+    print('left eye bb :: ' + str(leftEyeBB))
+    leftEyeWidth = leftEyeBB[2]
+
+    rightEyeBB = getReflectionBB(rightEyeRows)
+    cv2.line(rightEyeSlitDiff1, (rightEyeBB[0], rightEyeBB[1]), (rightEyeBB[0], rightEyeBB[1] + rightEyeBB[3]), (255, 255, 255))
+    cv2.line(rightEyeSlitDiff1, (rightEyeBB[0] + rightEyeBB[2], rightEyeBB[1]), (rightEyeBB[0] + rightEyeBB[2], rightEyeBB[1] + rightEyeBB[3]), (255, 255, 255))
+    print('right eye bb :: ' + str(rightEyeBB))
+    rightEyeWidth = rightEyeBB[2]
+
+    #NOTE: USING MAX MIGHT BE MORE ACCURATE....
+    averageEyeWidth = int(round((rightEyeWidth + leftEyeWidth) / 2))
+
+    print('RIGHT EYE WIDTH :: ' + str(rightEyeWidth))
+    print('LEFT EYE WIDTH :: ' + str(leftEyeWidth))
+    print('AVERAGE EYE WIDTH :: ' + str(averageEyeWidth))
+
+    #blur = 5
+    #leftEyeSlitDiff = cv2.GaussianBlur(leftEyeSlitDiff, (blur, blur), 0)
+    #rightEyeSlitDiff = cv2.GaussianBlur(rightEyeSlitDiff, (blur, blur), 0)
+
+    #threshold = 64
+    #leftEyeSlitDiff = (leftEyeSlitDiff > threshold).astype('uint8') * 255
+    #rightEyeSlitDiff = (rightEyeSlitDiff > threshold).astype('uint8') * 255
+
+    leftEyeSlitStack = np.vstack((leftEyeSlitH.astype('uint8'), leftEyeSlitS.astype('uint8'), leftEyeSlitDiff1, leftEyeSlitDiff2, leftEyeSlitDiff3))
+    rightEyeSlitStack = np.vstack((rightEyeSlitH.astype('uint8'), rightEyeSlitS.astype('uint8'), rightEyeSlitDiff1, rightEyeSlitDiff2, rightEyeSlitDiff3))
+
+    cv2.imshow('Eye Mask Comparison', np.hstack((rightEyeSlitStack, leftEyeSlitStack)))
+    #cv2.imshow('Right Slit Crop mask 2', rightEyeSlitDiff)
     #cv2.imshow('Eye Slit Crop', eyeSlitCrop)
     cv2.waitKey(0)
 
