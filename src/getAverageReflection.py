@@ -546,11 +546,13 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     #eyeSlitCrop = fullFlashEyeStrip[eyeSlitTop - 50:eyeSlitBottom + 50, rightEdge:leftEdge]
 
     margin = 50
-    leftEyeSlit = fullFlashEyeStrip[eyeSlitTop - margin:eyeSlitBottom + margin, leftEyeRightEdge:leftEyeLeftEdge]
+    leftEyeStripCoords = [leftEyeRightEdge, eyeSlitTop - margin]
+    leftEyeSlit = np.copy(fullFlashEyeStrip[eyeSlitTop - margin:eyeSlitBottom + margin, leftEyeRightEdge:leftEyeLeftEdge])
     leftEyeSlitMiddle = int(leftEyeSlit.shape[1]/2)
     leftEyeSlit[:, (leftEyeSlitMiddle - int(leftEyeSlitMiddle / 3)):(leftEyeSlitMiddle + int(leftEyeSlitMiddle / 3))] = 0
 
-    rightEyeSlit = fullFlashEyeStrip[eyeSlitTop - margin:eyeSlitBottom + margin, rightEyeRightEdge:rightEyeLeftEdge]
+    rightEyeStripCoords = [rightEyeRightEdge, eyeSlitTop - margin]
+    rightEyeSlit = np.copy(fullFlashEyeStrip[eyeSlitTop - margin:eyeSlitBottom + margin, rightEyeRightEdge:rightEyeLeftEdge])
     rightEyeSlitMiddle = int(rightEyeSlit.shape[1]/2)
     rightEyeSlit[:, (rightEyeSlitMiddle - int(rightEyeSlitMiddle / 3)):(rightEyeSlitMiddle + int(rightEyeSlitMiddle / 3))] = 0
 
@@ -644,17 +646,20 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     #cv2.imshow('Left Slit Crop mask', leftEyeSlitDiff)
     #cv2.imshow('Right Slit Crop mask', rightEyeSlitDiff)
 
-    kernel = np.ones((7, 5), np.uint8)
+    #kernel = np.ones((7, 5), np.uint8)
+    kernel = np.ones((3, 5), np.uint8)
     #kernel = np.ones((7, 3), np.uint8)
     #algo = cv2.MORPH_CLOSE
-    algo = cv2.MORPH_CROSS
-    print('ALGO :: ' + str(algo))
 
-    leftEyeSlitDiff3 = cv2.morphologyEx(leftEyeSlitDiff2, algo, kernel)
-    rightEyeSlitDiff3 = cv2.morphologyEx(rightEyeSlitDiff2, algo, kernel)
+    leftEyeSlitDiff3 = leftEyeSlitDiff2
+    rightEyeSlitDiff3 = rightEyeSlitDiff2
 
     leftEyeSlitDiff3 = cv2.morphologyEx(leftEyeSlitDiff3, cv2.MORPH_OPEN, kernel)
     rightEyeSlitDiff3 = cv2.morphologyEx(rightEyeSlitDiff3, cv2.MORPH_OPEN, kernel)
+
+    algo = cv2.MORPH_CROSS
+    leftEyeSlitDiff3 = cv2.morphologyEx(leftEyeSlitDiff3, algo, kernel)
+    rightEyeSlitDiff3 = cv2.morphologyEx(rightEyeSlitDiff3, algo, kernel)
 
     margin = 40
     leftCenter = int(leftEyeSlitDiff.shape[0] / 2)
@@ -680,20 +685,67 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     cv2.line(leftEyeSlitDiff1, (leftEyeBB[0], leftEyeBB[1]), (leftEyeBB[0], leftEyeBB[1] + leftEyeBB[3]), (255, 255, 255))
     cv2.line(leftEyeSlitDiff1, (leftEyeBB[0] + leftEyeBB[2], leftEyeBB[1]), (leftEyeBB[0] + leftEyeBB[2], leftEyeBB[1] + leftEyeBB[3]), (255, 255, 255))
     print('left eye bb :: ' + str(leftEyeBB))
-    leftEyeWidth = leftEyeBB[2]
+    if (leftEyeBB[0] == 0) or ((leftEyeBB[0] + leftEyeBB[2]) == leftEyeRows.shape[1]):
+        leftEyeWidth = 0
+    else:
+        leftEyeWidth = leftEyeBB[2]
+
+    leftRightPoint = np.array(leftEyeStripCoords) + np.array([leftEyeBB[0], leftEyeBB[1] + leftEyeBB[3]])
+    leftLeftPoint = np.array(leftEyeStripCoords) + np.array([leftEyeBB[0] + leftEyeBB[2], leftEyeBB[1] + leftEyeBB[3]])
 
     rightEyeBB = getReflectionBB(rightEyeRows)
     cv2.line(rightEyeSlitDiff1, (rightEyeBB[0], rightEyeBB[1]), (rightEyeBB[0], rightEyeBB[1] + rightEyeBB[3]), (255, 255, 255))
     cv2.line(rightEyeSlitDiff1, (rightEyeBB[0] + rightEyeBB[2], rightEyeBB[1]), (rightEyeBB[0] + rightEyeBB[2], rightEyeBB[1] + rightEyeBB[3]), (255, 255, 255))
     print('right eye bb :: ' + str(rightEyeBB))
-    rightEyeWidth = rightEyeBB[2]
+    if (rightEyeBB[0] == 0) or ((rightEyeBB[0] + rightEyeBB[2]) == rightEyeRows.shape[1]):
+        rightEyeWidth = 0
+    else:
+        rightEyeWidth = rightEyeBB[2]
+
+    rightRightPoint = np.array(rightEyeStripCoords) + np.array([rightEyeBB[0], rightEyeBB[1] + rightEyeBB[3]])
+    rightLeftPoint = np.array(rightEyeStripCoords) + np.array([rightEyeBB[0] + rightEyeBB[2], rightEyeBB[1] + rightEyeBB[3]])
+
+
+    print('LEFT RIGHT POINT' + str(leftEyeBB[0]))
+    print('LEFT LEFT POINT' + str(leftEyeBB[0] + leftEyeBB[2]))
+
+    print('RIGHT RIGHT POINT' + str(rightEyeBB[0]))
+    print('RIGHT LEFT POINT' + str(rightEyeBB[0] + rightEyeBB[2]))
+
+    if leftEyeBB[0] != 0:
+        cv2.circle(fullFlashEyeStrip, (leftRightPoint[0], leftRightPoint[1]), 5, (0, 255, 0), -1)
+    else:
+        cv2.circle(fullFlashEyeStrip, (leftRightPoint[0], leftRightPoint[1]), 5, (0, 0, 255), -1)
+    
+    if (leftEyeBB[0] + leftEyeBB[2]) != leftEyeRows.shape[1]:
+        cv2.circle(fullFlashEyeStrip, (leftLeftPoint[0], leftLeftPoint[1]), 5, (0, 255, 0), -1)
+    else:
+        cv2.circle(fullFlashEyeStrip, (leftLeftPoint[0], leftLeftPoint[1]), 5, (0, 0, 255), -1)
+
+
+    if rightEyeBB[0] != 0:
+        cv2.circle(fullFlashEyeStrip, (rightRightPoint[0], rightRightPoint[1]), 5, (0, 255, 0), -1)
+    else:
+        cv2.circle(fullFlashEyeStrip, (rightRightPoint[0], rightRightPoint[1]), 5, (0, 0, 255), -1)
+    
+    if (rightEyeBB[0] + rightEyeBB[2]) != rightEyeRows.shape[1]:
+        cv2.circle(fullFlashEyeStrip, (rightLeftPoint[0], rightLeftPoint[1]), 5, (0, 255, 0), -1)
+    else:
+        cv2.circle(fullFlashEyeStrip, (rightLeftPoint[0], rightLeftPoint[1]), 5, (0, 0, 255), -1)
+
+    #cv2.imshow('full flash eye strip', fullFlashEyeStrip)
+    saveStep.saveReferenceImageBGR(fullFlashEyeStrip, 'eyeStrip')
+    #cv2.waitKey(0)
+
 
     #NOTE: USING MAX MIGHT BE MORE ACCURATE....
-    averageEyeWidth = int(round((rightEyeWidth + leftEyeWidth) / 2))
+    #averageEyeWidth = int(round((rightEyeWidth + leftEyeWidth) / 2))
+    maxEyeWidth = max([rightEyeWidth, leftEyeWidth])
 
     print('RIGHT EYE WIDTH :: ' + str(rightEyeWidth))
     print('LEFT EYE WIDTH :: ' + str(leftEyeWidth))
-    print('AVERAGE EYE WIDTH :: ' + str(averageEyeWidth))
+    #print('AVERAGE EYE WIDTH :: ' + str(averageEyeWidth))
+    print('MAX EYE WIDTH :: ' + str(maxEyeWidth))
 
     #blur = 5
     #leftEyeSlitDiff = cv2.GaussianBlur(leftEyeSlitDiff, (blur, blur), 0)
@@ -703,8 +755,8 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     #leftEyeSlitDiff = (leftEyeSlitDiff > threshold).astype('uint8') * 255
     #rightEyeSlitDiff = (rightEyeSlitDiff > threshold).astype('uint8') * 255
 
-    leftEyeSlitStack = np.vstack((leftEyeSlitH.astype('uint8'), leftEyeSlitS.astype('uint8'), leftEyeSlitDiff1, leftEyeSlitDiff2, leftEyeSlitDiff3))
-    rightEyeSlitStack = np.vstack((rightEyeSlitH.astype('uint8'), rightEyeSlitS.astype('uint8'), rightEyeSlitDiff1, rightEyeSlitDiff2, rightEyeSlitDiff3))
+    leftEyeSlitStack = np.vstack((leftEyeSlitL.astype('uint8'), leftEyeSlitS.astype('uint8'), leftEyeSlitDiff1, leftEyeSlitDiff2, leftEyeSlitDiff3))
+    rightEyeSlitStack = np.vstack((rightEyeSlitL.astype('uint8'), rightEyeSlitS.astype('uint8'), rightEyeSlitDiff1, rightEyeSlitDiff2, rightEyeSlitDiff3))
 
     #cv2.imshow('Eye Mask Comparison', np.hstack((rightEyeSlitStack, leftEyeSlitStack)))
     #cv2.waitKey(0)
@@ -731,8 +783,8 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     averageValue = (leftReflectionValue + rightReflectionValue) / 2
     #averageValue = rightReflectionValue
 
-    leftReflectionArea = (leftReflectionWidth / averageEyeWidth) * (leftReflectionHeight / averageEyeWidth)
-    rightReflectionArea = (rightReflectionWidth / averageEyeWidth) * (rightReflectionHeight / averageEyeWidth)
+    leftReflectionArea = (leftReflectionWidth / maxEyeWidth) * (leftReflectionHeight / maxEyeWidth)
+    rightReflectionArea = (rightReflectionWidth / maxEyeWidth) * (rightReflectionHeight / maxEyeWidth)
     averageArea = (leftReflectionArea + rightReflectionArea) / 2
     #averageArea = rightReflectionArea
 
