@@ -146,7 +146,7 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     leftEyeGreyReflectionMask = maskReflection(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop)
     rightEyeGreyReflectionMask = maskReflection(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop)
 
-#    fullFlashEyeStripCoords = np.array(fullFlashCapture.landmarks.getEyeStripBB())
+    fullFlashEyeStripCoords = np.array(fullFlashCapture.landmarks.getEyeStripBB())
 #
     eyeStripCoordDiff_left = np.array(fullFlashLeftEyeCoord) - fullFlashEyeStripCoords[0:2]
     eyeStripCoordDiff_right = np.array(fullFlashRightEyeCoord) - fullFlashEyeStripCoords[0:2]
