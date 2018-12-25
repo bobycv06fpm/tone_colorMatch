@@ -94,7 +94,7 @@ def stretchBW(image):
     stretched = np.clip(stretched * 255, 0, 255).astype('uint8')
     return stretched
 
-def getEyeWidth(fullFlashCapture):
+def getEyeWidths(fullFlashCapture, leftEyeOffsets, leftEyeGreyReflectionMask, rightEyeOffsets, rightEyeGreyReflectionMask):
     fullFlashEyeStripCoords = np.array(fullFlashCapture.landmarks.getEyeStripBB())
 
     eyeStripCoordDiff_left = np.array(fullFlashLeftEyeCoord) - fullFlashEyeStripCoords[0:2]
@@ -148,13 +148,13 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
 
 #    fullFlashEyeStripCoords = np.array(fullFlashCapture.landmarks.getEyeStripBB())
 #
-#    eyeStripCoordDiff_left = np.array(fullFlashLeftEyeCoord) - fullFlashEyeStripCoords[0:2]
-#    eyeStripCoordDiff_right = np.array(fullFlashRightEyeCoord) - fullFlashEyeStripCoords[0:2]
-#
-#    (x, y, w, h) = fullFlashEyeStripCoords
-#    fullFlashEyeStripXStart = x
-#    fullFlashEyeStripXEnd = x + w
-#    fullFlashEyeStrip = fullFlashCapture.image[y:y+h, x:x+w]
+    eyeStripCoordDiff_left = np.array(fullFlashLeftEyeCoord) - fullFlashEyeStripCoords[0:2]
+    eyeStripCoordDiff_right = np.array(fullFlashRightEyeCoord) - fullFlashEyeStripCoords[0:2]
+
+    (x, y, w, h) = fullFlashEyeStripCoords
+    fullFlashEyeStripXStart = x
+    fullFlashEyeStripXEnd = x + w
+    fullFlashEyeStrip = fullFlashCapture.image[y:y+h, x:x+w]
     #fullFlashEyeStrip = halfFlashCapture.image[y:y+h, x:x+w]
 
     #eyeStripCoordDiff_left += leftEyeOffsets[2]
@@ -169,11 +169,8 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
 
     #reflections = []
 
-    getEyeWidths(fullFlashCapture, leftEyeOffsets[2], rightEyeOffsets[2])
 
     [x, y, w, h] = getReflectionBB(leftEyeGreyReflectionMask)
-    #[bb_x, bb_y] = np.array([x, y]) + eyeStripCoordDiff_left
-    #cv2.rectangle(fullFlashEyeStrip, (bb_x, bb_y), (bb_x + w, bb_y + h), (0, 0, 255), 1)
 
     eyeSlitTop = y + eyeStripCoordDiff_left[1]
     eyeSlitBottom = y + h + eyeStripCoordDiff_right[1]
@@ -187,6 +184,7 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
 
     #cv2.circle(fullFlashEyeStrip, (eyeStripCoordDiff_left[0], eyeStripCoordDiff_left[1]), 5, (0, 255, 0), -1)
 
+    #FOR REFLECITON
     leftEyeReflection = halfFlashLeftEyeCrop[y:y+h, x:x+w]
 
     leftHighMask = np.max(leftEyeReflection, axis=2) < 253
@@ -199,16 +197,12 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     if leftClipRatio < .9:
         print("TOO MUCH CLIPPING!")
         raise NameError('Not enough clean non-clipped pixels in left eye reflections')
-    #else:
-    #    leftReflectionMedian = np.median(leftEyePoints, axis=0) * 2 #Multiply by 2 because we got the value from the half flash
-    #    leftReflectionArea = w * h
-    #    #leftReflectionValue = np.max(leftReflectionMedian)
-    #    reflections.append([leftReflectionMedian, leftReflectionArea])
-    #print("LEFT EYE POINTS :: " + str(leftEyePoints))
+
     leftReflectionMedian = np.median(leftEyePoints, axis=0) * 2 #Multiply by 2 because we got the value from the half flash
     leftReflectionWidth = w 
     leftReflectionHeight = h
     leftReflectionValue = np.max(leftReflectionMedian)
+    #END FOR REFLECITON
 
 
     [x, y, w, h] = getReflectionBB(rightEyeGreyReflectionMask)
@@ -217,21 +211,11 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     eyeSlitBottom = y + h + eyeStripCoordDiff_right[1] if y + h + eyeStripCoordDiff_right[1] > eyeSlitBottom else eyeSlitBottom
 
 
-    #eyeSlitHSL = colorsys.rgb_to_hsl(leftReflectionMedian[2], leftReflectionMedian[1], leftReflectionMedian[0])
-
-    #[bb_x, bb_y] = np.array([x, y]) + eyeStripCoordDiff_right
-    #cv2.rectangle(fullFlashEyeStrip, (bb_x, bb_y), (bb_x + w, bb_y + h), (0, 0, 255), 1)
-
     rightEyeCenter = [x + int(w / 2), y + int(h / 2)]
     print('Right Eye Center! :: ' + str(rightEyeCenter))
     eyeStripCoordDiff_right += rightEyeCenter
-    #rightEyeX = eyeStripCoordDiff_right[0] + x
 
-    #cv2.circle(fullFlashEyeStrip, (eyeStripCoordDiff_right[0], eyeStripCoordDiff_right[1]), 5, (0, 0, 255), -1)
-    #cv2.imshow('full flash eye strip', fullFlashEyeStrip)
-    #cv2.waitKey(0)
-    #cv2.waitKey(0)
-
+    #FOR REFLECTION
     rightEyeReflection = halfFlashRightEyeCrop[y:y+h, x:x+w]
 
     rightHighMask = np.max(rightEyeReflection, axis=2) < 253
@@ -244,17 +228,12 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     if rightClipRatio < .9:
         print("TOO MUCH CLIPPING!")
         raise NameError('Not enough clean non-clipped pixels in right eye reflections')
-    #else:
-    #    rightReflectionMedian = np.median(rightEyePoints, axis=0) * 2 #Multiply by 2 because we got the value from the half flash
-    #    rightReflectionArea = w * h
-    #    #rightReflectionValue = np.max(rightReflectionMedian)
-    #    reflections.append([rightReflectionMedian, rightReflectionArea])
-    #print("RIGHT EYE POINTS :: " + str(rightEyePoints))
     rightReflectionMedian = np.median(rightEyePoints, axis=0) * 2 #Multiply by 2 because we got the value from the half flash
     rightReflectionWidth = w
     rightReflectionHeight = h
     rightReflectionValue = np.max(rightReflectionMedian)
-    
+    #END FOR REFLECTION
+
     
     rightEyeX = eyeStripCoordDiff_right[0]
     eyeDistance = int((leftEyeX - rightEyeX) / 3)
@@ -268,6 +247,8 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     #print('Edges left, right :: ' + str(leftEdge) + ' ' + str(rightEdge))
 
     #eyeSlitCrop = fullFlashEyeStrip[eyeSlitTop - 50:eyeSlitBottom + 50, rightEdge:leftEdge]
+
+    #getEyeWidths(fullFlashCapture, leftEyeOffsets[2], leftEyeGreyReflectionMask, rightEyeOffsets[2], rightEyeGreyReflectionMask)
 
     margin = 50
     leftEyeStripCoords = [leftEyeRightEdge, eyeSlitTop - margin]
@@ -503,14 +484,11 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
 
 
     averageMedian = (leftReflectionMedian + rightReflectionMedian) / 2
-    #averageMedian = rightReflectionMedian
     averageValue = (leftReflectionValue + rightReflectionValue) / 2
-    #averageValue = rightReflectionValue
 
     leftReflectionArea = (leftReflectionWidth / maxEyeWidth) * (leftReflectionHeight / maxEyeWidth)
     rightReflectionArea = (rightReflectionWidth / maxEyeWidth) * (rightReflectionHeight / maxEyeWidth)
     averageArea = (leftReflectionArea + rightReflectionArea) / 2
-    #averageArea = rightReflectionArea
 
     fluxish = averageArea * averageValue
 
