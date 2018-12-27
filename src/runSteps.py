@@ -27,6 +27,21 @@ def scalePointstoFluxish(capture, fluxish):
     capture.image *= fluxishMultiplier#).astype('int32')
     #return scaledPoints
 
+def correctHLS(hls, fluxish):
+    print('------')
+    print('Old HLS :: ' + str(hls))
+    targetFluxish = 0.8
+    #lightnessDiff = (0.106485 * (targetFluxish - fluxish))
+    lightnessDiff = (0.145696 * (targetFluxish - fluxish))
+    hls[1] += lightnessDiff
+    hls[0] = (0.018374 * hls[1]) + .059859
+
+    print('Corrected HLS :: ' + str(hls))
+    print('-----')
+
+    return hls
+
+
 def run(username, imageName, fast=False, saveStats=False):
     #saveStep.resetLogFile(username, imageName)
     saveStep = Save(username, imageName)
@@ -186,4 +201,5 @@ def run(username, imageName, fast=False, saveStats=False):
         halfMedianFacesHLS = [float(value) for value in halfMedianFacesHLS]
 
         #return [fullMedianFacesHSV, halfMedianFacesHSV, fluxish]
-        return [fullMedianFacesHLS, halfMedianFacesHLS, fluxish]
+        correctedHLS = correctHLS(np.copy(fullMedianFacesHLS), fluxish)
+        return [fullMedianFacesHLS, halfMedianFacesHLS, list(correctedHLS), fluxish]
