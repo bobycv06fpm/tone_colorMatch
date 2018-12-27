@@ -105,5 +105,5 @@ for index, path in enumerate(paths):
             HLS_points[index].append(np.array(HLS_point))
 
 #plotHSV()
-plotHLS()
-#plotLAB()
+#plotHLS()
+plotLAB()

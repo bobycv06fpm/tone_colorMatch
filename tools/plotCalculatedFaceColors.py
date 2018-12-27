@@ -12,6 +12,7 @@ with open('faceColors.json', 'r') as f:
 size = 10
 
 lightnessFluxish = []
+correctedLightnessFluxish = []
 
 for (imageName, faceColor) in faceColors:
     if imageName in blacklist:
@@ -19,10 +20,11 @@ for (imageName, faceColor) in faceColors:
     print('Face Color ' + imageName + ' :: ' +str(faceColor))
 
     [fullFlash, halfFlash, corrected, fluxish] = faceColor
-    #lightnessFluxish.append(np.array([float(fullFlash[1]), float(fluxish)]))
-    lightnessFluxish.append(np.array([float(corrected[1]), float(fluxish)]))
+    lightnessFluxish.append(np.array([float(fullFlash[1]), float(fluxish)]))
+    correctedLightnessFluxish.append(np.array([float(corrected[1]), float(fluxish)]))
 
 lightnessFluxish = np.array(lightnessFluxish)
+correctedLightnessFluxish = np.array(correctedLightnessFluxish)
 
 minFluxish = min(lightnessFluxish[:, 1])
 maxFluxish = max(lightnessFluxish[:, 1])
@@ -38,4 +40,11 @@ plt.scatter(lightnessFluxish[:, 1], lightnessFluxish[:, 0], size, (1, 0, 0))
 plt.xlabel('Fluxish')
 plt.ylabel('Lightness')
 plt.suptitle("Fluxish vs Lightness")
+plt.show()
+
+plt.scatter(correctedLightnessFluxish[:, 1], correctedLightnessFluxish[:, 0], size, (1, 0, 0))
+
+plt.xlabel('Fluxish')
+plt.ylabel('Lightness')
+plt.suptitle("Corrected Fluxish vs Lightness")
 plt.show()
