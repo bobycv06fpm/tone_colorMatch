@@ -31,8 +31,10 @@ def correctHLS(hls, fluxish):
     print('------')
     print('Old HLS :: ' + str(hls))
     targetFluxish = 0.8
+    #slope = 0.145696 
+    slope = 0.2731371365514631 
     #lightnessDiff = (0.106485 * (targetFluxish - fluxish))
-    lightnessDiff = (0.145696 * (targetFluxish - fluxish))
+    lightnessDiff = (slope * (targetFluxish - fluxish))
     hls[1] += lightnessDiff
     hls[0] = (0.018374 * hls[1]) + .059859
 
