@@ -101,9 +101,11 @@ class Landmarks:
         landmarkPoints = landmarkPoints + [sourceLandmarkPoints[33]]
         landmarkPoints = landmarkPoints + sourceLandmarkPoints[24:33]
 
-        #Flip Y coordinates... Indexed off of Bottom, not top..
+        #Flip X and Y coordinates... Indexed off of Bottom Right, not Top Left..
         landmarkPoints = np.array(landmarkPoints)
         landmarkPoints[:, 1] = imageSize[0] - landmarkPoints[:, 1]
+        landmarkPoints[:, 0] = imageSize[1] - landmarkPoints[:, 0]
+
         return landmarkPoints
 
     def convertDLibLandmarks(self, landmarkPoints):
@@ -222,6 +224,17 @@ class Landmarks:
 
     def getEyeStripBB(self):
         return cv2.boundingRect(self.getEyeStrip())
+
+    #def getNoseMidPoint(self):
+    #    return
+
+    #def getForeheadPoints(self):
+
+    #def getLeftCheekPoints(self):
+
+    #def getRightCheekPoints(self):
+
+    #def getChinPoints(self):
 
 
 

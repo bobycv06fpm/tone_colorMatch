@@ -57,6 +57,8 @@ def run(username, imageName, fast=False, saveStats=False):
     halfFlashCapture = Capture('Half Flash', halfFlashImage, halfFlashMetadata)
     fullFlashCapture = Capture('Full Flash', fullFlashImage, fullFlashMetadata)
 
+    fullFlashCapture.showImageWithLandmarks()
+
     print('Cropping and Aligning')
     alignImages.cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture)
     print('Done Cropping and aligning')
