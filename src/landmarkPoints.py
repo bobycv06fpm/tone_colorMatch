@@ -225,6 +225,12 @@ class Landmarks:
     def getEyeStripBB(self):
         return cv2.boundingRect(self.getEyeStrip())
 
+    def getLeftEyeWidthPoints(self):
+        return np.array([self.landmarkPoints[25], self.landmarkPoints[28]])
+
+    def getRightEyeWidthPoints(self):
+        return np.array([self.landmarkPoints[19], self.landmarkPoints[22]])
+
     #def getNoseMidPoint(self):
     #    return
 
