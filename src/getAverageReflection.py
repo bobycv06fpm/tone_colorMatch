@@ -188,8 +188,6 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
 
     #FOR REFLECITON
     leftEyeReflection = halfFlashLeftEyeCrop[y:y+h, x:x+w]
-    #cv2.imshow('halfFlashLeftEyeCrop', halfFlashLeftEyeCrop)
-    #cv2.imshow('leftFlashReflection', leftEyeReflection)
 
     leftHighMask = np.max(leftEyeReflection, axis=2) < 253
     leftLowMask = np.min(leftEyeReflection, axis=2) >= 2
@@ -223,9 +221,6 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
 
     #FOR REFLECTION
     rightEyeReflection = halfFlashRightEyeCrop[y:y+h, x:x+w]
-    #cv2.imshow('halfFlashRightEyeCrop', halfFlashRightEyeCrop)
-    #cv2.imshow('rightEyeReflection', rightEyeReflection)
-    #cv2.waitKey(0)
 
     rightHighMask = np.max(rightEyeReflection, axis=2) < 253
     rightLowMask = np.min(rightEyeReflection, axis=2) >= 2
@@ -259,10 +254,6 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
 
     #getEyeWidths(fullFlashCapture, leftEyeOffsets[2], leftEyeGreyReflectionMask, rightEyeOffsets[2], rightEyeGreyReflectionMask)
 
-    cv2.imshow('Eye Slit', fullFlashEyeStrip)
-    cv2.waitKey(0)
-
-
     print('Eye Slip Top :: ' + str(eyeSlitTop))
     print('Eye Slip Bottom :: ' + str(eyeSlitBottom))
 
@@ -283,10 +274,6 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     rightEyeSlitMiddle = int(rightEyeSlit.shape[1]/2)
     rightEyeSlit[:, (rightEyeSlitMiddle - int(rightEyeSlitMiddle / 3)):(rightEyeSlitMiddle + int(rightEyeSlitMiddle / 3))] = 0
 
-    cv2.imshow('left', leftEyeSlit)
-    cv2.imshow('right', rightEyeSlit)
-    cv2.waitKey(0)
-
 
     #eyeSlitCrop = fullFlashEyeStrip[eyeSlitTop - 50:eyeSlitBottom + 50, rightEdge:leftEdge]
     #eyeSlitCrop = fullFlashEyeStrip[eyeSlitTop - 50:eyeSlitBottom + 50, rightEyeX:leftEyeX]
@@ -296,9 +283,6 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     leftEyeSlitHLS = cv2.cvtColor(leftEyeSlit, cv2.COLOR_BGR2HLS_FULL)
     rightEyeSlitHLS = cv2.cvtColor(rightEyeSlit, cv2.COLOR_BGR2HLS_FULL)
 
-    cv2.imshow('Left Eye Slit', leftEyeSlit)
-    cv2.imshow('Right Eye Slit', rightEyeSlit)
-    cv2.waitKey(0)
     #print('Eye Slit HLS :: ' + str(eyeSlitHLS))
     #eyeSlitH = eyeSlitHLS[:, :, 0]
     #eyeSlitH = cv2.Sobel(eyeSlitH, cv2.CV_64F, 1, 1, ksize=5)
