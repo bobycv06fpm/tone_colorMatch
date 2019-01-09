@@ -3,8 +3,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-#blacklist = ['doug205', 'doug246', 'doug258', 'doug257', 'doug247', 'doug250', 'doug255']
-whitelist = ['doug196', 'doug198','doug200','doug201','doug210','doug211','doug212','doug213','doug216','doug217','doug219','doug220','doug221','doug223','doug229','doug236','doug237','doug240','doug248','doug251','doug253','doug263']
+def sortBy(elem):
+    print('elem[1][3] :: ', str(elem[1][3]))
+    return elem[1][3]
+
+
+blacklist = ['doug205', 'doug246', 'doug258', 'doug257', 'doug247', 'doug250', 'doug255', 'doug294', 'doug274', 'doug286', 'doug272', 'doug282', 'doug197', 'doug293', 'doug277', 'doug273', 'doug275']
+
+#whitelist = ['doug196', 'doug198','doug200','doug201','doug210','doug211','doug212','doug213','doug216','doug217','doug219','doug220','doug221','doug223','doug229','doug236','doug237','doug240','doug248','doug251','doug253','doug263']
 
 with open('faceColors.json', 'r') as f:
     faceColors = f.read()
@@ -15,9 +21,11 @@ size = 10
 lightnessFluxish = []
 correctedLightnessFluxish = []
 
+faceColors = sorted(faceColors, key = sortBy) 
+
 for (imageName, faceColor) in faceColors:
-    #if imageName in blacklist:
-    if imageName not in whitelist:
+    if imageName in blacklist:
+    #if imageName not in whitelist:
         continue
     print('Face Color ' + imageName + ' :: ' +str(faceColor))
 
