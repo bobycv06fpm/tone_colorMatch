@@ -100,9 +100,9 @@ def run(username, imageName, fast=False, saveStats=False):
     fullDiffCapture = Capture('Diff', fullDiffImage, fullFlashCapture.metadata, allPointsMask)
     halfDiffCapture = Capture('Diff', halfDiffImage, halfFlashCapture.metadata, allPointsMask)
 
-    print('Getting Polygons')
-    polygons = fullDiffCapture.landmarks.getFacePolygons()
-    print('POLYGONS :: ' + str(polygons))
+    #print('Getting Polygons')
+    #polygons = fullDiffCapture.landmarks.getFacePolygons()
+    #print('POLYGONS :: ' + str(polygons))
 
     if not fast:
         print('Saving Step 1')
@@ -131,15 +131,17 @@ def run(username, imageName, fast=False, saveStats=False):
     medianFaceValue = None
 
     try:
-        [fullPoints, averageFlashContribution] = extractMask(fullDiffCapture, polygons, saveStep)
-        [halfPoints, averageFlashContribution] = extractMask(halfDiffCapture, polygons, saveStep)
+        [fullPoints, fullPointsCheeks] = extractMask(fullDiffCapture, saveStep)
+        [halfPoints, halfPointsCheeks] = extractMask(halfDiffCapture, saveStep)
     except NameError as err:
         #print('error extracting left side of face')
         #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))
         raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
     else:
-        fullFaceMedian = np.median(fullPoints, axis=0)
-        halfFaceMedian = np.median(halfPoints, axis=0)
+        #fullFaceMedian = np.median(fullPoints, axis=0)
+        #halfFaceMedian = np.median(halfPoints, axis=0)
+        fullFaceMedian = np.median(fullPointsCheek, axis=0)
+        halfFaceMedian = np.median(halfPointsCheek, axis=0)
 
 
         #plotTools.plotPoints(fullPoints)
