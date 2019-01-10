@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 def sortBy(elem):
+    print(elem)
     print('elem[1][3] :: ', str(elem[1][3]))
     return elem[1][3]
 

@@ -66,5 +66,5 @@ def extractMask(capture, saveStep):
     #cv2.waitKey(0)
     saveStep.saveReferenceImageBGR(masked_image, capture.name + '_masked')
 
-    return [np.array(masked_points), np.array(cheek_masked_image)]
+    return [np.array(masked_points), np.array(cheek_masked_points)]
 

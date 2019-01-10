@@ -140,9 +140,8 @@ def run(username, imageName, fast=False, saveStats=False):
     else:
         #fullFaceMedian = np.median(fullPoints, axis=0)
         #halfFaceMedian = np.median(halfPoints, axis=0)
-        fullFaceMedian = np.median(fullPointsCheek, axis=0)
-        halfFaceMedian = np.median(halfPointsCheek, axis=0)
-
+        fullFaceMedian = np.median(fullPointsCheeks, axis=0)
+        halfFaceMedian = np.median(halfPointsCheeks, axis=0)
 
         #plotTools.plotPoints(fullPoints)
         #plotTools.plotPoints(halfPoints)
