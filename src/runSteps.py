@@ -101,7 +101,8 @@ def run(username, imageName, fast=False, saveStats=False):
     halfDiffCapture = Capture('Diff', halfDiffImage, halfFlashCapture.metadata, allPointsMask)
 
     print('Getting Polygons')
-    polygons = getPolygons(fullDiffCapture)
+    polygons = fullDiffCapture.landmarks.getFacePolygons()
+    print('POLYGONS :: ' + str(polygons))
 
     if not fast:
         print('Saving Step 1')
