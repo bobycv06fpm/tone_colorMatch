@@ -21,41 +21,48 @@ def extractMask(capture, saveStep):
     chin = capture.landmarks.getChinPoints()
 
     polygons = [forehead, leftCheek, rightCheek, chin]
-    cheekPolygons = [leftCheek, rightCheek]
+    #cheekPolygons = [leftCheek, rightCheek]
 
     image = capture.image
     clippedMask = capture.mask
 
     mask = cv2.split(image)[0].copy()
     mask.fill(0)
-    cheekMask = mask.copy()
+    leftCheekMask = mask.copy()
+    rightCheekMask = mask.copy()
 
     for polygon in polygons:
         hull = cv2.convexHull(polygon)
         mask = cv2.fillConvexPoly(mask, hull, 1)
 
-    for cheekPolygon in cheekPolygons:
-        hull = cv2.convexHull(cheekPolygon)
-        cheekMask = cv2.fillConvexPoly(cheekMask, hull, 1)
+    leftCheekHull = cv2.convexHull(leftCheek)
+    leftCheekMask = cv2.fillConvexPoly(leftCheekMask, leftCheekHull, 1)
 
+    rightCheekHull = cv2.convexHull(rightCheek)
+    rightCheekMask = cv2.fillConvexPoly(rightCheekMask, rightCheekHull, 1)
 
     mask = mask.astype('bool')
-    region_mask_point = image[mask]
+    #region_mask_point = image[mask]
 
-    cheekMask = cheekMask.astype('bool')
-    cheek_mask_point = image[cheekMask]
+    leftCheekMask = leftCheekMask.astype('bool')
+    unmaskedLeftCheekPoints = image[leftCheekMask]
+
+    rightCheekMask = rightCheekMask.astype('bool')
+    unmaskedRightCheekPoints = image[rightCheekMask]
 
     if clippedMask is not None:
         mask = np.logical_and(mask, np.logical_not(clippedMask))
-        cheekMask = np.logical_and(cheekMask, np.logical_not(clippedMask))
+        leftCheekMask = np.logical_and(leftCheekMask, np.logical_not(clippedMask))
+        rightCheekMask = np.logical_and(rightCheekMask, np.logical_not(clippedMask))
 
-    masked_image = np.where(mask[..., None], image, 0)
-    masked_points = image[mask]
+    maskedImage = np.where(mask[..., None], image, 0)
+    maskedPoints = image[mask]
 
-    cheek_masked_image = np.where(cheekMask[..., None], image, 0)
-    cheek_masked_points = image[cheekMask]
+    leftCheekPoints = image[leftCheekMask]
+    rightCheekPoints = image[rightCheekMask]
 
-    clippedPixelRatio = masked_points.size / region_mask_point.size
+    #Base Clipping on cheeks for now...
+    clippedPixelRatio = (leftCheekPoints.size + rightCheekPoints.size) / (unmaskedLeftCheekPoints.size + unmaskedRightCheekPoints.size)
     print('Clipping Ratio :: ' + str(clippedPixelRatio))
     #if clippedPixelRatio < .2:
     if clippedPixelRatio < .01:
@@ -64,7 +71,7 @@ def extractMask(capture, saveStep):
     #img = cv2.resize(cheek_masked_image.astype('uint8'), (0, 0), fx=1/3, fy=1/3)
     #cv2.imshow('cheek masked', img)
     #cv2.waitKey(0)
-    saveStep.saveReferenceImageBGR(masked_image, capture.name + '_masked')
+    saveStep.saveReferenceImageBGR(maskedImage, capture.name + '_masked')
 
-    return [np.array(masked_points), np.array(cheek_masked_points)]
+    return [np.array(maskedPoints), np.array(leftCheekPoints), np.array(rightCheekPoints)]
 

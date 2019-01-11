@@ -20,6 +20,7 @@ from capture import Capture
 
 import multiprocessing as mp
 import colorsys
+
 def scalePointstoFluxish(capture, fluxish):
     #targetFluxish = 100000
     targetFluxish = 50000
@@ -117,22 +118,15 @@ def run(username, imageName, fast=False, saveStats=False):
     noFlashCapture.landmarks = halfFlashCapture.landmarks
     fullFlashCapture.landmarks = halfFlashCapture.landmarks
 
-    [reflectionValue, fluxish] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep)
+    [reflectionValue, leftFluxish, rightFluxish] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep)
+    fluxish = (leftFluxish + rightFluxish) / 2
     print("Reflection Value:: " + str(reflectionValue))
     print("Fluxish :: " + str(fluxish))
     #diffCapture.show()
-    saveStep.saveReferenceImageBGR(fullDiffCapture.image, 'full_noWhitebalancedImage')
-    saveStep.saveReferenceImageBGR(halfDiffCapture.image, 'half_noWhitebalancedImage')
-    colorTools.whitebalanceBGR(fullDiffCapture, reflectionValue)
-    colorTools.whitebalanceBGR(halfDiffCapture, reflectionValue)
-    saveStep.saveReferenceImageBGR(fullDiffCapture.image, 'full_WhitebalancedImage')
-    saveStep.saveReferenceImageBGR(halfDiffCapture.image, 'half_WhitebalancedImage')
-
-    medianFaceValue = None
 
     try:
-        [fullPoints, fullPointsCheeks] = extractMask(fullDiffCapture, saveStep)
-        [halfPoints, halfPointsCheeks] = extractMask(halfDiffCapture, saveStep)
+        [fullPoints, fullPointsLeftCheek, fullPointsRightCheek] = extractMask(fullDiffCapture, saveStep)
+        [halfPoints, halfPointsLeftCheek, halfPointsRightCheek] = extractMask(halfDiffCapture, saveStep)
     except NameError as err:
         #print('error extracting left side of face')
         #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))
@@ -140,8 +134,47 @@ def run(username, imageName, fast=False, saveStats=False):
     else:
         #fullFaceMedian = np.median(fullPoints, axis=0)
         #halfFaceMedian = np.median(halfPoints, axis=0)
-        fullFaceMedian = np.median(fullPointsCheeks, axis=0)
-        halfFaceMedian = np.median(halfPointsCheeks, axis=0)
+        print('fullPointsLeftCheek :: ' + str(fullPointsLeftCheek))
+        print('fullPointsRightCheek :: ' + str(fullPointsRightCheek))
+
+        #leftFluxish = leftFluxish / 100
+        #rightFluxish = rightFluxish / 100
+
+        fullPointsLeftCheekMedian = np.median(fullPointsLeftCheek, axis=0)
+        fullPointsLeftCheekMedianHLS = colorsys.rgb_to_hls(fullPointsLeftCheekMedian[2] / 255, fullPointsLeftCheekMedian[1] / 255, fullPointsLeftCheekMedian[0] / 255)
+        #correctedFullPointsLeftCheekHLS = correctHLS(np.copy(fullPointsLeftCheekMedianHLS), leftFluxish)
+
+        fullPointsRightCheekMedian = np.median(fullPointsRightCheek, axis=0)
+        fullPointsRightCheekMedianHLS = colorsys.rgb_to_hls(fullPointsRightCheekMedian[2] / 255, fullPointsRightCheekMedian[1] / 255, fullPointsRightCheekMedian[0] / 255)
+        #correctedFullPointsRightCheekHLS = correctHLS(np.copy(fullPointsRightCheekMedianHLS), rightFluxish)
+
+
+        halfPointsLeftCheekMedian = np.median(halfPointsLeftCheek, axis=0)
+        halfPointsLeftCheekMedianHLS = colorsys.rgb_to_hls(halfPointsLeftCheekMedian[2] / 255, halfPointsLeftCheekMedian[1] / 255, halfPointsLeftCheekMedian[0] / 255)
+        #correctedHalfPointsLeftCheekHLS = correctHLS(np.copy(halfPointsLeftCheekMedianHLS), leftFluxish)
+
+        halfPointsRightCheekMedian = np.median(halfPointsRightCheek, axis=0)
+        halfPointsRightCheekMedianHLS = colorsys.rgb_to_hls(halfPointsRightCheekMedian[2] / 255, halfPointsRightCheekMedian[1] / 255, halfPointsRightCheekMedian[0] / 255)
+        #correctedHalfPointsRightCheekHLS = correctHLS(np.copy(halfPointsRightCheekMedianHLS), rightFluxish)
+
+        print('As Sampled Fluxish L Left vs Right  :: ' + str(leftFluxish) + " | " + str(rightFluxish))
+        print('As Sampled Full Cheek L Left vs Right  :: ' + str(fullPointsLeftCheekMedianHLS[1]) + " | " + str(fullPointsRightCheekMedianHLS[1]))
+        #print('Corrected Full Cheek L Left vs Right  :: ' + str(correctedFullPointsLeftCheekHLS[1]) + " | " + str(correctedFullPointsRightCheekHLS[1]))
+
+        #saveStep.saveReferenceImageBGR(fullDiffCapture.image, 'full_noWhitebalancedImage')
+        #saveStep.saveReferenceImageBGR(halfDiffCapture.image, 'half_noWhitebalancedImage')
+        fullPointsWB = colorTools.whitebalanceBGRPoints(fullPoints, reflectionValue)
+        halfPointsWB = colorTools.whitebalanceBGRPoints(halfPoints, reflectionValue)
+
+        fullFaceMedian = np.median(fullPointsWB, axis=0)
+        halfFaceMedian = np.median(halfPointsWB, axis=0)
+        #saveStep.saveReferenceImageBGR(fullDiffCapture.image, 'full_WhitebalancedImage')
+        #saveStep.saveReferenceImageBGR(halfDiffCapture.image, 'half_WhitebalancedImage')
+
+        #fullPointsLeftCheekMedian = colorTools.whitebalanceBGRValue(fullPointsLeftCheekMedian, reflectionValue)
+        #fullPointsRightCheekMedian = colorTools.whitebalanceBGRValue(fullPointsRightCheekMedian, reflectionValue)
+        #halfPointsLeftCheekMedian = colorTools.whitebalanceBGRValue(halfPointsLeftCheekMedian, reflectionValue)
+        #halfPointsRightCheekMedian = colorTools.whitebalanceBGRValue(halfPointsRightCheekMedian, reflectionValue)
 
         #plotTools.plotPoints(fullPoints)
         #plotTools.plotPoints(halfPoints)
@@ -205,5 +238,11 @@ def run(username, imageName, fast=False, saveStats=False):
         halfMedianFacesHLS = [float(value) for value in halfMedianFacesHLS]
 
         #return [fullMedianFacesHSV, halfMedianFacesHSV, fluxish]
-        correctedHLS = correctHLS(np.copy(fullMedianFacesHLS), fluxish)
+        #correctedHLS = correctHLS(np.copy(fullMedianFacesHLS), fluxish)
+
+        #REMOVE!
+        correctedHLS = fullMedianFacesHLS.copy()
+        correctedHLS[1] = fullPointsRightCheekMedianHLS[1]
+        fullMedianFacesHLS[1] = fullPointsLeftCheekMedianHLS[1]
+
         return [fullMedianFacesHLS, halfMedianFacesHLS, list(correctedHLS), fluxish]

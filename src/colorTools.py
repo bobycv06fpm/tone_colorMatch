@@ -288,6 +288,11 @@ def whitebalanceBGR(capture, wb):
     wbMultiplier = [targetValue, targetValue, targetValue] / wb
     capture.image = capture.image.astype('int32') * wbMultiplier
 
+def whitebalanceBGRPoints(points, wb):
+    targetValue = min(wb)
+    wbMultiplier = [targetValue, targetValue, targetValue] / wb
+    return points.astype('int32') * wbMultiplier
+
 def get_sRGB_and_sHSV(points_float):
     print('Points Float :: ' + str(points_float))
     #points = np.array([(points_float * 255).astype('uint8')])

@@ -567,15 +567,17 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
 
 
     averageMedian = (leftReflectionMedian + rightReflectionMedian) / 2
-    averageValue = (leftReflectionValue + rightReflectionValue) / 2
 
     leftReflectionArea = (leftReflectionWidth / averageEyeWidth) * (leftReflectionHeight / averageEyeWidth)
     rightReflectionArea = (rightReflectionWidth / averageEyeWidth) * (rightReflectionHeight / averageEyeWidth)
     averageArea = (leftReflectionArea + rightReflectionArea) / 2
 
-    fluxish = averageArea * averageValue
+    #averageValue = (leftReflectionValue + rightReflectionValue) / 2
+    #fluxish = averageArea * averageValue
+    leftFluxish = averageArea + leftReflectionValue
+    rightFluxish = averageArea + rightReflectionValue
 
-    return [averageMedian, fluxish]
+    return [averageMedian, leftFluxish, rightFluxish]
 
 
 #def getAverageScreenReflectionColor(username, imageName, image, fullFlash_sBGR, imageShape, cameraWB_CIE_xy_coords):
