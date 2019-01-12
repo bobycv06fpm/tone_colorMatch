@@ -21,6 +21,7 @@ size = 10
 
 lightnessFluxish = []
 correctedLightnessFluxish = []
+perSideLightnessFluxish = []
 
 faceColors = sorted(faceColors, key = sortBy) 
 
@@ -29,15 +30,22 @@ for (imageName, faceColor) in faceColors:
     #if imageName not in whitelist:
         continue
 
-    [fullFlash, halfFlash, corrected, fluxish] = faceColor
+    [fullFlash, halfFlash, corrected, fluxish, leftSide, rightSide] = faceColor
 
-    print(imageName + ' :: ' +str(fullFlash) + '\t| ' + str(fluxish))
+    #print(imageName + ' :: ' +str(fullFlash) + '\t| ' + str(fluxish))
+    #print(imageName + ' :: ' +str(leftSide) + '\t| ' + str(rightSide))
+    print(imageName + ' :: ' + str(leftSide[1]) + ' | ' + str(leftSide[0]))
+    print(imageName + ' :: ' + str(rightSide[1]) + ' | ' + str(rightSide[0]))
 
     lightnessFluxish.append(np.array([float(fullFlash[1]), float(fluxish)]))
     correctedLightnessFluxish.append(np.array([float(corrected[1]), float(fluxish)]))
 
+    perSideLightnessFluxish.append(np.array([float(leftSide[1]), float(leftSide[0])]))
+    perSideLightnessFluxish.append(np.array([float(rightSide[1]), float(rightSide[0])]))
+
 lightnessFluxish = np.array(lightnessFluxish)
 correctedLightnessFluxish = np.array(correctedLightnessFluxish)
+perSideLightnessFluxish = np.array(perSideLightnessFluxish)
 
 minFluxish = min(lightnessFluxish[:, 1])
 maxFluxish = max(lightnessFluxish[:, 1])
@@ -48,14 +56,15 @@ FL_m, FL_c = np.linalg.lstsq(fluxish_A, lightnessFluxish[:, 0], rcond=None)[0]
 print('Fluxish to Lightness Slope, Constant :: ' + str(FL_m) + ' ' + str(FL_c))
 plt.plot([minFluxish, maxFluxish], [(FL_m * minFluxish + FL_c), (FL_m * maxFluxish + FL_c)])
 
-plt.scatter(lightnessFluxish[:, 1], lightnessFluxish[:, 0], size, (1, 0, 0))
+#plt.scatter(lightnessFluxish[:, 1], lightnessFluxish[:, 0], size, (1, 0, 0))
+plt.scatter(perSideLightnessFluxish[:, 1], perSideLightnessFluxish[:, 0], size, (1, 0, 0))
 
 plt.xlabel('Fluxish')
 plt.ylabel('Lightness')
 plt.suptitle("Fluxish vs Lightness")
 #plt.show()
 
-plt.scatter(correctedLightnessFluxish[:, 1], correctedLightnessFluxish[:, 0], size, (0, 1, 0))
+#plt.scatter(correctedLightnessFluxish[:, 1], correctedLightnessFluxish[:, 0], size, (0, 1, 0))
 
 #plt.xlabel('Fluxish')
 #plt.ylabel('Lightness')

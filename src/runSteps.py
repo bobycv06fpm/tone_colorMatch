@@ -142,10 +142,12 @@ def run(username, imageName, fast=False, saveStats=False):
 
         fullPointsLeftCheekMedian = np.median(fullPointsLeftCheek, axis=0)
         fullPointsLeftCheekMedianHLS = colorsys.rgb_to_hls(fullPointsLeftCheekMedian[2] / 255, fullPointsLeftCheekMedian[1] / 255, fullPointsLeftCheekMedian[0] / 255)
+        leftLightness = fullPointsLeftCheekMedianHLS[1]
         #correctedFullPointsLeftCheekHLS = correctHLS(np.copy(fullPointsLeftCheekMedianHLS), leftFluxish)
 
         fullPointsRightCheekMedian = np.median(fullPointsRightCheek, axis=0)
         fullPointsRightCheekMedianHLS = colorsys.rgb_to_hls(fullPointsRightCheekMedian[2] / 255, fullPointsRightCheekMedian[1] / 255, fullPointsRightCheekMedian[0] / 255)
+        rightLightness = fullPointsRightCheekMedianHLS[1]
         #correctedFullPointsRightCheekHLS = correctHLS(np.copy(fullPointsRightCheekMedianHLS), rightFluxish)
 
 
@@ -238,11 +240,11 @@ def run(username, imageName, fast=False, saveStats=False):
         halfMedianFacesHLS = [float(value) for value in halfMedianFacesHLS]
 
         #return [fullMedianFacesHSV, halfMedianFacesHSV, fluxish]
-        #correctedHLS = correctHLS(np.copy(fullMedianFacesHLS), fluxish)
+        correctedHLS = correctHLS(np.copy(fullMedianFacesHLS), fluxish)
 
         #REMOVE!
-        correctedHLS = fullMedianFacesHLS.copy()
-        correctedHLS[1] = fullPointsRightCheekMedianHLS[1]
-        fullMedianFacesHLS[1] = fullPointsLeftCheekMedianHLS[1]
+        #correctedHLS = fullMedianFacesHLS.copy()
+        #correctedHLS[1] = fullPointsRightCheekMedianHLS[1]
+        #fullMedianFacesHLS[1] = fullPointsLeftCheekMedianHLS[1]
 
-        return [fullMedianFacesHLS, halfMedianFacesHLS, list(correctedHLS), fluxish]
+        return [fullMedianFacesHLS, halfMedianFacesHLS, list(correctedHLS), fluxish, [leftFluxish, leftLightness], [rightFluxish, rightLightness]]
