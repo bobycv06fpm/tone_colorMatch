@@ -124,6 +124,14 @@ def run(username, imageName, fast=False, saveStats=False):
     print("Fluxish :: " + str(fluxish))
     #diffCapture.show()
 
+    saveStep.saveReferenceImageBGR(fullDiffCapture.image, 'full_noWhitebalancedImage')
+    saveStep.saveReferenceImageBGR(halfDiffCapture.image, 'half_noWhitebalancedImage')
+    colorTools.whitebalanceBGR(fullDiffCapture, reflectionValue)
+    colorTools.whitebalanceBGR(halfDiffCapture, reflectionValue)
+
+    saveStep.saveReferenceImageBGR(fullDiffCapture.image, 'full_WhitebalancedImage')
+    saveStep.saveReferenceImageBGR(halfDiffCapture.image, 'half_WhitebalancedImage')
+
     try:
         [fullPoints, fullPointsLeftCheek, fullPointsRightCheek] = extractMask(fullDiffCapture, saveStep)
         [halfPoints, halfPointsLeftCheek, halfPointsRightCheek] = extractMask(halfDiffCapture, saveStep)
@@ -165,11 +173,14 @@ def run(username, imageName, fast=False, saveStats=False):
 
         #saveStep.saveReferenceImageBGR(fullDiffCapture.image, 'full_noWhitebalancedImage')
         #saveStep.saveReferenceImageBGR(halfDiffCapture.image, 'half_noWhitebalancedImage')
-        fullPointsWB = colorTools.whitebalanceBGRPoints(fullPoints, reflectionValue)
-        halfPointsWB = colorTools.whitebalanceBGRPoints(halfPoints, reflectionValue)
+        #fullPointsWB = colorTools.whitebalanceBGRPoints(fullPoints, reflectionValue)
+        #halfPointsWB = colorTools.whitebalanceBGRPoints(halfPoints, reflectionValue)
 
-        fullFaceMedian = np.median(fullPointsWB, axis=0)
-        halfFaceMedian = np.median(halfPointsWB, axis=0)
+        #fullFaceMedian = np.median(fullPointsWB, axis=0)
+        #halfFaceMedian = np.median(halfPointsWB, axis=0)
+
+        fullFaceMedian = np.median(fullPoints, axis=0)
+        halfFaceMedian = np.median(halfPoints, axis=0)
         #saveStep.saveReferenceImageBGR(fullDiffCapture.image, 'full_WhitebalancedImage')
         #saveStep.saveReferenceImageBGR(halfDiffCapture.image, 'half_WhitebalancedImage')
 
