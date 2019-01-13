@@ -28,7 +28,11 @@ def getEyeRegionCrops(capture):
 def blur(img):
     #return cv2.GaussianBlur(img, (15, 15), 0)
     #return cv2.bilateralFilter(img,15,75,75)
-    return cv2.medianBlur(img, 9)
+    #return cv2.medianBlur(img, 9)
+    kernel = np.ones((5, 5), np.uint8)
+    morph = cv2.morphologyEx(img, cv2.MORPH_CROSS, kernel)
+    return morph
+
 
 
 def getReflectionBB(mask):
@@ -44,6 +48,8 @@ def maskReflection(noFlash, halfFlash, fullFlash):
     noFlashGrey = np.sum(blur(noFlash), axis=2)
     halfFlashGrey = np.sum(blur(halfFlash), axis=2)
     fullFlashGrey = np.sum(blur(fullFlash), axis=2)
+
+    cv2.imshow('Grey', (fullFlashGrey / 3).astype('uint8'))
 
     halfFlashGrey = np.clip(halfFlashGrey.astype('int32') - noFlashGrey, 0, (256 * 3))
     fullFlashGrey = np.clip(fullFlashGrey.astype('int32') - noFlashGrey, 0, (256 * 3))
@@ -63,6 +69,8 @@ def maskReflection(noFlash, halfFlash, fullFlash):
 
     flashMask = np.logical_and(halfFlashMask, fullFlashMask)
     flashMask = np.logical_and(flashMask, np.logical_not(noFlashMask))
+    cv2.imshow('Flash Mask', (flashMask.astype('uint8') * 255))
+    cv2.waitKey(0)
     return flashMask
 
 
@@ -197,8 +205,11 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     #FOR REFLECITON
     leftEyeReflection = halfFlashLeftEyeCrop[y:y+leftReflectionHeight, x:x+leftReflectionHeight]
 
+    print('LEFT EYE REFLECTION :: ' + str(leftEyeReflection))
+
     leftHighMask = np.max(leftEyeReflection, axis=2) < 253
-    leftLowMask = np.min(leftEyeReflection, axis=2) >= 2
+    #leftLowMask = np.min(leftEyeReflection, axis=2) >= 2
+    leftLowMask = np.max(leftEyeReflection, axis=2) >= 2
 
     leftEyeMask = np.logical_and(leftHighMask, leftLowMask)
     leftEyePoints = leftEyeReflection[leftEyeMask]
@@ -238,6 +249,7 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     if rightClipRatio < .9:
         print("TOO MUCH CLIPPING!")
         raise NameError('Not enough clean non-clipped pixels in right eye reflections')
+
     rightReflectionMedian = np.median(rightEyePoints, axis=0) * 2 #Multiply by 2 because we got the value from the half flash
     #rightReflectionValue = np.max(rightReflectionMedian)
     #END FOR REFLECTION

@@ -32,8 +32,8 @@ for imageName in filteredUserDirectories:
     print('Image Name :: ' + str(imageName))
     try:
         result = runSteps.run(user, imageName, fast=False, saveStats=False)
-    except:
-        print('Error Processing ' + str(imageName))
+    except Exception as e:
+        print('Error Processing ' + str(imageName) + ' | ' + str(e))
     else:
         print('result :: ' + str(result))
         faceColors.append([imageName, result])
