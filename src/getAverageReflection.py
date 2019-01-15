@@ -312,6 +312,11 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     #cv2.waitKey(0)
 
     #valuesDiff = np.abs((rightReflectionMedian - leftReflectionMedian))
+    averageMedian = (leftReflectionMedian + rightReflectionMedian) / 2
+
+    leftReflectionMedian = colorTools.whitebalanceBGRPoints(leftReflectionMedian, averageMedian)
+    rightReflectionMedian = colorTools.whitebalanceBGRPoints(rightReflectionMedian, averageMedian)
+
     print('left reflection median :: ' + str(leftReflectionMedian))
     leftReflectionHLS = colorsys.rgb_to_hls(leftReflectionMedian[2] / 255, leftReflectionMedian[1] / 255, leftReflectionMedian[0] / 255)
     rightReflectionHLS = colorsys.rgb_to_hls(rightReflectionMedian[2] / 255, rightReflectionMedian[1] / 255, rightReflectionMedian[0] / 255)
@@ -327,7 +332,6 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     print('HUE and SAT diff :: ' + str(hueDiff) + ' | ' + str(satDiff)) 
 
 
-    averageMedian = (leftReflectionMedian + rightReflectionMedian) / 2
 
     leftReflectionArea = (leftReflectionWidth / averageEyeWidth) * (leftReflectionHeight / averageEyeWidth)
     rightReflectionArea = (rightReflectionWidth / averageEyeWidth) * (rightReflectionHeight / averageEyeWidth)
