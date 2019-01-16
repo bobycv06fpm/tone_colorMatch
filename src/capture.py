@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 import thresholdMask
+import colorTools
+import saveStep
 from landmarkPoints import Landmarks
 
 class Capture:
@@ -11,9 +13,14 @@ class Capture:
         self.metadata = metadata
         self.landmarks = Landmarks(self.metadata['faceLandmarksSource'], self.metadata['faceLandmarks'], image.shape)
         self.mask = thresholdMask.getClippedMask(image)
+        self.whiteBalance = self.metadata['whiteBalance']
+        #print('WB :: ' + str(self.whiteBalance))
 
         if mask is not None:
             self.mask = np.logical_or(self.mask, mask)
+
+    def getAsShotWhiteBalance(self):
+        return [self.whiteBalance['x'], self.whiteBalance['y']]
 
     def getClippedImage(self):
         return np.clip(self.image, 0, 255).astype('uint8')

@@ -32,11 +32,9 @@ def blur(img):
 
 def erode(img):
     kernel = np.ones((5, 5), np.uint16)
+    #kernel = np.ones((9, 9), np.uint16)
     morph = cv2.morphologyEx(img, cv2.MORPH_CROSS, kernel)
     return morph
-
-
-
 
 def getReflectionBB(mask):
     img = mask.astype('uint8') * 255
@@ -47,21 +45,35 @@ def getReflectionBB(mask):
 
     return cv2.boundingRect(contour)
 
-def maskReflectionBB(noFlash, halfFlash, fullFlash):
-    ogHalfFlash = np.sum(halfFlash, axis=2)
+def maskReflectionBB(noFlash, halfFlash, fullFlash, x, y):
+    noFlash = colorTools.whitebalance_from_asShot_to_d65(noFlash.astype('int32'), x, y)
+    halfFlash = colorTools.whitebalance_from_asShot_to_d65(halfFlash.astype('int32'), x, y)
+    fullFlash = colorTools.whitebalance_from_asShot_to_d65(fullFlash.astype('int32'), x, y)
+
+    #cv2.imshow('half flash', halfFlash.astype('uint8'))
+    #cv2.waitKey(0)
+    #ogHalfFlash = np.sum(halfFlash, axis=2)
     #ogNoFlash = np.sum(noFlash, axis=2)
 
-    noFlashGrey = np.sum(blur(noFlash), axis=2)
-    halfFlashGrey = np.sum(blur(halfFlash), axis=2)
-    fullFlashGrey = np.sum(blur(fullFlash), axis=2)
+    #noFlashGrey = np.sum(blur(noFlash), axis=2)
+    #halfFlashGrey = np.sum(blur(halfFlash), axis=2)
+    #fullFlashGrey = np.sum(blur(fullFlash), axis=2)
 
-    #cv2.imshow('Grey Blurred', (fullFlashGrey / 3).astype('uint8'))
+    ogHalfFlash = colorTools.getRelativeLuminanceImage(halfFlash)
+    noFlashGrey = colorTools.getRelativeLuminanceImage(blur(noFlash))
+    halfFlashGrey = colorTools.getRelativeLuminanceImage(blur(halfFlash))
+    fullFlashGrey = colorTools.getRelativeLuminanceImage(blur(fullFlash))
+
 
     halfFlashGrey = np.clip(halfFlashGrey.astype('int32') - noFlashGrey, 0, (256 * 3))
     fullFlashGrey = np.clip(fullFlashGrey.astype('int32') - noFlashGrey, 0, (256 * 3))
 
     halfFlashGrey = erode(halfFlashGrey)
     fullFlashGrey = erode(fullFlashGrey)
+    #cv2.imshow('no flash Grey Blurred', (np.clip(noFlashGrey, 0, 255)).astype('uint8'))
+    #cv2.imshow('half flash Grey Blurred', (np.clip(halfFlashGrey, 0, 255)).astype('uint8'))
+    #cv2.imshow('full flash Grey Blurred', (np.clip(fullFlashGrey, 0, 255)).astype('uint8'))
+    #cv2.waitKey(0)
     #cv2.imshow('Grey Eroded', (fullFlashGrey / 3).astype('uint8'))
 
     noFlashMin = np.min(noFlashGrey)
@@ -77,8 +89,17 @@ def maskReflectionBB(noFlash, halfFlash, fullFlash):
     fullFlashUpper = fullFlashMedian + (2 * fullFlashStd)
     fullFlashMask = fullFlashGrey > fullFlashUpper
 
+    #cv2.imshow('half flash mask', halfFlashMask.astype('uint8') * 255)
+    #cv2.imshow('full flash mask', fullFlashMask.astype('uint8') * 255)
+
     roughFlashMask = np.logical_and(halfFlashMask, fullFlashMask)
     roughFlashMask = np.logical_and(roughFlashMask, np.logical_not(noFlashMask))
+
+    #cv2.imshow('rough flash mask', roughFlashMask.astype('uint8') * 255)
+    #temp = halfFlash.copy()
+    #temp[np.logical_not(roughFlashMask)] = [255, 0, 255]
+    #cv2.imshow('...', temp.astype('uint8'))
+    #cv2.waitKey(0)
 
     #cv2.imshow('rough flash mask', roughFlashMask.astype('uint8') * 255)
     (x, y, w, h) = getReflectionBB(roughFlashMask)
@@ -100,8 +121,8 @@ def maskReflectionBB(noFlash, halfFlash, fullFlash):
     rowMedianCuttoff = np.median(medianValueByRow)
     rowMedianCuttoff -= (tolerance * rowMedianCuttoff)
 
-    #print('Median Value By Column :: ' + str(medianValueByColumn) + ' | ' + str(columnMedianCuttoff))
-    #print('Median Value By Row :: ' + str(medianValueByRow) + ' | ' + str(rowMedianCuttoff))
+    print('Median Value By Column :: ' + str(medianValueByColumn) + ' | ' + str(columnMedianCuttoff))
+    print('Median Value By Row :: ' + str(medianValueByRow) + ' | ' + str(rowMedianCuttoff))
 
     xMask = medianValueByColumn >= columnMedianCuttoff
     yMask = medianValueByRow >= rowMedianCuttoff
@@ -114,7 +135,14 @@ def maskReflectionBB(noFlash, halfFlash, fullFlash):
 
     refinedMask = np.dot(yMask, xMask)
 
-    #print('Refined Mask :: ' + str(refinedMask))
+    #cv2.imshow('rough flash crop', (roughReflectionCrop / 3).astype('uint8'))
+    #temp = halfFlash.copy()
+    #temp2 = halfFlash.copy()
+    #temp[np.logical_not(refinedMask)] = [255, 0, 255]
+    #temp2[refinedMask] = [0, 0, 0]
+    #cv2.imshow('...', temp.astype('uint8'))
+    #cv2.imshow('...', temp2.astype('uint8'))
+    #cv2.waitKey(0)
 
     #refinedMask = roughReflectionCrop > 100
     (x1, y1, w1, h1) = getReflectionBB(refinedMask)
@@ -214,14 +242,13 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     eyeStripCoordDiff_left = np.array(fullFlashLeftEyeCoord) - fullFlashEyeStripCoords[0:2]
     eyeStripCoordDiff_right = np.array(fullFlashRightEyeCoord) - fullFlashEyeStripCoords[0:2]
 
+    (wb_x, wb_y) = halfFlashCapture.getAsShotWhiteBalance()
     #FOR REFLECITON
-    [x, y, leftReflectionWidth, leftReflectionHeight] = maskReflectionBB(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop)
+    [x, y, leftReflectionWidth, leftReflectionHeight] = maskReflectionBB(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop, wb_x, wb_y)
     leftReflectionP1 = (x + eyeStripCoordDiff_left[0], y + eyeStripCoordDiff_left[1])
     leftReflectionP2 = (x + leftReflectionWidth + eyeStripCoordDiff_left[0], y + leftReflectionHeight + eyeStripCoordDiff_left[1])
 
     leftEyeReflection = halfFlashLeftEyeCrop[y:y+leftReflectionHeight, x:x+leftReflectionHeight]
-
-    print('LEFT EYE REFLECTION :: ' + str(leftEyeReflection))
 
     leftHighMask = np.max(leftEyeReflection, axis=2) < 253
     #leftLowMask = np.min(leftEyeReflection, axis=2) >= 2
@@ -236,7 +263,7 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     #END FOR REFLECITON
 
     #FOR REFLECTION
-    [x, y, rightReflectionWidth, rightReflectionHeight] = maskReflectionBB(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop)
+    [x, y, rightReflectionWidth, rightReflectionHeight] = maskReflectionBB(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop, wb_x, wb_y)
     rightReflectionP1 = (x + eyeStripCoordDiff_right[0], y + eyeStripCoordDiff_right[1])
     rightReflectionP2 = (x + rightReflectionWidth + eyeStripCoordDiff_right[0], y + rightReflectionHeight + eyeStripCoordDiff_right[1])
 
@@ -284,8 +311,8 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     leftEyeWidth = leftRightPoint[0] - leftLeftPoint[0]
     rightEyeWidth = rightRightPoint[0] - rightLeftPoint[0]
 
-    print('Left Eye Width :: ' + str(leftEyeWidth))
-    print('Right Eye Width :: ' + str(rightEyeWidth))
+    #print('Left Eye Width :: ' + str(leftEyeWidth))
+    #print('Right Eye Width :: ' + str(rightEyeWidth))
 
 
     averageEyeWidth = (leftEyeWidth + rightEyeWidth) / 2
@@ -317,14 +344,17 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     leftReflectionMedian = colorTools.whitebalanceBGRPoints(leftReflectionMedian, averageMedian)
     rightReflectionMedian = colorTools.whitebalanceBGRPoints(rightReflectionMedian, averageMedian)
 
+    leftReflectionLuminance = colorTools.getRelativeLuminance([leftReflectionMedian])[0]
+    rightReflectionLuminance = colorTools.getRelativeLuminance([rightReflectionMedian])[0]
+
     print('left reflection median :: ' + str(leftReflectionMedian))
     leftReflectionHLS = colorsys.rgb_to_hls(leftReflectionMedian[2] / 255, leftReflectionMedian[1] / 255, leftReflectionMedian[0] / 255)
     rightReflectionHLS = colorsys.rgb_to_hls(rightReflectionMedian[2] / 255, rightReflectionMedian[1] / 255, rightReflectionMedian[0] / 255)
 
-    print('rightReflectionMedian :: ' + str(rightReflectionMedian))
-    print('right HLS :: ' + str(rightReflectionHLS))
-    print('leftReflectionMedian :: ' + str(leftReflectionMedian))
-    print('left HLS :: ' + str(leftReflectionHLS))
+    #print('rightReflectionMedian :: ' + str(rightReflectionMedian))
+    #print('right HLS :: ' + str(rightReflectionHLS))
+    #print('leftReflectionMedian :: ' + str(leftReflectionMedian))
+    #print('left HLS :: ' + str(leftReflectionHLS))
 
     hueDiff = np.abs(leftReflectionHLS[0] - rightReflectionHLS[0])
     satDiff = np.abs(leftReflectionHLS[2] - rightReflectionHLS[2])
@@ -344,15 +374,17 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     #averageValue = (leftReflectionValue + rightReflectionValue) / 2
     #fluxish = averageArea * averageValue
 
-    leftReflectionLuminosity = leftReflectionHLS[1]
-    rightReflectionLuminosity = rightReflectionHLS[1]
+    #leftReflectionLuminosity = leftReflectionHLS[1]
+    #rightReflectionLuminosity = rightReflectionHLS[1]
 
     #leftFluxish = averageArea * leftReflectionLuminosity
-    leftFluxish = leftReflectionArea * leftReflectionLuminosity
-    print('LEFT FLUXISH :: ' + str(leftFluxish) + ' | AREA :: ' + str(leftReflectionArea) + ' | LUMINOSITY :: ' + str(leftReflectionLuminosity))
+    #leftFluxish = leftReflectionArea * leftReflectionLuminosity
+    leftFluxish = leftReflectionArea * leftReflectionLuminance
+    print('LEFT FLUXISH :: ' + str(leftFluxish) + ' | AREA :: ' + str(leftReflectionArea) + ' | LUMINOSITY :: ' + str(leftReflectionLuminance))
 
     #rightFluxish = averageArea * rightReflectionLuminosity
-    rightFluxish = rightReflectionArea * rightReflectionLuminosity
-    print('RIGHT FLUXISH :: ' + str(rightFluxish) + ' | AREA :: ' + str(rightReflectionArea) + ' | LUMINOSITY :: ' + str(rightReflectionLuminosity))
+    #rightFluxish = rightReflectionArea * rightReflectionLuminosity
+    rightFluxish = rightReflectionArea * rightReflectionLuminance
+    print('RIGHT FLUXISH :: ' + str(rightFluxish) + ' | AREA :: ' + str(rightReflectionArea) + ' | LUMINOSITY :: ' + str(rightReflectionLuminance))
 
     return [averageMedian, leftFluxish, rightFluxish]

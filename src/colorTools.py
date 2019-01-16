@@ -288,10 +288,26 @@ def whitebalanceBGR(capture, wb):
     wbMultiplier = [targetValue, targetValue, targetValue] / wb
     capture.image = capture.image.astype('int32') * wbMultiplier
 
+def whitebalanceBGRImage(image, wb):
+    targetValue = min(wb)
+    wbMultiplier = [targetValue, targetValue, targetValue] / wb
+    return image.astype('int32') * wbMultiplier
+
 def whitebalanceBGRPoints(points, wb):
     targetValue = min(wb)
     wbMultiplier = [targetValue, targetValue, targetValue] / wb
     return points.astype('int32') * wbMultiplier
+
+def getRelativeLuminance(points):
+    points = np.array(points)
+    bgrLuminanceConsts = np.array([0.0722, 0.7152, 0.2126])
+    return np.sum(points * bgrLuminanceConsts, axis=1)
+
+def getRelativeLuminanceImage(image):
+    #points = np.array(points)
+    bgrLuminanceConsts = np.array([0.0722, 0.7152, 0.2126])
+    return np.sum(image * bgrLuminanceConsts, axis=2)
+
 
 def get_sRGB_and_sHSV(points_float):
     print('Points Float :: ' + str(points_float))
@@ -316,9 +332,7 @@ def get_sRGB_and_sHSV(points_float):
 
     return (plot_rgb_filtered, plot_hsv_filtered)
 
-def convert_CIE_xy_to_unscaledBGR(xyCIE1931Coords):
-    x = xyCIE1931Coords[0]
-    y = xyCIE1931Coords[1]
+def convert_CIE_xy_to_unscaledBGR(x, y):
     z = 1 - x - y
 
     #print('x y z :: ' + str(x) + ' ' + str(y) + ' ' + str(z))
@@ -331,11 +345,11 @@ def convert_CIE_xy_to_unscaledBGR(xyCIE1931Coords):
 
     return bgr
 
-def whitebalance_from_asShot_to_d65(image, xyCIE1931Coords):
-    asShotBGR = convert_CIE_xy_to_unscaledBGR(xyCIE1931Coords)
+def whitebalance_from_asShot_to_d65(image, x, y):
+    asShotBGR = convert_CIE_xy_to_unscaledBGR(x, y)
     #print('As Shot BGR :: ' + str(asShotBGR))
 
-    targetBGR = convert_CIE_xy_to_unscaledBGR([0.31271, 0.32902]) #Illuminant D65
+    targetBGR = convert_CIE_xy_to_unscaledBGR(0.31271, 0.32902) #Illuminant D65
     #print('Target BGR :: ' + str(targetBGR))
 
     bgrMultiplier = asShotBGR / targetBGR

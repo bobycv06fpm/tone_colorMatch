@@ -47,14 +47,17 @@ lightnessFluxish = np.array(lightnessFluxish)
 correctedLightnessFluxish = np.array(correctedLightnessFluxish)
 perSideLightnessFluxish = np.array(perSideLightnessFluxish)
 
-minFluxish = min(lightnessFluxish[:, 1])
-maxFluxish = max(lightnessFluxish[:, 1])
+minFluxish = min(perSideLightnessFluxish[:, 1])
+maxFluxish = max(perSideLightnessFluxish[:, 1])
 
-fluxish_A = np.vstack([lightnessFluxish[:, 1], np.ones(len(lightnessFluxish))]).T
+fluxish_A = np.vstack([perSideLightnessFluxish[:, 1], np.ones(len(perSideLightnessFluxish))]).T
 
-FL_m, FL_c = np.linalg.lstsq(fluxish_A, lightnessFluxish[:, 0], rcond=None)[0]
+FL_m, FL_c = np.linalg.lstsq(fluxish_A, perSideLightnessFluxish[:, 0], rcond=None)[0]
 print('Fluxish to Lightness Slope, Constant :: ' + str(FL_m) + ' ' + str(FL_c))
+margin = 10
 plt.plot([minFluxish, maxFluxish], [(FL_m * minFluxish + FL_c), (FL_m * maxFluxish + FL_c)])
+plt.plot([minFluxish, maxFluxish], [(FL_m * minFluxish + FL_c - margin), (FL_m * maxFluxish + FL_c - margin)])
+plt.plot([minFluxish, maxFluxish], [(FL_m * minFluxish + FL_c + margin), (FL_m * maxFluxish + FL_c + margin)])
 
 #plt.scatter(lightnessFluxish[:, 1], lightnessFluxish[:, 0], size, (1, 0, 0))
 plt.scatter(perSideLightnessFluxish[:, 1], perSideLightnessFluxish[:, 0], size, (1, 0, 0))
