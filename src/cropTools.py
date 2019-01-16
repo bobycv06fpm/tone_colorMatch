@@ -23,7 +23,7 @@ def cropToAxis(captures, offsets, axis):
     if captureSets[0, OFFSET] < 0:
         captureSets[:, OFFSET] += abs(captureSets[0, OFFSET])
 
-    print('Capture Sets :: ' + str(captureSets))
+    #print('Capture Sets :: ' + str(captureSets))
 
     maxOffset = captureSets[-1, OFFSET]
 

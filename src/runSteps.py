@@ -28,16 +28,20 @@ def scalePointstoFluxish(capture, fluxish):
     capture.image *= fluxishMultiplier#).astype('int32')
     #return scaledPoints
 
-def correctHLS(hls, fluxish):
+def correctHLS(hls, luminance, fluxish):
     print('------')
     print('Old HLS :: ' + str(hls))
-    targetFluxish = 0.8
+    #targetFluxish = 0.8
+    targetFluxish = 0.25
     #slope = 0.145696 
-    slope = 0.2731371365514631 
+    #slope = 0.2731371365514631 
+    luminanceSlope = 121.092803122
+    hueSlope = 0.018374
     #lightnessDiff = (0.106485 * (targetFluxish - fluxish))
     lightnessDiff = (slope * (targetFluxish - fluxish))
     hls[1] += lightnessDiff
-    hls[0] = (0.018374 * hls[1]) + .059859
+
+    hls[0] = (hueSlope * hls[1]) + .059859
 
     print('Corrected HLS :: ' + str(hls))
     print('-----')
@@ -98,7 +102,10 @@ def run(username, imageName, fast=False, saveStats=False):
     halfDiffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
 
     #print('Diff Image :: ' + str(diffImage))
+    #noMask = np.zeros(allPointsMask.shape).astype('bool')
+    #fullDiffCapture = Capture('Diff', fullDiffImage, fullFlashCapture.metadata, noMask)
     fullDiffCapture = Capture('Diff', fullDiffImage, fullFlashCapture.metadata, allPointsMask)
+    #halfDiffCapture = Capture('Diff', halfDiffImage, halfFlashCapture.metadata, noMask)
     halfDiffCapture = Capture('Diff', halfDiffImage, halfFlashCapture.metadata, allPointsMask)
 
     #print('Getting Polygons')
@@ -142,14 +149,25 @@ def run(username, imageName, fast=False, saveStats=False):
     else:
         #fullFaceMedian = np.median(fullPoints, axis=0)
         #halfFaceMedian = np.median(halfPoints, axis=0)
-        print('fullPointsLeftCheek :: ' + str(fullPointsLeftCheek))
-        print('fullPointsRightCheek :: ' + str(fullPointsRightCheek))
+        #print('fullPointsLeftCheek :: ' + str(fullPointsLeftCheek))
+        #print('fullPointsRightCheek :: ' + str(fullPointsRightCheek))
 
         #leftFluxish = leftFluxish / 100
         #rightFluxish = rightFluxish / 100
 
         fullPointsLeftCheekLuminance = colorTools.getRelativeLuminance(fullPointsLeftCheek)
         fullPointsLeftCheekMedianLuminance = np.median(fullPointsLeftCheekLuminance)
+
+        fullPointsLeftCheek_RGB = np.flip(fullPointsLeftCheek, axis=1)
+        fullPointsLeftCheek_RGB = fullPointsLeftCheek / 255
+        fullPointsLeftCheek_hls = [list(colorsys.rgb_to_hls(r, g, b)) for [r, g, b] in fullPointsLeftCheek_RGB]
+        fullPointsLeftCheekMedian_hls = np.median(fullPointsLeftCheek_hls, axis=0)
+        print('---------------------')
+        print('LEFT FLUXISH :: ' + str(leftFluxish))
+        print('MEDIAN HLS LEFT Full Points :: ' + str(fullPointsLeftCheekMedian_hls))
+        print('MEDIAN LEFT LUMINANCE :: ' + str(fullPointsLeftCheekMedianLuminance))
+
+        #colorsys.rgb_to_hls(fullPointsLeftCheek)
         #fullPointsLeftCheekMedianLuminance = np.max(fullPointsLeftCheekLuminance)
 
         #fullPointsLeftCheekMedian = np.median(fullPointsLeftCheek, axis=0)
@@ -159,6 +177,16 @@ def run(username, imageName, fast=False, saveStats=False):
 
         fullPointsRightCheekLuminance = colorTools.getRelativeLuminance(fullPointsRightCheek)
         fullPointsRightCheekMedianLuminance = np.median(fullPointsRightCheekLuminance)
+
+        fullPointsRightCheek_RGB = np.flip(fullPointsRightCheek, axis=1)
+        fullPointsRightCheek_RGB = fullPointsRightCheek / 255
+        fullPointsRightCheek_hls = [list(colorsys.rgb_to_hls(r, g, b)) for [r, g, b] in fullPointsRightCheek_RGB]
+        fullPointsRightCheekMedian_hls = np.median(fullPointsRightCheek_hls, axis=0)
+        print('~~~')
+        print('RIGHT FLUXISH :: ' + str(rightFluxish))
+        print('MEDIAN HLS RIGHT Full Points :: ' + str(fullPointsRightCheekMedian_hls))
+        print('MEDIAN RIGHT LUMINANCE :: ' + str(fullPointsRightCheekMedianLuminance))
+        print('---------------------')
         #fullPointsRightCheekMedianLuminance = np.max(fullPointsRightCheekLuminance)
 
         #fullPointsRightCheekMedian = np.median(fullPointsRightCheek, axis=0)
@@ -167,22 +195,22 @@ def run(username, imageName, fast=False, saveStats=False):
         #correctedFullPointsRightCheekHLS = correctHLS(np.copy(fullPointsRightCheekMedianHLS), rightFluxish)
 
 
-        halfPointsLeftCheekLuminance = colorTools.getRelativeLuminance(halfPointsLeftCheek)
-        halfPointsLeftCheekMedianLuminance = np.median(halfPointsLeftCheekLuminance)
+        #halfPointsLeftCheekLuminance = colorTools.getRelativeLuminance(halfPointsLeftCheek)
+        #halfPointsLeftCheekMedianLuminance = np.median(halfPointsLeftCheekLuminance) * 2
 
         #halfPointsLeftCheekMedian = np.median(halfPointsLeftCheek, axis=0)
         #halfPointsLeftCheekMedianHLS = colorsys.rgb_to_hls(halfPointsLeftCheekMedian[2] / 255, halfPointsLeftCheekMedian[1] / 255, halfPointsLeftCheekMedian[0] / 255)
         #correctedHalfPointsLeftCheekHLS = correctHLS(np.copy(halfPointsLeftCheekMedianHLS), leftFluxish)
 
-        halfPointsRightCheekLuminance = colorTools.getRelativeLuminance(halfPointsRightCheek)
-        halfPointsRightCheekMedianLuminance = np.median(halfPointsRightCheekLuminance)
+        #halfPointsRightCheekLuminance = colorTools.getRelativeLuminance(halfPointsRightCheek)
+        #halfPointsRightCheekMedianLuminance = np.median(halfPointsRightCheekLuminance) * 2
         #halfPointsRightCheekMedian = np.median(halfPointsRightCheek, axis=0)
         #halfPointsRightCheekMedianHLS = colorsys.rgb_to_hls(halfPointsRightCheekMedian[2] / 255, halfPointsRightCheekMedian[1] / 255, halfPointsRightCheekMedian[0] / 255)
         #correctedHalfPointsRightCheekHLS = correctHLS(np.copy(halfPointsRightCheekMedianHLS), rightFluxish)
 
-        print('As Sampled Fluxish L Left vs Right  :: ' + str(leftFluxish) + " | " + str(rightFluxish))
-        print('As Sampled Full Cheek L Left vs Right  :: ' + str(fullPointsLeftCheekMedianLuminance) + " | " + str(fullPointsRightCheekMedianLuminance))
-        print('As Sampled Half Cheek L Left vs Right  :: ' + str(halfPointsLeftCheekMedianLuminance) + " | " + str(halfPointsRightCheekMedianLuminance))
+        #print('As Sampled Fluxish L Left vs Right  :: ' + str(leftFluxish) + " | " + str(rightFluxish))
+        #print('As Sampled Full Cheek L Left vs Right  :: ' + str(fullPointsLeftCheekMedianLuminance) + " | " + str(fullPointsRightCheekMedianLuminance))
+        #print('As Sampled Half Cheek L Left vs Right  :: ' + str(halfPointsLeftCheekMedianLuminance) + " | " + str(halfPointsRightCheekMedianLuminance))
         #print('Corrected Full Cheek L Left vs Right  :: ' + str(correctedFullPointsLeftCheekHLS[1]) + " | " + str(correctedFullPointsRightCheekHLS[1]))
 
         #saveStep.saveReferenceImageBGR(fullDiffCapture.image, 'full_noWhitebalancedImage')
@@ -193,8 +221,9 @@ def run(username, imageName, fast=False, saveStats=False):
         #fullFaceMedian = np.median(fullPointsWB, axis=0)
         #halfFaceMedian = np.median(halfPointsWB, axis=0)
 
-        fullFaceMedian = np.median(fullPoints, axis=0)
-        halfFaceMedian = np.median(halfPoints, axis=0)
+        #fullPointsLeftCheekMedian = np.median(fullPointsLeftCheek)
+        #fullFaceMedian = np.median(fullPoints, axis=0)
+        #halfFaceMedian = np.median(halfPoints, axis=0)
         #saveStep.saveReferenceImageBGR(fullDiffCapture.image, 'full_WhitebalancedImage')
         #saveStep.saveReferenceImageBGR(halfDiffCapture.image, 'half_WhitebalancedImage')
 
@@ -241,30 +270,34 @@ def run(username, imageName, fast=False, saveStats=False):
         ##plotTools.plotPoints(both, [fullFaceMedian, halfFaceMedian])
         #plotTools.plotPoints(both, [line, line_fit])
 
-        print('full median face :: ' + str(fullFaceMedian))
-        print('half median face :: ' + str(halfFaceMedian))
+        #print('full median face :: ' + str(fullFaceMedian))
+        #print('half median face :: ' + str(halfFaceMedian))
 
-        sBGR_fullMedian = colorTools.convertSingle_linearValue_to_sValue(fullFaceMedian)
-        sBGR_halfMedian = colorTools.convertSingle_linearValue_to_sValue(halfFaceMedian)
-        print('full median face sBGR:: ' + str(sBGR_fullMedian))
-        print('half median face sBGR:: ' + str(sBGR_halfMedian))
+        #sBGR_fullMedian = colorTools.convertSingle_linearValue_to_sValue(fullFaceMedian)
+        #sBGR_halfMedian = colorTools.convertSingle_linearValue_to_sValue(halfFaceMedian)
+        #print('full median face sBGR:: ' + str(sBGR_fullMedian))
+        #print('half median face sBGR:: ' + str(sBGR_halfMedian))
 
         #fullMedianFacesHSV = list(colorsys.rgb_to_hsv(sBGR_fullMedian[2], sBGR_fullMedian[1], sBGR_fullMedian[0]))
-        fullMedianFacesHLS = list(colorsys.rgb_to_hls(sBGR_fullMedian[2] / 255, sBGR_fullMedian[1] / 255, sBGR_fullMedian[0] / 255))
+        #fullMedianFacesHLS = list(colorsys.rgb_to_hls(sBGR_fullMedian[2] / 255, sBGR_fullMedian[1] / 255, sBGR_fullMedian[0] / 255))
         #halfMedianFacesHSV = list(colorsys.rgb_to_hsv(sBGR_halfMedian[2], sBGR_halfMedian[1], sBGR_halfMedian[0]))
-        halfMedianFacesHLS = list(colorsys.rgb_to_hls(sBGR_halfMedian[2]/ 255, sBGR_halfMedian[1] / 255, sBGR_halfMedian[0] / 255))
+        #halfMedianFacesHLS = list(colorsys.rgb_to_hls(sBGR_halfMedian[2]/ 255, sBGR_halfMedian[1] / 255, sBGR_halfMedian[0] / 255))
 
         #print('full median face sHSV :: ' + str(fullMedianFacesHSV))
-        print('full median face sHLS :: ' + str((np.array(fullMedianFacesHLS) * [360, 100, 100]).astype('int32')))
+        #print('full median face sHLS :: ' + str((np.array(fullMedianFacesHLS) * [360, 100, 100]).astype('int32')))
         #print('half median face sHSV :: ' + str(halfMedianFacesHSV))
-        print('half median face sHLS :: ' + str((np.array(halfMedianFacesHLS) * [360, 100, 100]).astype('int32')))
+        #print('half median face sHLS :: ' + str((np.array(halfMedianFacesHLS) * [360, 100, 100]).astype('int32')))
 
         #fullMedianFacesHSV = [float(value) for value in fullMedianFacesHSV]
-        fullMedianFacesHLS = [float(value) for value in fullMedianFacesHLS]
+        #fullMedianFacesHLS = [float(value) for value in fullMedianFacesHLS]
         #halfMedianFacesHSV = [float(value) for value in halfMedianFacesHSV]
-        halfMedianFacesHLS = [float(value) for value in halfMedianFacesHLS]
+        #halfMedianFacesHLS = [float(value) for value in halfMedianFacesHLS]
 
         #return [fullMedianFacesHSV, halfMedianFacesHSV, fluxish]
-        correctedHLS = fullMedianFacesHLS#correctHLS(np.copy(fullMedianFacesHLS), fluxish)
+        #correctedHLS = fullMedianFacesHLS#correctHLS(np.copy(fullMedianFacesHLS), fluxish)
 
-        return [fullMedianFacesHLS, halfMedianFacesHLS, list(correctedHLS), fluxish, [leftFluxish, fullPointsLeftCheekMedianLuminance], [rightFluxish, fullPointsRightCheekMedianLuminance]]
+        #[r, g, b] = colorsys.hls_to_rgb(hls)
+        #colorTools.getRelativeLuminance(fullPointsLeftCheek)
+
+        #return [fullMedianFacesHLS, halfMedianFacesHLS, list(correctedHLS), fluxish, [leftFluxish, halfPointsLeftCheekMedianLuminance], [rightFluxish, halfPointsRightCheekMedianLuminance]]
+        return [[leftFluxish, fullPointsLeftCheekMedianLuminance, list(fullPointsLeftCheekMedian_hls)], [rightFluxish, fullPointsRightCheekMedianLuminance, list(fullPointsRightCheekMedian_hls)]]

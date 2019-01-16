@@ -46,9 +46,9 @@ def getReflectionBB(mask):
     return cv2.boundingRect(contour)
 
 def maskReflectionBB(noFlash, halfFlash, fullFlash, x, y):
-    noFlash = colorTools.whitebalance_from_asShot_to_d65(noFlash.astype('int32'), x, y)
-    halfFlash = colorTools.whitebalance_from_asShot_to_d65(halfFlash.astype('int32'), x, y)
-    fullFlash = colorTools.whitebalance_from_asShot_to_d65(fullFlash.astype('int32'), x, y)
+    #noFlash = colorTools.whitebalance_from_asShot_to_d65(noFlash.astype('int32'), x, y)
+    #halfFlash = colorTools.whitebalance_from_asShot_to_d65(halfFlash.astype('int32'), x, y)
+    #fullFlash = colorTools.whitebalance_from_asShot_to_d65(fullFlash.astype('int32'), x, y)
 
     #cv2.imshow('half flash', halfFlash.astype('uint8'))
     #cv2.waitKey(0)
