@@ -159,7 +159,7 @@ def run(username, imageName, fast=False, saveStats=False):
         fullPointsLeftCheekMedianLuminance = np.median(fullPointsLeftCheekLuminance)
 
         fullPointsLeftCheek_RGB = np.flip(fullPointsLeftCheek, axis=1)
-        fullPointsLeftCheek_RGB = fullPointsLeftCheek / 255
+        fullPointsLeftCheek_RGB = fullPointsLeftCheek_RGB / 255
         fullPointsLeftCheek_hls = [list(colorsys.rgb_to_hls(r, g, b)) for [r, g, b] in fullPointsLeftCheek_RGB]
         fullPointsLeftCheekMedian_hls = np.median(fullPointsLeftCheek_hls, axis=0)
         print('---------------------')
@@ -179,7 +179,7 @@ def run(username, imageName, fast=False, saveStats=False):
         fullPointsRightCheekMedianLuminance = np.median(fullPointsRightCheekLuminance)
 
         fullPointsRightCheek_RGB = np.flip(fullPointsRightCheek, axis=1)
-        fullPointsRightCheek_RGB = fullPointsRightCheek / 255
+        fullPointsRightCheek_RGB = fullPointsRightCheek_RGB / 255
         fullPointsRightCheek_hls = [list(colorsys.rgb_to_hls(r, g, b)) for [r, g, b] in fullPointsRightCheek_RGB]
         fullPointsRightCheekMedian_hls = np.median(fullPointsRightCheek_hls, axis=0)
         print('~~~')
