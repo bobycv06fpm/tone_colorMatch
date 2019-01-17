@@ -48,8 +48,7 @@ def correctHLS(hls, luminance, fluxish):
 
     return hls
 
-
-def run(username, imageName, fast=False, saveStats=False):
+def run(username, imageName, fast=False, saveStats=False, failOnError=True):
     #saveStep.resetLogFile(username, imageName)
     saveStep = Save(username, imageName)
     saveStep.resetLogFile()
@@ -63,7 +62,13 @@ def run(username, imageName, fast=False, saveStats=False):
     fullFlashCapture = Capture('Full Flash', fullFlashImage, fullFlashMetadata)
 
     print('Cropping and Aligning')
-    alignImages.cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture)
+    try:
+        alignImages.cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture)
+    except Exception as e:
+        #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
+        print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
+        return [imageName, False]
+        
     print('Done Cropping and aligning')
 
     partialMask = np.logical_or(noFlashCapture.mask, halfFlashCapture.mask)
@@ -125,7 +130,13 @@ def run(username, imageName, fast=False, saveStats=False):
     noFlashCapture.landmarks = halfFlashCapture.landmarks
     fullFlashCapture.landmarks = halfFlashCapture.landmarks
 
-    [reflectionValue, leftFluxish, rightFluxish] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep)
+    try:
+        [reflectionValue, leftFluxish, rightFluxish] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep)
+    except Exception as err:
+        #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
+        print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
+        return [imageName, False]
+
     fluxish = (leftFluxish + rightFluxish) / 2
     print("Reflection Value:: " + str(reflectionValue))
     print("Fluxish :: " + str(fluxish))
@@ -142,10 +153,10 @@ def run(username, imageName, fast=False, saveStats=False):
     try:
         [fullPoints, fullPointsLeftCheek, fullPointsRightCheek] = extractMask(fullDiffCapture, saveStep)
         [halfPoints, halfPointsLeftCheek, halfPointsRightCheek] = extractMask(halfDiffCapture, saveStep)
-    except NameError as err:
-        #print('error extracting left side of face')
-        #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting left side of face', err))
-        raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
+    except Exception as err:
+        #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
+        print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
+        return [imageName, False]
     else:
         #fullFaceMedian = np.median(fullPoints, axis=0)
         #halfFaceMedian = np.median(halfPoints, axis=0)
@@ -300,4 +311,4 @@ def run(username, imageName, fast=False, saveStats=False):
         #colorTools.getRelativeLuminance(fullPointsLeftCheek)
 
         #return [fullMedianFacesHLS, halfMedianFacesHLS, list(correctedHLS), fluxish, [leftFluxish, halfPointsLeftCheekMedianLuminance], [rightFluxish, halfPointsRightCheekMedianLuminance]]
-        return [[leftFluxish, fullPointsLeftCheekMedianLuminance, list(fullPointsLeftCheekMedian_hls)], [rightFluxish, fullPointsRightCheekMedianLuminance, list(fullPointsRightCheekMedian_hls)]]
+        return [imageName, True, [[leftFluxish, fullPointsLeftCheekMedianLuminance, list(fullPointsLeftCheekMedian_hls)], [rightFluxish, fullPointsRightCheekMedianLuminance, list(fullPointsRightCheekMedian_hls)]]]

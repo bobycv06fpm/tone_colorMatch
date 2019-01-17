@@ -26,22 +26,32 @@ filteredUserDirectories = [o for o in userDirectories if int(re.search( r'[0-9]+
 
 print('filted user directories :: ' + str(filteredUserDirectories))
 
-faceColors = []
+#faceColors = []
+#
+#for imageName in filteredUserDirectories:
+#    print('Image Name :: ' + str(imageName))
+#    try:
+#        result = runSteps.run(user, imageName, fast=False, saveStats=False)
+#    except Exception as e:
+#        print('Error Processing ' + str(imageName) + ' | ' + str(e))
+#    else:
+#        print('result :: ' + str(result))
+#        faceColors.append([imageName, result])
 
-for imageName in filteredUserDirectories:
-    print('Image Name :: ' + str(imageName))
+allImageArgs = [(user, imageName) for imageName in filteredUserDirectories]
+
+errors = []
+with mp.Pool() as pool:
+    faceColors = pool.starmap_async(runSteps.run, allImageArgs)
+    print('\t\tDONE!\t\t')
     try:
-        result = runSteps.run(user, imageName, fast=False, saveStats=False)
-    except Exception as e:
-        print('Error Processing ' + str(imageName) + ' | ' + str(e))
+        results = faceColors.get()
+    except Exception as err:
+        print('Uncaught Error :: {}'.format(err))
     else:
-        print('result :: ' + str(result))
-        faceColors.append([imageName, result])
-
-faceColorsJson = json.dumps(faceColors)
-
-with open('faceColors.json', 'w') as f:
-    f.write(faceColorsJson)
-
-os.chmod('faceColors.json', 0o777)
-
+        faceColorsJson = json.dumps(results)
+        
+        with open('faceColors.json', 'w') as f:
+            f.write(faceColorsJson)
+        
+        os.chmod('faceColors.json', 0o777)

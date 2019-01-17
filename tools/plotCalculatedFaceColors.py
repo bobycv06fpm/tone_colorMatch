@@ -25,13 +25,16 @@ perSideLightnessFluxish = []
 
 faceColors = sorted(faceColors, key = sortBy) 
 
-for (imageName, faceColor) in faceColors:
-    if imageName in blacklist:
+for faceColor in faceColors:
+    imageName = faceColor[0]
+    noError = faceColor[1]
+    if (imageName in blacklist) or not noError:
     #if imageName not in whitelist:
         continue
 
+
     #[fullFlash, halfFlash, corrected, fluxish, leftSide, rightSide] = faceColor
-    [[leftFluxish, leftLuminance, leftHLS], [rightFluxish, rightLuminance, rightHLS]] = faceColor
+    [[leftFluxish, leftLuminance, leftHLS], [rightFluxish, rightLuminance, rightHLS]] = faceColor[2]
 
     #print(imageName + ' :: ' +str(fullFlash) + '\t| ' + str(fluxish))
     #print(imageName + ' :: ' +str(leftSide) + '\t| ' + str(rightSide))

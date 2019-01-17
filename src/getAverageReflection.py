@@ -40,6 +40,10 @@ def getReflectionBB(mask):
     img = mask.astype('uint8') * 255
     im2, contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     areas = [cv2.contourArea(c) for c in contours]
+    if not areas:
+        print("NO REFLECTION FOUND")
+        raise NameError('NO REFLECTION FOUND')
+
     max_index = np.argmax(areas)
     contour = contours[max_index]
 
