@@ -203,15 +203,15 @@ def maskReflectionBB(noFlash, halfFlash, fullFlash):
 #    return stretched
 
 #def getEyeWidths(fullFlashCapture, leftEyeOffsets, leftEyeGreyReflectionMask, rightEyeOffsets, rightEyeGreyReflectionMask):
-#    fullFlashEyeStripCoords = np.array(fullFlashCapture.landmarks.getEyeStripBB())
+#    halfFlashEyeStripCoords = np.array(fullFlashCapture.landmarks.getEyeStripBB())
 #
-#    eyeStripCoordDiff_left = np.array(fullFlashLeftEyeCoord) - fullFlashEyeStripCoords[0:2]
-#    eyeStripCoordDiff_right = np.array(fullFlashRightEyeCoord) - fullFlashEyeStripCoords[0:2]
+#    eyeStripCoordDiff_left = np.array(fullFlashLeftEyeCoord) - halfFlashEyeStripCoords[0:2]
+#    eyeStripCoordDiff_right = np.array(fullFlashRightEyeCoord) - halfFlashEyeStripCoords[0:2]
 #
-#    (x, y, w, h) = fullFlashEyeStripCoords
-#    fullFlashEyeStripXStart = x
-#    fullFlashEyeStripXEnd = x + w
-#    fullFlashEyeStrip = fullFlashCapture.image[y:y+h, x:x+w]
+#    (x, y, w, h) = halfFlashEyeStripCoords
+#    halfFlashEyeStripXStart = x
+#    halfFlashEyeStripXEnd = x + w
+#    halfFlashEyeStrip = fullFlashCapture.image[y:y+h, x:x+w]
 #
 #    eyeStripCoordDiff_left += leftEyeOffsets[2]
 #    eyeStripCoordDiff_right += rightEyeOffsets[2]
@@ -255,15 +255,15 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     #saveStep.saveReferenceImageBGR(leftRemainderMask, 'Left Remainder Eye Mask')
     #saveStep.saveReferenceImageBGR(rightRemainderMask, 'Right Remainder Eye Mask')
 
-    fullFlashEyeStripCoords = np.array(fullFlashCapture.landmarks.getEyeStripBB())
-    (x, y, w, h) = fullFlashEyeStripCoords
-    fullFlashEyeStripXStart = x
-    fullFlashEyeStripXEnd = x + w
-    #fullFlashEyeStrip = fullFlashCapture.image[y:y+h, x:x+w]
-    fullFlashEyeStrip = halfFlashCapture.image[y:y+h, x:x+w]
+    halfFlashEyeStripCoords = np.array(halfFlashCapture.landmarks.getEyeStripBB())
+    (x, y, w, h) = halfFlashEyeStripCoords
+    halfFlashEyeStripXStart = x
+    halfFlashEyeStripXEnd = x + w
+    #halfFlashEyeStrip = fullFlashCapture.image[y:y+h, x:x+w]
+    halfFlashEyeStrip = halfFlashCapture.image[y:y+h, x:x+w]
 
-    eyeStripCoordDiff_left = np.array(fullFlashLeftEyeCoord) - fullFlashEyeStripCoords[0:2]
-    eyeStripCoordDiff_right = np.array(fullFlashRightEyeCoord) - fullFlashEyeStripCoords[0:2]
+    eyeStripCoordDiff_left = np.array(halfFlashLeftEyeCoord) - halfFlashEyeStripCoords[0:2]
+    eyeStripCoordDiff_right = np.array(halfFlashRightEyeCoord) - halfFlashEyeStripCoords[0:2]
 
     #(wb_x, wb_y) = halfFlashCapture.getAsShotWhiteBalance()
     #FOR REFLECITON
@@ -309,7 +309,7 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     [leftRightPoint, leftLeftPoint] = fullFlashCapture.landmarks.getLeftEyeWidthPoints()
     [rightRightPoint, rightLeftPoint] = fullFlashCapture.landmarks.getRightEyeWidthPoints()
 
-    (x, y, w, h) = fullFlashEyeStripCoords
+    (x, y, w, h) = halfFlashEyeStripCoords
 
     leftRightPoint -= [x, y]
     leftLeftPoint -= [x, y]
@@ -317,13 +317,13 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     rightRightPoint -= [x, y]
     rightLeftPoint -= [x, y]
 
-    cv2.circle(fullFlashEyeStrip, (leftRightPoint[0], leftRightPoint[1]), 5, (0, 255, 0), -1)
-    cv2.circle(fullFlashEyeStrip, (leftLeftPoint[0], leftLeftPoint[1]), 5, (0, 255, 0), -1)
-    cv2.circle(fullFlashEyeStrip, (rightRightPoint[0], rightRightPoint[1]), 5, (0, 255, 0), -1)
-    cv2.circle(fullFlashEyeStrip, (rightLeftPoint[0], rightLeftPoint[1]), 5, (0, 255, 0), -1)
-    cv2.rectangle(fullFlashEyeStrip, leftReflectionP1, leftReflectionP2, (0, 0, 255), 1)
-    cv2.rectangle(fullFlashEyeStrip, rightReflectionP1, rightReflectionP2, (0, 0, 255), 1)
-    saveStep.saveReferenceImageBGR(fullFlashEyeStrip.astype('uint8'), 'eyeStrip')
+    cv2.circle(halfFlashEyeStrip, (leftRightPoint[0], leftRightPoint[1]), 5, (0, 255, 0), -1)
+    cv2.circle(halfFlashEyeStrip, (leftLeftPoint[0], leftLeftPoint[1]), 5, (0, 255, 0), -1)
+    cv2.circle(halfFlashEyeStrip, (rightRightPoint[0], rightRightPoint[1]), 5, (0, 255, 0), -1)
+    cv2.circle(halfFlashEyeStrip, (rightLeftPoint[0], rightLeftPoint[1]), 5, (0, 255, 0), -1)
+    cv2.rectangle(halfFlashEyeStrip, leftReflectionP1, leftReflectionP2, (0, 0, 255), 1)
+    cv2.rectangle(halfFlashEyeStrip, rightReflectionP1, rightReflectionP2, (0, 0, 255), 1)
+    saveStep.saveReferenceImageBGR(halfFlashEyeStrip.astype('uint8'), 'eyeStrip')
 
     if leftClipRatio < .8:
         print("TOO MUCH CLIPPING!")
@@ -393,7 +393,11 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     leftReflectionArea = (leftReflectionWidth / averageEyeWidth) * (leftReflectionHeight / averageEyeWidth)
     rightReflectionArea = (rightReflectionWidth / averageEyeWidth) * (rightReflectionHeight / averageEyeWidth)
 
-    if (max(leftReflectionArea, rightReflectionArea) / min(leftReflectionArea, rightReflectionArea)) > 1.25:
+    reflectionWidthRatio = max(leftReflectionWidth, rightReflectionWidth) / min(leftReflectionWidth, rightReflectionWidth)
+    reflectionHeightRatio = max(leftReflectionHeight, rightReflectionHeight) / min(leftReflectionHeight, rightReflectionHeight)
+
+    #if (max(leftReflectionArea, rightReflectionArea) / min(leftReflectionArea, rightReflectionArea)) > 1.25:
+    if (reflectionWidthRatio > 1.25) or (reflectionHeightRatio > 1.25):
         raise NameError('Reflection Sizes are too different!')
 
     #averageArea = (leftReflectionArea + rightReflectionArea) / 2
