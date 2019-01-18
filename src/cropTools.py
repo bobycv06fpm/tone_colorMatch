@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 
 X = 0
 Y = 1
@@ -87,3 +88,10 @@ def cropImagesToOffsets(images, offsets):
     images = cropImagesToAxis(images, offsets[:, X], X)
     images = cropImagesToAxis(images, offsets[:, Y], Y)
     return images
+
+#TODO: ARE LANDMARKS LABLED BACKWARKS?!?! YEESH
+def cropCapturesToLandmark(captures, landmarkIndex):
+    offsetsFromZero = np.array([capture.landmarks.landmarkPoints[landmarkIndex] for capture in captures])
+    offsets = offsetsFromZero - offsetsFromZero[0]#[minXOffset, minYOffset]
+    cropToOffsets(captures, offsets)
+

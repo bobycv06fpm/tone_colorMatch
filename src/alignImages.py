@@ -422,6 +422,18 @@ def cropAndAlignEyes(noFlashEye, halfFlashEye, fullFlashEye):
 
     return [[noFlashOffset, halfFlashOffset, fullFlashOffset], [noFlashEyeCropped, halfFlashEyeCropped, fullFlashEyeCropped]]
 
+def getOffsetMagnitude(offsets):
+    offsets = np.array(offsets)
+    XOffsetMagnitude = max(offsets[:, 0]) - min(offsets[:, 0])
+    YOffsetMagnitude = max(offsets[:, 1]) - min(offsets[:, 1])
+
+    return (XOffsetMagnitude**2 + YOffsetMagnitude**2) ** 0.5
+
+def getLandmarkOffsetMagnitude(captures, landmarkIndex):
+    offsetsFromZero = np.array([capture.landmarks.landmarkPoints[landmarkIndex] for capture in captures])
+    offsets = offsetsFromZero - offsetsFromZero[0]#[minXOffset, minYOffset]
+    return getOffsetMagnitude(offsets)
+
 def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
     #(noFlashImage, noFlashShape, noFlashMask) = noFlash
     #(halfFlashImage, halfFlashShape, halfFlashMask) = halfFlash
@@ -445,6 +457,8 @@ def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
     #noFlashGrey = np.max(noFlashCapture.image, axis=2)
     #halfFlashGrey = np.max(halfFlashCapture.image, axis=2)
     #fullFlashGrey = np.max(fullFlashCapture.image, axis=2)
+
+    landmarkOffsetMagnitude = getLandmarkOffsetMagnitude([noFlashCapture, halfFlashCapture, fullFlashCapture], 25)#Users right Eye Outside Point
 
     print('one')
     noFlashGrey = np.sum(noFlashCapture.image, axis=2) / 3#.astype('uint8')
@@ -541,6 +555,14 @@ def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
     halfFlashOffset = [0, 0]#calculateOffset(preparedHalfFlashImage, preparedFullFlashImage)
     fullFlashOffset = calculateOffset(preparedFullFlashImage, preparedHalfFlashImage)
     print("Done Calculating Offset")
+
+    alignedOffsetMagnitude = getOffsetMagnitude([noFlashOffset, halfFlashOffset, fullFlashOffset])
+    offsetMagnitudeRatio = min(landmarkOffsetMagnitude, alignedOffsetMagnitude) / max(landmarkOffsetMagnitude, alignedOffsetMagnitude)
+
+    print('Landmark Vs Aligned Offset Magnitudes Ratio | values :: ' + str(offsetMagnitudeRatio) + ' | '+ str(landmarkOffsetMagnitude) + ' vs ' + str(alignedOffsetMagnitude))
+
+    if  offsetMagnitudeRatio < 0.7:
+        raise NameError('Probable Error Stacking. Alignment Magnitudes very different, Ratio :: ' + str(offsetMagnitudeRatio))
 
     print('Cropping to offsets!')
     cropTools.cropToOffsets([noFlashCapture, halfFlashCapture, fullFlashCapture], np.array([noFlashOffset, halfFlashOffset, fullFlashOffset]))
