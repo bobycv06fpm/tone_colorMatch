@@ -242,7 +242,8 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         axs[1, 1].hist(np.clip(fullPointsRightCheek_hls[:, 0], 0, 0.1), bins=bins)
         axs[2, 0].hist(fullPointsLeftCheek_hls[:, 2], bins=bins)
         axs[2, 1].hist(fullPointsRightCheek_hls[:, 2], bins=bins)
-        plt.show()
+        #plt.show()
+        saveStep.savePlot('Luminance_Hue_Saturation_hist', plt)
 
         #fullPointsRightCheekMedianLuminance = np.max(fullPointsRightCheekLuminance)
 
