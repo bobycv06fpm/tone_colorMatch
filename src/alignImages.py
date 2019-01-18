@@ -422,17 +422,17 @@ def cropAndAlignEyes(noFlashEye, halfFlashEye, fullFlashEye):
 
     return [[noFlashOffset, halfFlashOffset, fullFlashOffset], [noFlashEyeCropped, halfFlashEyeCropped, fullFlashEyeCropped]]
 
-def getOffsetMagnitude(offsets):
+def getOffsetMagnitude(offsets, imageShape):
     offsets = np.array(offsets)
-    XOffsetMagnitude = max(offsets[:, 0]) - min(offsets[:, 0])
-    YOffsetMagnitude = max(offsets[:, 1]) - min(offsets[:, 1])
+    XOffsetMagnitude = (max(offsets[:, 0]) - min(offsets[:, 0])) / imageShape[1]
+    YOffsetMagnitude = (max(offsets[:, 1]) - min(offsets[:, 1])) / imageShape[0]
 
     return (XOffsetMagnitude**2 + YOffsetMagnitude**2) ** 0.5
 
 def getLandmarkOffsetMagnitude(captures, landmarkIndex):
     offsetsFromZero = np.array([capture.landmarks.landmarkPoints[landmarkIndex] for capture in captures])
     offsets = offsetsFromZero - offsetsFromZero[0]#[minXOffset, minYOffset]
-    return getOffsetMagnitude(offsets)
+    return getOffsetMagnitude(offsets, captures[0].image.shape)
 
 def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
     #(noFlashImage, noFlashShape, noFlashMask) = noFlash
@@ -556,13 +556,12 @@ def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
     fullFlashOffset = calculateOffset(preparedFullFlashImage, preparedHalfFlashImage)
     print("Done Calculating Offset")
 
-    alignedOffsetMagnitude = getOffsetMagnitude([noFlashOffset, halfFlashOffset, fullFlashOffset])
-    offsetMagnitudeRatio = min(landmarkOffsetMagnitude, alignedOffsetMagnitude) / max(landmarkOffsetMagnitude, alignedOffsetMagnitude)
+    alignedOffsetMagnitude = getOffsetMagnitude([noFlashOffset, halfFlashOffset, fullFlashOffset], preparedFullFlashImage.shape)
 
-    print('Landmark Vs Aligned Offset Magnitudes Ratio | values :: ' + str(offsetMagnitudeRatio) + ' | '+ str(landmarkOffsetMagnitude) + ' vs ' + str(alignedOffsetMagnitude))
+    print('Landmark, Aligned values :: ' + str(landmarkOffsetMagnitude) + ' | ' + str(alignedOffsetMagnitude))
 
-    if  offsetMagnitudeRatio < 0.7:
-        raise NameError('Probable Error Stacking. Alignment Magnitudes very different, Ratio :: ' + str(offsetMagnitudeRatio))
+    if  (alignedOffsetMagnitude > 0.05) or (landmarkOffsetMagnitude > 0.05):
+        raise NameError('Probable Error Stacking. Alignment of Landmark Offset Mag is too large. Landmark Mag :: ' + str(landmarkOffsetMagnitude) + ', Alignment Mag :: ' + str(alignedOffsetMagnitude))
 
     print('Cropping to offsets!')
     cropTools.cropToOffsets([noFlashCapture, halfFlashCapture, fullFlashCapture], np.array([noFlashOffset, halfFlashOffset, fullFlashOffset]))
