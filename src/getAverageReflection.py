@@ -306,8 +306,8 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     rightReflectionValue = np.max(rightReflectionMedian)
     #END FOR REFLECTION
 
-    [leftRightPoint, leftLeftPoint] = fullFlashCapture.landmarks.getLeftEyeWidthPoints()
-    [rightRightPoint, rightLeftPoint] = fullFlashCapture.landmarks.getRightEyeWidthPoints()
+    [leftRightPoint, leftLeftPoint] = halfFlashCapture.landmarks.getLeftEyeWidthPoints()
+    [rightRightPoint, rightLeftPoint] = halfFlashCapture.landmarks.getRightEyeWidthPoints()
 
     (x, y, w, h) = halfFlashEyeStripCoords
 
@@ -317,13 +317,14 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     rightRightPoint -= [x, y]
     rightLeftPoint -= [x, y]
 
+    halfFlashEyeStrip = halfFlashEyeStrip.astype('uint8').copy()
     cv2.circle(halfFlashEyeStrip, (leftRightPoint[0], leftRightPoint[1]), 5, (0, 255, 0), -1)
     cv2.circle(halfFlashEyeStrip, (leftLeftPoint[0], leftLeftPoint[1]), 5, (0, 255, 0), -1)
     cv2.circle(halfFlashEyeStrip, (rightRightPoint[0], rightRightPoint[1]), 5, (0, 255, 0), -1)
     cv2.circle(halfFlashEyeStrip, (rightLeftPoint[0], rightLeftPoint[1]), 5, (0, 255, 0), -1)
     cv2.rectangle(halfFlashEyeStrip, leftReflectionP1, leftReflectionP2, (0, 0, 255), 1)
     cv2.rectangle(halfFlashEyeStrip, rightReflectionP1, rightReflectionP2, (0, 0, 255), 1)
-    saveStep.saveReferenceImageBGR(halfFlashEyeStrip.astype('uint8'), 'eyeStrip')
+    saveStep.saveReferenceImageBGR(halfFlashEyeStrip, 'eyeStrip')
 
     if leftClipRatio < .8:
         print("TOO MUCH CLIPPING!")

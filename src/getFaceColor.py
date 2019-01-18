@@ -29,10 +29,10 @@ fast = strToBool(args["fast"])
 benchmark = strToBool(args["benchmark"])
 baseline = strToBool(args["baseline"])
 save = strToBool(args["save"])
-
+failOnError = True
 
 if not baseline:
-    error = runSteps.run(username, imageName, fast, save)
+    error = runSteps.run(username, imageName, fast, save, failOnError)
 
 if error is None:
     print('Done getting face color')

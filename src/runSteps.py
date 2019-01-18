@@ -14,7 +14,7 @@ import numpy as np
 import thresholdMask
 import math
 #from scipy import ndimage
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 #import landmarkPoints
 from capture import Capture 
 
@@ -48,7 +48,7 @@ def correctHLS(hls, luminance, fluxish):
 
     return hls
 
-def run(username, imageName, fast=False, saveStats=False, failOnError=True):
+def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #saveStep.resetLogFile(username, imageName)
     saveStep = Save(username, imageName)
     saveStep.resetLogFile()
@@ -74,9 +74,11 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=True):
     try:
         alignImages.cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture)
     except Exception as err:
-        print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
-        #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
-        return [imageName, False]
+        if failOnError:
+            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
+        else:
+            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
+            return [imageName, False]
         
     print('Done Cropping and aligning')
 
@@ -161,9 +163,11 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=True):
     try:
         [reflectionValue, leftFluxish, rightFluxish] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep)
     except Exception as err:
-        print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
-        #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
-        return [imageName, False]
+        if failOnError:
+            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
+        else:
+            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
+            return [imageName, False]
 
     fluxish = (leftFluxish + rightFluxish) / 2
     print("Reflection Value:: " + str(reflectionValue))
@@ -183,9 +187,11 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=True):
         [fullPoints, fullPointsLeftCheek, fullPointsRightCheek] = extractMask(fullDiffCapture, saveStep)
         [halfPoints, halfPointsLeftCheek, halfPointsRightCheek] = extractMask(halfDiffCapture, saveStep)
     except Exception as err:
-        #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
-        print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
-        return [imageName, False]
+        if failOnError:
+            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
+        else:
+            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
+            return [imageName, False]
     else:
         #fullFaceMedian = np.median(fullPoints, axis=0)
         #halfFaceMedian = np.median(halfPoints, axis=0)
@@ -200,7 +206,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=True):
 
         fullPointsLeftCheek_RGB = np.flip(fullPointsLeftCheek, axis=1)
         fullPointsLeftCheek_RGB = fullPointsLeftCheek_RGB / 255
-        fullPointsLeftCheek_hls = [list(colorsys.rgb_to_hls(r, g, b)) for [r, g, b] in fullPointsLeftCheek_RGB]
+        fullPointsLeftCheek_hls = np.array([list(colorsys.rgb_to_hls(r, g, b)) for [r, g, b] in fullPointsLeftCheek_RGB])
         fullPointsLeftCheekMedian_hls = np.median(fullPointsLeftCheek_hls, axis=0)
         print('---------------------')
         print('LEFT FLUXISH :: ' + str(leftFluxish))
@@ -220,13 +226,24 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=True):
 
         fullPointsRightCheek_RGB = np.flip(fullPointsRightCheek, axis=1)
         fullPointsRightCheek_RGB = fullPointsRightCheek_RGB / 255
-        fullPointsRightCheek_hls = [list(colorsys.rgb_to_hls(r, g, b)) for [r, g, b] in fullPointsRightCheek_RGB]
+        fullPointsRightCheek_hls = np.array([list(colorsys.rgb_to_hls(r, g, b)) for [r, g, b] in fullPointsRightCheek_RGB])
         fullPointsRightCheekMedian_hls = np.median(fullPointsRightCheek_hls, axis=0)
         print('~~~')
         print('RIGHT FLUXISH :: ' + str(rightFluxish))
         print('MEDIAN HLS RIGHT Full Points :: ' + str(fullPointsRightCheekMedian_hls))
         print('MEDIAN RIGHT LUMINANCE :: ' + str(fullPointsRightCheekMedianLuminance))
         print('---------------------')
+
+        bins = 50
+        fig, axs = plt.subplots(3, 2, sharey=True, tight_layout=True)
+        axs[0, 0].hist(fullPointsLeftCheekLuminance, bins=bins)
+        axs[0, 1].hist(fullPointsRightCheekLuminance, bins=bins)
+        axs[1, 0].hist(np.clip(fullPointsLeftCheek_hls[:, 0], 0, 0.1), bins=bins)   #Watch for clipping...
+        axs[1, 1].hist(np.clip(fullPointsRightCheek_hls[:, 0], 0, 0.1), bins=bins)
+        axs[2, 0].hist(fullPointsLeftCheek_hls[:, 2], bins=bins)
+        axs[2, 1].hist(fullPointsRightCheek_hls[:, 2], bins=bins)
+        plt.show()
+
         #fullPointsRightCheekMedianLuminance = np.max(fullPointsRightCheekLuminance)
 
         #fullPointsRightCheekMedian = np.median(fullPointsRightCheek, axis=0)
