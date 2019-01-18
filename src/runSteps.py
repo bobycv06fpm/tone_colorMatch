@@ -58,15 +58,24 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=True):
     [noFlashMetadata, halfFlashMetadata, fullFlashMetadata] = saveStep.getMetadata()
 
     noFlashCapture = Capture('No Flash', noFlashImage, noFlashMetadata)
+    noFlashCapture.whiteBalanceImageToD65()
+
     halfFlashCapture = Capture('Half Flash', halfFlashImage, halfFlashMetadata)
+    halfFlashCapture.whiteBalanceImageToD65()
+
     fullFlashCapture = Capture('Full Flash', fullFlashImage, fullFlashMetadata)
+    fullFlashCapture.whiteBalanceImageToD65()
+
+    #noFlashCapture.showImageWithLandmarks()
+    #halfFlashCapture.showImageWithLandmarks()
+    #fullFlashCapture.showImageWithLandmarks()
 
     print('Cropping and Aligning')
     try:
         alignImages.cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture)
     except Exception as e:
-        #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
         print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
+        raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
         return [imageName, False]
         
     print('Done Cropping and aligning')
@@ -94,21 +103,40 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=True):
     #END NOTE
 
     print('Testing Linearity')
-    howLinear = np.abs((2 * halfFlashCapture.image.astype('int32')) - (fullFlashCapture.image.astype('int32') + noFlashCapture.image.astype('int32')))
+    #howLinear = np.abs((2 * halfFlashCapture.image) - (fullFlashCapture.image + noFlashCapture.image))
+    print('Subtracting Base from Flash')
+    halfDiffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
+    #halfDiffImageBlur = cv2.GaussianBlur(halfDiffImage, (25, 25), 0)
+    #halfDiffImageBlur = cv2.medianBlur(halfDiffImage, 9)
+
+    fullDiffImage = fullFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
+    #fullDiffImageBlur = cv2.GaussianBlur(fullDiffImage, (25, 25), 0)
+    #fullDiffImageBlur = cv2.medianBlur(fullDiffImage, 9)
+
+    howLinear = np.abs((2 * halfDiffImage) - fullDiffImage)
+    fullDiffImage[fullDiffImage == 0] = 1
+    percentError = howLinear / fullDiffImage
+    perSubPixelMaxError = np.max(percentError, axis=2)
+    nonLinearMask = perSubPixelMaxError > .10
+    #nonLinearMask = perSubPixelMaxError > .05
+
+    #cv2.imshow('All Points mask', allPointsMask.astype('uint8') * 255)
+    #cv2.imshow('Non Linear Mask', nonLinearMask.astype('uint8') * 255)
+    #cv2.waitKey(0)
+
     #TODO: Compare Subpixel nonlinearity with full pixel nonlinearity....
     #howLinearSum = np.sum(howLinear, axis=2)
-    howLinearMax = np.max(howLinear, axis=2)
-    nonLinearMask = howLinearMax > 6#8 #12
+    #nonLinearMask = howLinearMax > 6#8 #12
 
     allPointsMask = np.logical_or(allPointsMask, nonLinearMask)
 
-    print('Subtracting Base from Flash')
-    fullDiffImage = fullFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
-    halfDiffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
+    #fullDiffImage = fullFlashCapture.image - noFlashCapture.image
+    #halfDiffImage = halfFlashCapture.image - noFlashCapture.image
 
     #print('Diff Image :: ' + str(diffImage))
     #noMask = np.zeros(allPointsMask.shape).astype('bool')
     #fullDiffCapture = Capture('Diff', fullDiffImage, fullFlashCapture.metadata, noMask)
+
     fullDiffCapture = Capture('Diff', fullDiffImage, fullFlashCapture.metadata, allPointsMask)
     #halfDiffCapture = Capture('Diff', halfDiffImage, halfFlashCapture.metadata, noMask)
     halfDiffCapture = Capture('Diff', halfDiffImage, halfFlashCapture.metadata, allPointsMask)
@@ -120,7 +148,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=True):
     if not fast:
         print('Saving Step 1')
         #saveStep.saveShapeStep(username, imageName, imageShape, 1)
-        saveStep.saveImageStep(fullDiffCapture.image, 1)
+        saveStep.saveImageStep(fullDiffCapture.getClippedImage(), 1)
         saveStep.saveMaskStep(allPointsMask, 1, 'clippedMask')
 
     #alignImages.alignEyes(noFlashCapture, halfFlashCapture, fullFlashCapture)
@@ -133,8 +161,8 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=True):
     try:
         [reflectionValue, leftFluxish, rightFluxish] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep)
     except Exception as err:
-        #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
         print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
+        raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
         return [imageName, False]
 
     fluxish = (leftFluxish + rightFluxish) / 2
@@ -142,19 +170,20 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=True):
     print("Fluxish :: " + str(fluxish))
     #diffCapture.show()
 
-    saveStep.saveReferenceImageBGR(fullDiffCapture.image, 'full_noWhitebalancedImage')
-    saveStep.saveReferenceImageBGR(halfDiffCapture.image, 'half_noWhitebalancedImage')
+    saveStep.saveReferenceImageBGR(fullDiffCapture.getClippedImage(), 'full_noWhitebalancedImage')
+    saveStep.saveReferenceImageBGR(halfDiffCapture.getClippedImage(), 'half_noWhitebalancedImage')
+
     colorTools.whitebalanceBGR(fullDiffCapture, reflectionValue)
     colorTools.whitebalanceBGR(halfDiffCapture, reflectionValue)
 
-    saveStep.saveReferenceImageBGR(fullDiffCapture.image, 'full_WhitebalancedImage')
-    saveStep.saveReferenceImageBGR(halfDiffCapture.image, 'half_WhitebalancedImage')
+    saveStep.saveReferenceImageBGR(fullDiffCapture.getClippedImage(), 'full_WhitebalancedImage')
+    saveStep.saveReferenceImageBGR(halfDiffCapture.getClippedImage(), 'half_WhitebalancedImage')
 
     try:
         [fullPoints, fullPointsLeftCheek, fullPointsRightCheek] = extractMask(fullDiffCapture, saveStep)
         [halfPoints, halfPointsLeftCheek, halfPointsRightCheek] = extractMask(halfDiffCapture, saveStep)
     except Exception as err:
-        #raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
+        raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
         print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
         return [imageName, False]
     else:

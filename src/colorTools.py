@@ -286,17 +286,17 @@ def convertSingle_linearValue_to_sValue(point):
 def whitebalanceBGR(capture, wb):
     targetValue = min(wb)
     wbMultiplier = [targetValue, targetValue, targetValue] / wb
-    capture.image = capture.image.astype('int32') * wbMultiplier
+    capture.image = (capture.image * wbMultiplier).astype('uint16')
 
 def whitebalanceBGRImage(image, wb):
     targetValue = min(wb)
     wbMultiplier = [targetValue, targetValue, targetValue] / wb
-    return image.astype('int32') * wbMultiplier
+    return (image * wbMultiplier).astype('uint16')
 
 def whitebalanceBGRPoints(points, wb):
     targetValue = min(wb)
     wbMultiplier = [targetValue, targetValue, targetValue] / wb
-    return points.astype('int32') * wbMultiplier
+    return (points * wbMultiplier).astype('uint16')
 
 def getRelativeLuminance(points):
     points = np.array(points)

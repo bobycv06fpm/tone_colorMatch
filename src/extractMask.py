@@ -68,7 +68,8 @@ def extractMask(capture, saveStep):
     rightCheekClippedPixelRatio = rightCheekPoints.size / unmaskedRightCheekPoints.size
     print('RIGHT CHEEK Clipping Ratio :: ' + str(rightCheekClippedPixelRatio))
 
-    cutoff = 0.2
+    #cutoff = 0.2
+    cutoff = 0.1
     if leftCheekClippedPixelRatio < cutoff:
         raise NameError('LEFT: Not enough clean non-clipped pixels. Ratio :: ' + str(leftCheekClippedPixelRatio))
 
@@ -78,7 +79,7 @@ def extractMask(capture, saveStep):
     #img = cv2.resize(cheek_masked_image.astype('uint8'), (0, 0), fx=1/3, fy=1/3)
     #cv2.imshow('cheek masked', img)
     #cv2.waitKey(0)
-    saveStep.saveReferenceImageBGR(maskedImage, capture.name + '_masked')
+    saveStep.saveReferenceImageBGR(maskedImage.astype('uint8'), capture.name + '_masked')
 
     return [np.array(maskedPoints), np.array(leftCheekPoints), np.array(rightCheekPoints)]
 
