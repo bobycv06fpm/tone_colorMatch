@@ -234,6 +234,19 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         print('MEDIAN RIGHT LUMINANCE :: ' + str(fullPointsRightCheekMedianLuminance))
         print('---------------------')
 
+        fig, axs = plt.subplots(2, 3, sharey=False, tight_layout=True)
+        size = 5
+        axs[0, 0].scatter(fullPointsLeftCheekLuminance, fullPointsLeftCheek_hls[:, 2], size, (1, 0, 0))
+        axs[1, 0].scatter(fullPointsRightCheekLuminance, fullPointsRightCheek_hls[:, 2], size, (1, 0, 0))
+
+        axs[0, 1].scatter(fullPointsLeftCheekLuminance, np.clip(fullPointsLeftCheek_hls[:, 0], 0, 0.1), size, (1, 0, 0))
+        axs[1, 1].scatter(fullPointsRightCheekLuminance, np.clip(fullPointsRightCheek_hls[:, 0], 0, 0.1), size, (1, 0, 0))
+
+        axs[0, 2].scatter(np.clip(fullPointsLeftCheek_hls[:, 0], 0, 0.1), fullPointsLeftCheek_hls[:, 2], size, (1, 0, 0))
+        axs[1, 2].scatter(np.clip(fullPointsRightCheek_hls[:, 0], 0, 0.1), fullPointsRightCheek_hls[:, 2], size, (1, 0, 0))
+        #plt.show()
+        saveStep.savePlot('Luminance_Hue_Saturation_Scatter', plt)
+
         bins = 50
         fig, axs = plt.subplots(3, 2, sharey=True, tight_layout=True)
         axs[0, 0].hist(fullPointsLeftCheekLuminance, bins=bins)
