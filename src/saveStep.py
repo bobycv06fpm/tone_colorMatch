@@ -35,6 +35,16 @@ class Save:
             os.makedirs(path)
             os.chmod(path, 0o777)
 
+    def deleteReference(self):
+        path = self.referencePathBuilder()
+
+        if os.path.isdir(path):
+            for fileName in os.listdir(path):
+                fileToRemove = os.path.join(path, fileName)
+                print('Removing :: ' + str(fileToRemove))
+                os.remove(fileToRemove)
+
+#userDirectories = [o for o in os.listdir(userPath) if os.path.isdir(os.path.join(userPath, o))]
 
     #def touchBenchmark(username, fileName):
     #    path = benchmarkPathBuilder(username, fileName)

@@ -52,6 +52,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #saveStep.resetLogFile(username, imageName)
     saveStep = Save(username, imageName)
     saveStep.resetLogFile()
+    saveStep.deleteReference()
     images = loadImages(username, imageName)
 
     [noFlashImage, halfFlashImage, fullFlashImage] = images
