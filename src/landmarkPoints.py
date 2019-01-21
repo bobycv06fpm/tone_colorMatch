@@ -238,13 +238,15 @@ class Landmarks:
 
     def getForeheadPoints(self):
         bottomY = min(self.landmarkPoints[11:19, 1]) #Bottom Row of forehead sample
+        bottomPointY = max(self.landmarkPoints[11:19, 1]) #Point between eyebrows
         rightX = self.landmarkPoints[22, 0]
         leftX = self.landmarkPoints[25, 0]
+        middleX = rightX + ((leftX - rightX) / 2)
 
         sideLength = leftX - rightX
-        topY = bottomY + sideLength
+        topY = bottomY + ((1/3) * sideLength)
 
-        boundingBox = np.array([[rightX, bottomY], [leftX, bottomY], [rightX, topY], [leftX, topY]]).astype('int32')
+        boundingBox = np.array([[rightX, bottomY], [leftX, bottomY], [rightX, topY], [leftX, topY], [middleX, bottomPointY]]).astype('int32')
         return boundingBox
 
     def getLeftCheekPoints(self):
@@ -259,8 +261,12 @@ class Landmarks:
         outterNose = self.landmarkPoints[38]
         outterLip = self.landmarkPoints[45]
         outterEye = self.landmarkPoints[28]
+        lowerNose = self.landmarkPoints[33]
 
-        boundingPoints = np.array([[outterNose[0], midNoseY], [outterEye[0], midNoseY], outterNose, outterLip]).astype('int32')
+        bottomPointX = outterEye[0] + ((outterLip[0] - outterEye[0]) / 2)
+        bottomPointY = outterNose[1] + ((outterLip[1] - outterNose[1]) / 2)
+
+        boundingPoints = np.array([[outterNose[0], midNoseY], [bottomPointX, lowerNose[1]], outterNose, [bottomPointX, bottomPointY]]).astype('int32')
         return boundingPoints
 
     def getRightCheekPoints(self):
@@ -275,8 +281,12 @@ class Landmarks:
         outterNose = self.landmarkPoints[34]
         outterLip = self.landmarkPoints[39]
         outterEye = self.landmarkPoints[19]
+        lowerNose = self.landmarkPoints[33]
 
-        boundingPoints = np.array([[outterNose[0], midNoseY], [outterEye[0], midNoseY], outterNose, outterLip]).astype('int32')
+        bottomPointX = outterEye[0] + ((outterLip[0] - outterEye[0]) / 2)
+        bottomPointY = outterNose[1] + ((outterLip[1] - outterNose[1]) / 2)
+
+        boundingPoints = np.array([[outterNose[0], midNoseY], [bottomPointX, lowerNose[1]], outterNose, [bottomPointX, bottomPointY]]).astype('int32')
         return boundingPoints
 
     def getChinPoints(self):
@@ -285,7 +295,13 @@ class Landmarks:
         topY = self.landmarkPoints[47][1]
         bottomY = min([self.landmarkPoints[4, 1], self.landmarkPoints[6, 1]])
 
-        boundingBox = np.array([[rightX, topY], [leftX, topY], [rightX, bottomY], [leftX, bottomY]]).astype('int32')
+        height = (bottomY - topY) * (2/3)
+        topY = bottomY - height
+
+        middleX = leftX + ((rightX - leftX) / 2)
+        middleY = topY + ((bottomY - topY) / 2)
+
+        boundingBox = np.array([[rightX, topY], [rightX, middleY], [leftX, topY], [leftX, middleY], [middleX, bottomY]]).astype('int32')
         return boundingBox
 
     #def getFacePolygons(self):
