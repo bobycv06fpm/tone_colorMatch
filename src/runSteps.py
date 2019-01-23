@@ -175,9 +175,9 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
             print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
             return [imageName, False]
 
-    fluxish = (leftFluxish + rightFluxish) / 2
+    averageFluxish = (leftFluxish + rightFluxish) / 2
     print("Reflection Value:: " + str(reflectionValue))
-    print("Fluxish :: " + str(fluxish))
+    print("Fluxish :: " + str(averageFluxish))
     #diffCapture.show()
 
     saveStep.saveReferenceImageBGR(fullDiffCapture.getClippedImage(), 'full_noWhitebalancedImage')
@@ -234,7 +234,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
 
         print('~~~')
 
-        #fullPointsChin = fullPointsChin / fluxish
+        #fullPointsChin = fullPointsChin / averageFluxish
         fullPointsChinLuminance = colorTools.getRelativeLuminance(fullPointsChin)
         fullPointsChinIntensity = np.mean(fullPointsChin, axis=1)
         fullPointsChinMedianLuminance = np.median(fullPointsChinLuminance)
@@ -250,7 +250,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
 
         print('~~~')
 
-        #fullPointsForehead = fullPointsForehead / fluxish
+        #fullPointsForehead = fullPointsForehead / averageFluxish
         fullPointsForeheadLuminance = colorTools.getRelativeLuminance(fullPointsForehead)
         fullPointsForeheadIntensity = np.mean(fullPointsForehead, axis=1)
         fullPointsForeheadMedianLuminance = np.median(fullPointsForeheadLuminance)
@@ -335,117 +335,12 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         #plt.show()
         saveStep.savePlot('Luminance_Hue_Saturation_hist', plt)
 
-        #fullPointsRightCheekMedianLuminance = np.max(fullPointsRightCheekLuminance)
+        leftCheekValues = [leftFluxish, fullPointsLeftCheekMedianLuminance, list(fullPointsLeftCheekMedian_hsv), list(leftCheekLine)]
+        rightCheekValues = [rightFluxish, fullPointsRightCheekMedianLuminance, list(fullPointsRightCheekMedian_hsv), list(rightCheekLine)]
+        chinValues = [averageFluxish, fullPointsChinMedianLuminance, list(fullPointsChinMedian_hsv), list(chinLine)]
+        foreheadValues = [averageFluxish, fullPointsForeheadMedianLuminance, list(fullPointsForeheadMedian_hsv), list(foreheadLine)]
 
-        #fullPointsRightCheekMedian = np.median(fullPointsRightCheek, axis=0)
-        #fullPointsRightCheekMedianHLS = colorsys.rgb_to_hls(fullPointsRightCheekMedian[2] / 255, fullPointsRightCheekMedian[1] / 255, fullPointsRightCheekMedian[0] / 255)
-        #rightLightness = fullPointsRightCheekMedianHLS[1]
-        #correctedFullPointsRightCheekHLS = correctHLS(np.copy(fullPointsRightCheekMedianHLS), rightFluxish)
-
-
-        #fullPointsLeftCheekLuminance = colorTools.getRelativeLuminance(fullPointsLeftCheek)
-        #fullPointsLeftCheekMedianLuminance = np.median(fullPointsLeftCheekLuminance) * 2
-
-        #fullPointsLeftCheekMedian = np.median(fullPointsLeftCheek, axis=0)
-        #fullPointsLeftCheekMedianHLS = colorsys.rgb_to_hls(fullPointsLeftCheekMedian[2] / 255, fullPointsLeftCheekMedian[1] / 255, fullPointsLeftCheekMedian[0] / 255)
-        #correctedHalfPointsLeftCheekHLS = correctHLS(np.copy(fullPointsLeftCheekMedianHLS), leftFluxish)
-
-        #fullPointsRightCheekLuminance = colorTools.getRelativeLuminance(fullPointsRightCheek)
-        #fullPointsRightCheekMedianLuminance = np.median(fullPointsRightCheekLuminance) * 2
-        #fullPointsRightCheekMedian = np.median(fullPointsRightCheek, axis=0)
-        #fullPointsRightCheekMedianHLS = colorsys.rgb_to_hls(fullPointsRightCheekMedian[2] / 255, fullPointsRightCheekMedian[1] / 255, fullPointsRightCheekMedian[0] / 255)
-        #correctedHalfPointsRightCheekHLS = correctHLS(np.copy(fullPointsRightCheekMedianHLS), rightFluxish)
-
-        #print('As Sampled Fluxish L Left vs Right  :: ' + str(leftFluxish) + " | " + str(rightFluxish))
-        #print('As Sampled Full Cheek L Left vs Right  :: ' + str(fullPointsLeftCheekMedianLuminance) + " | " + str(fullPointsRightCheekMedianLuminance))
-        #print('As Sampled Half Cheek L Left vs Right  :: ' + str(fullPointsLeftCheekMedianLuminance) + " | " + str(fullPointsRightCheekMedianLuminance))
-        #print('Corrected Full Cheek L Left vs Right  :: ' + str(correctedFullPointsLeftCheekHLS[1]) + " | " + str(correctedFullPointsRightCheekHLS[1]))
-
-        #saveStep.saveReferenceImageBGR(fullDiffCapture.image, 'full_noWhitebalancedImage')
-        #saveStep.saveReferenceImageBGR(fullDiffCapture.image, 'full_noWhitebalancedImage')
-        #fullPointsWB = colorTools.whitebalanceBGRPoints(fullPoints, reflectionValue)
-        #fullPointsWB = colorTools.whitebalanceBGRPoints(fullPoints, reflectionValue)
-
-        #fullFaceMedian = np.median(fullPointsWB, axis=0)
-        #fullFaceMedian = np.median(fullPointsWB, axis=0)
-
-        #fullPointsLeftCheekMedian = np.median(fullPointsLeftCheek)
-        #fullFaceMedian = np.median(fullPoints, axis=0)
-        #fullFaceMedian = np.median(fullPoints, axis=0)
-        #saveStep.saveReferenceImageBGR(fullDiffCapture.image, 'full_WhitebalancedImage')
-        #saveStep.saveReferenceImageBGR(fullDiffCapture.image, 'full_WhitebalancedImage')
-
-        #fullPointsLeftCheekMedian = colorTools.whitebalanceBGRValue(fullPointsLeftCheekMedian, reflectionValue)
-        #fullPointsRightCheekMedian = colorTools.whitebalanceBGRValue(fullPointsRightCheekMedian, reflectionValue)
-        #fullPointsLeftCheekMedian = colorTools.whitebalanceBGRValue(fullPointsLeftCheekMedian, reflectionValue)
-        #fullPointsRightCheekMedian = colorTools.whitebalanceBGRValue(fullPointsRightCheekMedian, reflectionValue)
-
-        #plotTools.plotPoints(fullPoints)
-        #plotTools.plotPoints(fullPoints)
-        #both = np.array(list(fullPoints) + list(fullPoints))
-
-        #r = both[:, 2]
-        #g = both[:, 1]
-        #b = both[:, 0]
-        #max_b = max(b)
-
-        #b_A = np.vstack([b, np.ones(len(b))]).T
-
-        #gb = g/b
-        #gb_median = np.median(gb)
-        ##g_A = np.vstack([g, np.ones(len(g))]).T
-        #g_m, g_c = np.linalg.lstsq(b_A, g, rcond=None)[0]
+        return [imageName, True, [leftCheekValues, rightCheekValues, chinValues, foreheadValues]]
 
 
-        #rb = r/b
-        #rb_median = np.median(rb)
-        ##r_A = np.vstack([r, np.ones(len(r))]).T
-        #r_m, r_c = np.linalg.lstsq(b_A, r, rcond=None)[0]
 
-        #print('\tNaive Ratios (G/B, R/B) :: ' + str((gb_median, rb_median)))
-        #print('\tLSTSQR Coeficents (G/B, R/B) :: ' + str(((g_m, g_c), (r_m, r_c))))
-
-        #green = np.arange(max_b) * gb_median
-        #green_fit = (np.arange(max_b) * g_m) + g_c
-
-        #red = np.arange(max_b) * rb_median
-        #red_fit = (np.arange(max_b) * r_m) + r_c
-
-        #blue = np.arange(max_b)
-
-        #line = np.stack((blue, green, red), axis=-1)
-        #line_fit = np.stack((blue, green_fit, red_fit), axis=-1)
-        ##plotTools.plotPoints(both, [fullFaceMedian, fullFaceMedian])
-        #plotTools.plotPoints(both, [line, line_fit])
-
-        #print('full median face :: ' + str(fullFaceMedian))
-        #print('full median face :: ' + str(fullFaceMedian))
-
-        #sBGR_fullMedian = colorTools.convertSingle_linearValue_to_sValue(fullFaceMedian)
-        #sBGR_fullMedian = colorTools.convertSingle_linearValue_to_sValue(fullFaceMedian)
-        #print('full median face sBGR:: ' + str(sBGR_fullMedian))
-        #print('full median face sBGR:: ' + str(sBGR_fullMedian))
-
-        #fullMedianFacesHSV = list(colorsys.rgb_to_hsv(sBGR_fullMedian[2], sBGR_fullMedian[1], sBGR_fullMedian[0]))
-        #fullMedianFacesHLS = list(colorsys.rgb_to_hls(sBGR_fullMedian[2] / 255, sBGR_fullMedian[1] / 255, sBGR_fullMedian[0] / 255))
-        #fullMedianFacesHSV = list(colorsys.rgb_to_hsv(sBGR_fullMedian[2], sBGR_fullMedian[1], sBGR_fullMedian[0]))
-        #fullMedianFacesHLS = list(colorsys.rgb_to_hls(sBGR_fullMedian[2]/ 255, sBGR_fullMedian[1] / 255, sBGR_fullMedian[0] / 255))
-
-        #print('full median face sHSV :: ' + str(fullMedianFacesHSV))
-        #print('full median face sHLS :: ' + str((np.array(fullMedianFacesHLS) * [360, 100, 100]).astype('int32')))
-        #print('full median face sHSV :: ' + str(fullMedianFacesHSV))
-        #print('full median face sHLS :: ' + str((np.array(fullMedianFacesHLS) * [360, 100, 100]).astype('int32')))
-
-        #fullMedianFacesHSV = [float(value) for value in fullMedianFacesHSV]
-        #fullMedianFacesHLS = [float(value) for value in fullMedianFacesHLS]
-        #fullMedianFacesHSV = [float(value) for value in fullMedianFacesHSV]
-        #fullMedianFacesHLS = [float(value) for value in fullMedianFacesHLS]
-
-        #return [fullMedianFacesHSV, fullMedianFacesHSV, fluxish]
-        #correctedHLS = fullMedianFacesHLS#correctHLS(np.copy(fullMedianFacesHLS), fluxish)
-
-        #[r, g, b] = colorsys.hls_to_rgb(hls)
-        #colorTools.getRelativeLuminance(fullPointsLeftCheek)
-
-        #return [fullMedianFacesHLS, fullMedianFacesHLS, list(correctedHLS), fluxish, [leftFluxish, fullPointsLeftCheekMedianLuminance], [rightFluxish, fullPointsRightCheekMedianLuminance]]
-        return [imageName, True, [[leftFluxish, fullPointsLeftCheekMedianLuminance, list(fullPointsLeftCheekMedian_hsv)], [rightFluxish, fullPointsRightCheekMedianLuminance, list(fullPointsRightCheekMedian_hsv)], list(leftCheekLine), list(rightCheekLine), list(chinLine), list(foreheadLine)]]
