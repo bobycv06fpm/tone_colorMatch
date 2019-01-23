@@ -104,6 +104,6 @@ for index, path in enumerate(paths):
             HLS_point = colorsys.rgb_to_hls(*sRGB_point)
             HLS_points[index].append(np.array(HLS_point))
 
-#plotHSV()
+plotHSV()
 plotHLS()
 #plotLAB()

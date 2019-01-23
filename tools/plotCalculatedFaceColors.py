@@ -34,18 +34,18 @@ for faceColor in faceColors:
 
 
     #[fullFlash, halfFlash, corrected, fluxish, leftSide, rightSide] = faceColor
-    [[leftFluxish, leftLuminance, leftHLS], [rightFluxish, rightLuminance, rightHLS]] = faceColor[2]
+    [[leftFluxish, leftLuminance, leftHSV], [rightFluxish, rightLuminance, rightHSV]] = faceColor[2]
 
     #print(imageName + ' :: ' +str(fullFlash) + '\t| ' + str(fluxish))
     #print(imageName + ' :: ' +str(leftSide) + '\t| ' + str(rightSide))
-    print(imageName + ' - LEFT  - :: ' + str(leftFluxish) + ' | ' + str(leftLuminance) + ' | ' + str(leftHLS[0]) + ' | ' + str(leftHLS[1]) + ' | ' + str(leftHLS[2]))
-    print(imageName + ' - RIGHT - :: ' + str(rightFluxish) + ' | ' + str(rightLuminance) + ' | ' + str(rightHLS[0]) + ' | ' + str(rightHLS[1])+ ' | ' + str(rightHLS[2]))
+    print(imageName + ' - LEFT  - :: ' + str(leftFluxish) + ' | ' + str(leftLuminance) + ' | ' + str(leftHSV[0]) + ' | ' + str(leftHSV[1]) + ' | ' + str(leftHSV[2]))
+    print(imageName + ' - RIGHT - :: ' + str(rightFluxish) + ' | ' + str(rightLuminance) + ' | ' + str(rightHSV[0]) + ' | ' + str(rightHSV[1])+ ' | ' + str(rightHSV[2]))
 
     #lightnessFluxish.append(np.array([float(fullFlash[1]), float(fluxish)]))
     #correctedLightnessFluxish.append(np.array([float(corrected[1]), float(fluxish)]))
 
-    perSideLightnessFluxish.append(np.array([float(leftLuminance), float(leftFluxish), float(leftHLS[0]), float(leftHLS[1]), float(leftHLS[2])]))
-    perSideLightnessFluxish.append(np.array([float(rightLuminance), float(rightFluxish), float(rightHLS[0]), float(rightHLS[1]), float(rightHLS[2])]))
+    perSideLightnessFluxish.append(np.array([float(leftLuminance), float(leftFluxish), float(leftHSV[0]), float(leftHSV[1]), float(leftHSV[2])]))
+    perSideLightnessFluxish.append(np.array([float(rightLuminance), float(rightFluxish), float(rightHSV[0]), float(rightHSV[1]), float(rightHSV[2])]))
 
 #lightnessFluxish = np.array(lightnessFluxish)
 #correctedLightnessFluxish = np.array(correctedLightnessFluxish)
@@ -86,7 +86,7 @@ plt.suptitle("Fluxish vs Hue")
 plt.show()
 
 
-plt.scatter(perSideLightnessFluxish[:, 1], perSideLightnessFluxish[:, 4], size, (1, 0, 0))
+plt.scatter(perSideLightnessFluxish[:, 1], perSideLightnessFluxish[:, 3], size, (1, 0, 0))
 
 plt.xlabel('Fluxish')
 plt.ylabel('Saturation')
@@ -100,7 +100,7 @@ plt.show()
 #plt.suptitle("Fluxish vs Lightness")
 #plt.show()
 
-plt.scatter(perSideLightnessFluxish[:, 2], perSideLightnessFluxish[:, 4], size, (1, 0, 0))
+plt.scatter(perSideLightnessFluxish[:, 2], perSideLightnessFluxish[:, 3], size, (1, 0, 0))
 
 plt.xlabel('Hue')
 plt.ylabel('Saturation')
@@ -121,9 +121,9 @@ plt.show()
 #plt.suptitle("Saturation vs Lightness")
 #plt.show()
 #
-#plt.scatter(perSideLightnessFluxish[:, 0], perSideLightnessFluxish[:, 3], size, (1, 0, 0))
-#
-#plt.xlabel('Luminance')
-#plt.ylabel('Lightness')
-#plt.suptitle("Luminance vs Lightness")
-#plt.show()
+plt.scatter(perSideLightnessFluxish[:, 0], perSideLightnessFluxish[:, 4], size, (1, 0, 0))
+
+plt.xlabel('Luminance')
+plt.ylabel('Value')
+plt.suptitle("Luminance vs Value")
+plt.show()
