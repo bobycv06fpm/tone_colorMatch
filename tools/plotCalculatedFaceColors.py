@@ -66,6 +66,7 @@ chinStats = np.array(chinStats)
 foreheadStats = np.array(foreheadStats)
 
 #LUMINANCE VS FLUXISH
+
 fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
 
 minFluxish = min(cheekStats[:, 1])
@@ -124,8 +125,8 @@ plt.xlabel('Fluxish')
 plt.ylabel('Saturation')
 plt.show()
 
-
 #HUE VS SAT
+
 fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
 axs[0].scatter(cheekStats[:, 2], cheekStats[:, 3], size, (1, 0, 0))
 axs[0].set_title("CHEEK Hue vs Saturation")
@@ -141,6 +142,7 @@ plt.ylabel('Saturation')
 plt.show()
 
 #LUMINANCE VS VALUE
+
 fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
 axs[0].scatter(cheekStats[:, 0], cheekStats[:, 4], size, (1, 0, 0))
 axs[0].set_title("CHEEK Luminance vs Value")

@@ -52,6 +52,12 @@ def fitLine(A, B):
     A_prepped = np.vstack([A, np.ones(len(A))]).T
     return np.linalg.lstsq(A_prepped, B, rcond=None)[0]
 
+def rotateHue(hue):
+    hue = hue.copy()
+    shiftMask = hue < 2/3
+    hue[shiftMask] += 1/3
+    hue[np.logical_not(shiftMask)] -= 2/3
+    return hue
 
 def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #saveStep.resetLogFile(username, imageName)
@@ -297,10 +303,10 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         #axs[3, 0].scatter(fullPointsForeheadIntensity, fullPointsForehead_hsv[:, 1], size, (1, 0, 0))
 
         #Luminance
-        axs[0, 1].scatter(fullPointsLeftCheekLuminance, np.clip(fullPointsLeftCheek_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
-        axs[1, 1].scatter(fullPointsRightCheekLuminance, np.clip(fullPointsRightCheek_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
-        axs[2, 1].scatter(fullPointsChinLuminance, np.clip(fullPointsChin_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
-        axs[3, 1].scatter(fullPointsForeheadLuminance, np.clip(fullPointsForehead_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
+        axs[0, 1].scatter(fullPointsLeftCheekLuminance, rotateHue(fullPointsLeftCheek_hsv[:, 0]), size, (1, 0, 0))
+        axs[1, 1].scatter(fullPointsRightCheekLuminance, rotateHue(fullPointsRightCheek_hsv[:, 0]), size, (1, 0, 0))
+        axs[2, 1].scatter(fullPointsChinLuminance, rotateHue(fullPointsChin_hsv[:, 0]), size, (1, 0, 0))
+        axs[3, 1].scatter(fullPointsForeheadLuminance, rotateHue(fullPointsForehead_hsv[:, 0]), size, (1, 0, 0))
 
         #Value
         #axs[0, 1].scatter(fullPointsLeftCheek_hsv[:, 2], np.clip(fullPointsLeftCheek_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
@@ -314,10 +320,10 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         #axs[2, 1].scatter(fullPointsChinIntensity, np.clip(fullPointsChin_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
         #axs[3, 1].scatter(fullPointsForeheadIntensity, np.clip(fullPointsForehead_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
 
-        axs[0, 2].scatter(np.clip(fullPointsLeftCheek_hsv[:, 0], 0, 0.1), fullPointsLeftCheek_hsv[:, 1], size, (1, 0, 0))
-        axs[1, 2].scatter(np.clip(fullPointsRightCheek_hsv[:, 0], 0, 0.1), fullPointsRightCheek_hsv[:, 1], size, (1, 0, 0))
-        axs[2, 2].scatter(np.clip(fullPointsChin_hsv[:, 0], 0, 0.1), fullPointsChin_hsv[:, 1], size, (1, 0, 0))
-        axs[3, 2].scatter(np.clip(fullPointsForehead_hsv[:, 0], 0, 0.1), fullPointsForehead_hsv[:, 1], size, (1, 0, 0))
+        axs[0, 2].scatter(rotateHue(fullPointsLeftCheek_hsv[:, 0]), fullPointsLeftCheek_hsv[:, 1], size, (1, 0, 0))
+        axs[1, 2].scatter(rotateHue(fullPointsRightCheek_hsv[:, 0]), fullPointsRightCheek_hsv[:, 1], size, (1, 0, 0))
+        axs[2, 2].scatter(rotateHue(fullPointsChin_hsv[:, 0]), fullPointsChin_hsv[:, 1], size, (1, 0, 0))
+        axs[3, 2].scatter(rotateHue(fullPointsForehead_hsv[:, 0]), fullPointsForehead_hsv[:, 1], size, (1, 0, 0))
 
         #plt.show()
         saveStep.savePlot('Luminance_Hue_Saturation_Scatter', plt)
@@ -325,13 +331,21 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         #saveStep.savePlot('Intensity_Hue_Saturation_Scatter', plt)
 
         bins = 50
-        fig, axs = plt.subplots(3, 2, sharey=True, tight_layout=True)
+        fig, axs = plt.subplots(4, 3, sharey=False, tight_layout=True)
         axs[0, 0].hist(fullPointsLeftCheekLuminance, bins=bins)
-        axs[0, 1].hist(fullPointsRightCheekLuminance, bins=bins)
-        axs[1, 0].hist(np.clip(fullPointsLeftCheek_hsv[:, 0], 0, 0.1), bins=bins)   #Watch for clipping...
-        axs[1, 1].hist(np.clip(fullPointsRightCheek_hsv[:, 0], 0, 0.1), bins=bins)
-        axs[2, 0].hist(fullPointsLeftCheek_hsv[:, 1], bins=bins)
-        axs[2, 1].hist(fullPointsRightCheek_hsv[:, 1], bins=bins)
+        axs[1, 0].hist(fullPointsRightCheekLuminance, bins=bins)
+        axs[2, 0].hist(fullPointsChinLuminance, bins=bins)
+        axs[3, 0].hist(fullPointsForeheadLuminance, bins=bins)
+
+        axs[0, 2].hist(rotateHue(fullPointsLeftCheek_hsv[:, 0]), bins=bins)   #Watch for clipping...
+        axs[1, 2].hist(rotateHue(fullPointsRightCheek_hsv[:, 0]), bins=bins)
+        axs[2, 2].hist(rotateHue(fullPointsChin_hsv[:, 0]), bins=bins)   #Watch for clipping...
+        axs[3, 2].hist(rotateHue(fullPointsForehead_hsv[:, 0]), bins=bins)
+
+        axs[0, 1].hist(fullPointsLeftCheek_hsv[:, 1], bins=bins)
+        axs[1, 1].hist(fullPointsRightCheek_hsv[:, 1], bins=bins)
+        axs[2, 1].hist(fullPointsChin_hsv[:, 1], bins=bins)
+        axs[3, 1].hist(fullPointsForehead_hsv[:, 1], bins=bins)
         #plt.show()
         saveStep.savePlot('Luminance_Hue_Saturation_hist', plt)
 

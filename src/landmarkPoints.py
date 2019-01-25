@@ -244,7 +244,7 @@ class Landmarks:
         middleX = rightX + ((leftX - rightX) / 2)
 
         sideLength = leftX - rightX
-        topY = bottomY + ((1/3) * sideLength)
+        topY = bottomY + ((1/4) * sideLength)
 
         boundingBox = np.array([[rightX, bottomY], [leftX, bottomY], [rightX, topY], [leftX, topY], [middleX, bottomPointY]]).astype('int32')
         return boundingBox
@@ -266,7 +266,9 @@ class Landmarks:
         bottomPointX = outterEye[0] + ((outterLip[0] - outterEye[0]) / 2)
         bottomPointY = outterNose[1] + ((outterLip[1] - outterNose[1]) / 2)
 
-        boundingPoints = np.array([[outterNose[0], midNoseY], [bottomPointX, lowerNose[1]], outterNose, [bottomPointX, bottomPointY]]).astype('int32')
+        outterNoseX = outterNose[0] - ((outterNose[0] - bottomPointX) / 4)
+
+        boundingPoints = np.array([[outterNoseX, midNoseY], [bottomPointX, lowerNose[1]], [outterNoseX, outterNose[1]], [bottomPointX, bottomPointY]]).astype('int32')
         return boundingPoints
 
     def getRightCheekPoints(self):
@@ -286,7 +288,9 @@ class Landmarks:
         bottomPointX = outterEye[0] + ((outterLip[0] - outterEye[0]) / 2)
         bottomPointY = outterNose[1] + ((outterLip[1] - outterNose[1]) / 2)
 
-        boundingPoints = np.array([[outterNose[0], midNoseY], [bottomPointX, lowerNose[1]], outterNose, [bottomPointX, bottomPointY]]).astype('int32')
+        outterNoseX = outterNose[0] + ((bottomPointX - outterNose[0]) / 4)
+
+        boundingPoints = np.array([[outterNoseX, midNoseY], [bottomPointX, lowerNose[1]], [outterNoseX, outterNose[1]], [bottomPointX, bottomPointY]]).astype('int32')
         return boundingPoints
 
     def getChinPoints(self):
