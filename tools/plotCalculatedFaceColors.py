@@ -109,6 +109,38 @@ plt.xlabel('Fluxish')
 plt.ylabel('Hue')
 plt.show()
 
+#VALUE VS HUE
+
+fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
+axs[0].scatter(cheekStats[:, 4], cheekStats[:, 2], size, (1, 0, 0))
+axs[0].set_title("CHEEK Value vs Hue")
+
+axs[1].scatter(chinStats[:, 4], chinStats[:, 2], size, (1, 0, 0))
+axs[1].set_title("CHIN Value vs Hue")
+
+axs[2].scatter(foreheadStats[:, 4], foreheadStats[:, 2], size, (1, 0, 0))
+axs[2].set_title("FOREHEAD Value vs Hue")
+
+plt.xlabel('Value')
+plt.ylabel('Hue')
+plt.show()
+
+#LUMINANCE VS HUE
+
+fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
+axs[0].scatter(cheekStats[:, 0], cheekStats[:, 2], size, (1, 0, 0))
+axs[0].set_title("CHEEK Luminance vs Hue")
+
+axs[1].scatter(chinStats[:, 0], chinStats[:, 2], size, (1, 0, 0))
+axs[1].set_title("CHIN Luminance vs Hue")
+
+axs[2].scatter(foreheadStats[:, 0], foreheadStats[:, 2], size, (1, 0, 0))
+axs[2].set_title("FOREHEAD Luminance vs Hue")
+
+plt.xlabel('Luminance')
+plt.ylabel('Hue')
+plt.show()
+
 #FLUXISH VS SAT
 
 fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)

@@ -59,11 +59,109 @@ def rotateHue(hue):
     hue[np.logical_not(shiftMask)] -= 2/3
     return hue
 
+def plotZones(leftCheek, rightCheek, chin, forehead, saveStep, tag=''):
+    [leftCheek_hsv, leftCheekLuminance] = leftCheek
+    [rightCheek_hsv, rightCheekLuminance] = rightCheek
+    [chin_hsv, chinLuminance] = chin
+    [forehead_hsv, foreheadLuminance] = forehead
+
+    fig, axs = plt.subplots(4, 3, sharey=False, tight_layout=True)
+    size = 5
+
+    #Luminance
+    axs[0, 0].scatter(leftCheekLuminance, leftCheek_hsv[:, 1], size, (1, 0, 0))
+    leftCheekLine = fitLine(leftCheekLuminance, leftCheek_hsv[:, 1])
+
+    axs[1, 0].scatter(rightCheekLuminance, rightCheek_hsv[:, 1], size, (1, 0, 0))
+    rightCheekLine = fitLine(rightCheekLuminance, rightCheek_hsv[:, 1])
+
+    axs[2, 0].scatter(chinLuminance, chin_hsv[:, 1], size, (1, 0, 0))
+    chinLine = fitLine(chinLuminance, chin_hsv[:, 1])
+
+    axs[3, 0].scatter(foreheadLuminance, forehead_hsv[:, 1], size, (1, 0, 0))
+    foreheadLine = fitLine(foreheadLuminance, forehead_hsv[:, 1])
+
+    print('Lines :: ' + str(leftCheekLine) + ' | ' + str(rightCheekLine) + ' | ' + str(chinLine) + ' | ' + str(foreheadLine))
+
+    #Value
+    #axs[0, 0].scatter(leftCheek_hsv[:, 2], leftCheek_hsv[:, 1], size, (1, 0, 0))
+    #axs[1, 0].scatter(rightCheek_hsv[:, 2], rightCheek_hsv[:, 1], size, (1, 0, 0))
+    #axs[2, 0].scatter(chin_hsv[:, 2], chin_hsv[:, 1], size, (1, 0, 0))
+    #axs[3, 0].scatter(forehead_hsv[:, 2], forehead_hsv[:, 1], size, (1, 0, 0))
+
+    #Intensity
+    #axs[0, 0].scatter(leftCheekIntensity, leftCheek_hsv[:, 1], size, (1, 0, 0))
+    #axs[1, 0].scatter(rightCheekIntensity, rightCheek_hsv[:, 1], size, (1, 0, 0))
+    #axs[2, 0].scatter(chinIntensity, chin_hsv[:, 1], size, (1, 0, 0))
+    #axs[3, 0].scatter(foreheadIntensity, forehead_hsv[:, 1], size, (1, 0, 0))
+
+    #Luminance
+    axs[0, 1].scatter(leftCheekLuminance, rotateHue(leftCheek_hsv[:, 0]), size, (1, 0, 0))
+    axs[1, 1].scatter(rightCheekLuminance, rotateHue(rightCheek_hsv[:, 0]), size, (1, 0, 0))
+    axs[2, 1].scatter(chinLuminance, rotateHue(chin_hsv[:, 0]), size, (1, 0, 0))
+    axs[3, 1].scatter(foreheadLuminance, rotateHue(forehead_hsv[:, 0]), size, (1, 0, 0))
+
+    #Value
+    #axs[0, 1].scatter(leftCheek_hsv[:, 2], np.clip(leftCheek_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
+    #axs[1, 1].scatter(rightCheek_hsv[:, 2], np.clip(rightCheek_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
+    #axs[2, 1].scatter(chin_hsv[:, 2], np.clip(chin_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
+    #axs[3, 1].scatter(forehead_hsv[:, 2], np.clip(forehead_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
+
+    #Intensity
+    #axs[0, 1].scatter(leftCheekIntensity, np.clip(leftCheek_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
+    #axs[1, 1].scatter(rightCheekIntensity, np.clip(rightCheek_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
+    #axs[2, 1].scatter(chinIntensity, np.clip(chin_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
+    #axs[3, 1].scatter(foreheadIntensity, np.clip(forehead_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
+
+    axs[0, 2].scatter(rotateHue(leftCheek_hsv[:, 0]), leftCheek_hsv[:, 1], size, (1, 0, 0))
+    axs[1, 2].scatter(rotateHue(rightCheek_hsv[:, 0]), rightCheek_hsv[:, 1], size, (1, 0, 0))
+    axs[2, 2].scatter(rotateHue(chin_hsv[:, 0]), chin_hsv[:, 1], size, (1, 0, 0))
+    axs[3, 2].scatter(rotateHue(forehead_hsv[:, 0]), forehead_hsv[:, 1], size, (1, 0, 0))
+
+    #plt.show()
+    saveStep.savePlot('Luminance_Hue_Saturation_Scatter' + tag, plt)
+    #saveStep.savePlot('Value_Hue_Saturation_Scatter', plt)
+    #saveStep.savePlot('Intensity_Hue_Saturation_Scatter', plt)
+
+    bins = 50
+    fig, axs = plt.subplots(4, 3, sharey=False, tight_layout=True)
+    axs[0, 0].hist(leftCheekLuminance, bins=bins)
+    axs[1, 0].hist(rightCheekLuminance, bins=bins)
+    axs[2, 0].hist(chinLuminance, bins=bins)
+    axs[3, 0].hist(foreheadLuminance, bins=bins)
+
+    axs[0, 2].hist(rotateHue(leftCheek_hsv[:, 0]), bins=bins)   #Watch for clipping...
+    axs[1, 2].hist(rotateHue(rightCheek_hsv[:, 0]), bins=bins)
+    axs[2, 2].hist(rotateHue(chin_hsv[:, 0]), bins=bins)   #Watch for clipping...
+    axs[3, 2].hist(rotateHue(forehead_hsv[:, 0]), bins=bins)
+
+    axs[0, 1].hist(leftCheek_hsv[:, 1], bins=bins)
+    axs[1, 1].hist(rightCheek_hsv[:, 1], bins=bins)
+    axs[2, 1].hist(chin_hsv[:, 1], bins=bins)
+    axs[3, 1].hist(forehead_hsv[:, 1], bins=bins)
+    #plt.show()
+    saveStep.savePlot('Luminance_Hue_Saturation_hist' + tag, plt)
+
+    return [leftCheekLine, rightCheekLine, chinLine, foreheadLine]
+
+def convertPoints(points):
+    luminance = colorTools.getRelativeLuminance(points)
+    #intensity = np.mean(points, axis=1)
+    medianLuminance = np.median(luminance)
+
+    RGB = np.flip(points, axis=1) / 255
+    HSV = np.array([list(colorsys.rgb_to_hsv(r, g, b)) for [r, g, b] in RGB])
+
+    medianHSV = np.median(HSV, axis=0)
+
+    return [HSV, medianHSV, luminance, medianLuminance]
+
+
 def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #saveStep.resetLogFile(username, imageName)
     saveStep = Save(username, imageName)
     saveStep.resetLogFile()
-    #saveStep.deleteReference()
+    saveStep.deleteReference()
     images = loadImages(username, imageName)
 
     [noFlashImage, halfFlashImage, fullFlashImage] = images
@@ -205,156 +303,81 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
             print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
             return [imageName, False]
     else:
-        #fullPointsLeftCheek = fullPointsLeftCheek / leftFluxish
-        fullPointsLeftCheekLuminance = colorTools.getRelativeLuminance(fullPointsLeftCheek)
-        fullPointsLeftCheekIntensity = np.mean(fullPointsLeftCheek, axis=1)
-        fullPointsLeftCheekMedianLuminance = np.median(fullPointsLeftCheekLuminance)
 
-        fullPointsLeftCheek_RGB = np.flip(fullPointsLeftCheek, axis=1)
-        fullPointsLeftCheek_RGB = fullPointsLeftCheek_RGB / 255
-        #fullPointsLeftCheek_hls = np.array([list(colorsys.rgb_to_hls(r, g, b)) for [r, g, b] in fullPointsLeftCheek_RGB])
-        fullPointsLeftCheek_hsv = np.array([list(colorsys.rgb_to_hsv(r, g, b)) for [r, g, b] in fullPointsLeftCheek_RGB])
+        largestValue = np.max(fullPoints)
+        print('LARGEST VALUE :: ' + str(largestValue))
 
-        fullPointsLeftCheekMedian_hsv = np.median(fullPointsLeftCheek_hsv, axis=0)
+        scaleDivisor = largestValue / 255
+        scaledLeftFluxish = leftFluxish / scaleDivisor
+        scaledRightFluxish = rightFluxish / scaleDivisor
+        scaledAverageFluxish = averageFluxish / scaleDivisor
+
+        scaledPointsLeftCheek = fullPointsLeftCheek / scaleDivisor
+        scaledPointsRightCheek = fullPointsRightCheek / scaleDivisor
+        scaledPointsChin = fullPointsChin / scaleDivisor
+        scaledPointsForehead = fullPointsForehead / scaleDivisor
+
+        print('Unscaled :: ' + str(fullPointsLeftCheek))
+        print('Scaled :: ' + str(scaledPointsLeftCheek))
+
+
+        #CALCULATE IN LINEAR
+
+        [leftCheekHSV, leftCheekMedianHSV, leftCheekLuminance, leftCheekMedianLuminance] = convertPoints(scaledPointsLeftCheek)
+        [rightCheekHSV, rightCheekMedianHSV, rightCheekLuminance, rightCheekMedianLuminance] = convertPoints(scaledPointsRightCheek)
+        [chinHSV, chinMedianHSV, chinLuminance, chinMedianLuminance] = convertPoints(scaledPointsChin)
+        [foreheadHSV, foreheadMedianHSV, foreheadLuminance, foreheadMedianLuminance] = convertPoints(scaledPointsForehead)
+
         print('---------------------')
-        print('LEFT FLUXISH :: ' + str(leftFluxish))
-        print('MEDIAN HSV LEFT Full Points :: ' + str(fullPointsLeftCheekMedian_hsv))
-        print('MEDIAN LEFT LUMINANCE :: ' + str(fullPointsLeftCheekMedianLuminance))
-
+        print('LEFT FLUXISH :: ' + str(scaledLeftFluxish))
+        print('MEDIAN HSV LEFT Full Points :: ' + str(leftCheekMedianHSV))
+        print('MEDIAN LEFT LUMINANCE :: ' + str(leftCheekMedianLuminance))
         print('~~~')
-
-        #fullPointsRightCheek = fullPointsRightCheek / leftFluxish
-        fullPointsRightCheekLuminance = colorTools.getRelativeLuminance(fullPointsRightCheek)
-        fullPointsRightCheekIntensity = np.mean(fullPointsRightCheek, axis=1)
-        fullPointsRightCheekMedianLuminance = np.median(fullPointsRightCheekLuminance)
-
-        fullPointsRightCheek_RGB = np.flip(fullPointsRightCheek, axis=1)
-        fullPointsRightCheek_RGB = fullPointsRightCheek_RGB / 255
-        #fullPointsRightCheek_hls = np.array([list(colorsys.rgb_to_hls(r, g, b)) for [r, g, b] in fullPointsRightCheek_RGB])
-        fullPointsRightCheek_hsv = np.array([list(colorsys.rgb_to_hsv(r, g, b)) for [r, g, b] in fullPointsRightCheek_RGB])
-
-        fullPointsRightCheekMedian_hsv = np.median(fullPointsRightCheek_hsv, axis=0)
-        print('RIGHT FLUXISH :: ' + str(rightFluxish))
-        print('MEDIAN HSV RIGHT Full Points :: ' + str(fullPointsRightCheekMedian_hsv))
-        print('MEDIAN RIGHT LUMINANCE :: ' + str(fullPointsRightCheekMedianLuminance))
-
+        print('RIGHT FLUXISH :: ' + str(scaledRightFluxish))
+        print('MEDIAN HSV RIGHT Full Points :: ' + str(rightCheekMedianHSV))
+        print('MEDIAN RIGHT LUMINANCE :: ' + str(rightCheekMedianLuminance))
         print('~~~')
-
-        #fullPointsChin = fullPointsChin / averageFluxish
-        fullPointsChinLuminance = colorTools.getRelativeLuminance(fullPointsChin)
-        fullPointsChinIntensity = np.mean(fullPointsChin, axis=1)
-        fullPointsChinMedianLuminance = np.median(fullPointsChinLuminance)
-
-        fullPointsChin_RGB = np.flip(fullPointsChin, axis=1)
-        fullPointsChin_RGB = fullPointsChin_RGB / 255
-        #fullPointsChin_hls = np.array([list(colorsys.rgb_to_hls(r, g, b)) for [r, g, b] in fullPointsChin_RGB])
-        fullPointsChin_hsv = np.array([list(colorsys.rgb_to_hsv(r, g, b)) for [r, g, b] in fullPointsChin_RGB])
-
-        fullPointsChinMedian_hsv = np.median(fullPointsChin_hsv, axis=0)
-        print('MEDIAN HSV CHIN Full Points :: ' + str(fullPointsChinMedian_hsv))
-        print('MEDIAN CHIN LUMINANCE :: ' + str(fullPointsChinMedianLuminance))
-
+        print('MEDIAN HSV CHIN Full Points :: ' + str(chinMedianHSV))
+        print('MEDIAN CHIN LUMINANCE :: ' + str(chinMedianLuminance))
         print('~~~')
-
-        #fullPointsForehead = fullPointsForehead / averageFluxish
-        fullPointsForeheadLuminance = colorTools.getRelativeLuminance(fullPointsForehead)
-        fullPointsForeheadIntensity = np.mean(fullPointsForehead, axis=1)
-        fullPointsForeheadMedianLuminance = np.median(fullPointsForeheadLuminance)
-
-        fullPointsForehead_RGB = np.flip(fullPointsForehead, axis=1)
-        fullPointsForehead_RGB = fullPointsForehead_RGB / 255
-        #fullPointsForehead_hls = np.array([list(colorsys.rgb_to_hls(r, g, b)) for [r, g, b] in fullPointsForehead_RGB])
-        fullPointsForehead_hsv = np.array([list(colorsys.rgb_to_hsv(r, g, b)) for [r, g, b] in fullPointsForehead_RGB])
-
-
-        fullPointsForeheadMedian_hsv = np.median(fullPointsForehead_hsv, axis=0)
-        print('MEDIAN HSV RIGHT Full Points :: ' + str(fullPointsForeheadMedian_hsv))
-        print('MEDIAN FOREHEAD LUMINANCE :: ' + str(fullPointsForeheadMedianLuminance))
+        print('MEDIAN HSV RIGHT Full Points :: ' + str(foreheadMedianHSV))
+        print('MEDIAN FOREHEAD LUMINANCE :: ' + str(foreheadMedianLuminance))
         print('---------------------')
 
-        fig, axs = plt.subplots(4, 3, sharey=False, tight_layout=True)
-        size = 5
+        leftCheek = [leftCheekHSV, leftCheekLuminance]
+        rightCheek = [rightCheekHSV, rightCheekLuminance]
+        chin = [chinHSV, chinLuminance]
+        forehead = [foreheadHSV, foreheadLuminance]
 
-        #Luminance
-        axs[0, 0].scatter(fullPointsLeftCheekLuminance, fullPointsLeftCheek_hsv[:, 1], size, (1, 0, 0))
-        leftCheekLine = fitLine(fullPointsLeftCheekLuminance, fullPointsLeftCheek_hsv[:, 1])
+        [leftCheekLine, rightCheekLine, chinLine, foreheadLine] = plotZones(leftCheek, rightCheek, chin, forehead, saveStep, '_linear')
 
-        axs[1, 0].scatter(fullPointsRightCheekLuminance, fullPointsRightCheek_hsv[:, 1], size, (1, 0, 0))
-        rightCheekLine = fitLine(fullPointsRightCheekLuminance, fullPointsRightCheek_hsv[:, 1])
+        #RECALCULATE IN sBGR
 
-        axs[2, 0].scatter(fullPointsChinLuminance, fullPointsChin_hsv[:, 1], size, (1, 0, 0))
-        chinLine = fitLine(fullPointsChinLuminance, fullPointsChin_hsv[:, 1])
+        print('Scaled Points Left Cheek :: ' + str(scaledPointsLeftCheek))
 
-        axs[3, 0].scatter(fullPointsForeheadLuminance, fullPointsForehead_hsv[:, 1], size, (1, 0, 0))
-        foreheadLine = fitLine(fullPointsForeheadLuminance, fullPointsForehead_hsv[:, 1])
+        scaledPointsLeftCheek_sBGR = colorTools.convert_linearBGR_float_to_sBGR(scaledPointsLeftCheek / 255)
+        scaledPointsRightCheek_sBGR = colorTools.convert_linearBGR_float_to_sBGR(scaledPointsRightCheek / 255)
+        scaledPointsChin_sBGR = colorTools.convert_linearBGR_float_to_sBGR(scaledPointsChin / 255)
+        scaledPointsForehead_sBGR = colorTools.convert_linearBGR_float_to_sBGR(scaledPointsForehead / 255)
 
-        print('Lines :: ' + str(leftCheekLine) + ' | ' + str(rightCheekLine) + ' | ' + str(chinLine) + ' | ' + str(foreheadLine))
+        print('Scaled Points Left Cheek sBGR :: ' + str(scaledPointsLeftCheek_sBGR))
 
-        #Value
-        #axs[0, 0].scatter(fullPointsLeftCheek_hsv[:, 2], fullPointsLeftCheek_hsv[:, 1], size, (1, 0, 0))
-        #axs[1, 0].scatter(fullPointsRightCheek_hsv[:, 2], fullPointsRightCheek_hsv[:, 1], size, (1, 0, 0))
-        #axs[2, 0].scatter(fullPointsChin_hsv[:, 2], fullPointsChin_hsv[:, 1], size, (1, 0, 0))
-        #axs[3, 0].scatter(fullPointsForehead_hsv[:, 2], fullPointsForehead_hsv[:, 1], size, (1, 0, 0))
+        [leftCheekHSV_sBGR, leftCheekMedianHSV_sBGR, leftCheekLuminance_sBGR, leftCheekMedianLuminance_sBGR] = convertPoints(scaledPointsLeftCheek_sBGR)
+        [rightCheekHSV_sBGR, rightCheekMedianHSV_sBGR, rightCheekLuminance_sBGR, rightCheekMedianLuminance_sBGR] = convertPoints(scaledPointsRightCheek_sBGR)
+        [chinHSV_sBGR, chinMedianHSV, chinLuminance_sBGR, chinMedianLuminance_sBGR] = convertPoints(scaledPointsChin_sBGR)
+        [foreheadHSV_sBGR, foreheadMedianHSV_sBGR, foreheadLuminance_sBGR, foreheadMedianLuminance_sBGR] = convertPoints(scaledPointsForehead_sBGR)
 
-        #Intensity
-        #axs[0, 0].scatter(fullPointsLeftCheekIntensity, fullPointsLeftCheek_hsv[:, 1], size, (1, 0, 0))
-        #axs[1, 0].scatter(fullPointsRightCheekIntensity, fullPointsRightCheek_hsv[:, 1], size, (1, 0, 0))
-        #axs[2, 0].scatter(fullPointsChinIntensity, fullPointsChin_hsv[:, 1], size, (1, 0, 0))
-        #axs[3, 0].scatter(fullPointsForeheadIntensity, fullPointsForehead_hsv[:, 1], size, (1, 0, 0))
+        leftCheek_sBGR = [leftCheekHSV_sBGR, leftCheekLuminance_sBGR]
+        rightCheek_sBGR = [rightCheekHSV_sBGR, rightCheekLuminance_sBGR]
+        chin_sBGR = [chinHSV_sBGR, chinLuminance_sBGR]
+        forehead_sBGR = [foreheadHSV_sBGR, foreheadLuminance_sBGR]
 
-        #Luminance
-        axs[0, 1].scatter(fullPointsLeftCheekLuminance, rotateHue(fullPointsLeftCheek_hsv[:, 0]), size, (1, 0, 0))
-        axs[1, 1].scatter(fullPointsRightCheekLuminance, rotateHue(fullPointsRightCheek_hsv[:, 0]), size, (1, 0, 0))
-        axs[2, 1].scatter(fullPointsChinLuminance, rotateHue(fullPointsChin_hsv[:, 0]), size, (1, 0, 0))
-        axs[3, 1].scatter(fullPointsForeheadLuminance, rotateHue(fullPointsForehead_hsv[:, 0]), size, (1, 0, 0))
+        [leftCheekLine_sBGR, rightCheekLine_sBGR, chinLine_sBGR, foreheadLine_sBGR] = plotZones(leftCheek_sBGR, rightCheek_sBGR, chin_sBGR, forehead_sBGR, saveStep, '_sBGR')
 
-        #Value
-        #axs[0, 1].scatter(fullPointsLeftCheek_hsv[:, 2], np.clip(fullPointsLeftCheek_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
-        #axs[1, 1].scatter(fullPointsRightCheek_hsv[:, 2], np.clip(fullPointsRightCheek_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
-        #axs[2, 1].scatter(fullPointsChin_hsv[:, 2], np.clip(fullPointsChin_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
-        #axs[3, 1].scatter(fullPointsForehead_hsv[:, 2], np.clip(fullPointsForehead_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
-
-        #Intensity
-        #axs[0, 1].scatter(fullPointsLeftCheekIntensity, np.clip(fullPointsLeftCheek_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
-        #axs[1, 1].scatter(fullPointsRightCheekIntensity, np.clip(fullPointsRightCheek_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
-        #axs[2, 1].scatter(fullPointsChinIntensity, np.clip(fullPointsChin_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
-        #axs[3, 1].scatter(fullPointsForeheadIntensity, np.clip(fullPointsForehead_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
-
-        axs[0, 2].scatter(rotateHue(fullPointsLeftCheek_hsv[:, 0]), fullPointsLeftCheek_hsv[:, 1], size, (1, 0, 0))
-        axs[1, 2].scatter(rotateHue(fullPointsRightCheek_hsv[:, 0]), fullPointsRightCheek_hsv[:, 1], size, (1, 0, 0))
-        axs[2, 2].scatter(rotateHue(fullPointsChin_hsv[:, 0]), fullPointsChin_hsv[:, 1], size, (1, 0, 0))
-        axs[3, 2].scatter(rotateHue(fullPointsForehead_hsv[:, 0]), fullPointsForehead_hsv[:, 1], size, (1, 0, 0))
-
-        #plt.show()
-        saveStep.savePlot('Luminance_Hue_Saturation_Scatter', plt)
-        #saveStep.savePlot('Value_Hue_Saturation_Scatter', plt)
-        #saveStep.savePlot('Intensity_Hue_Saturation_Scatter', plt)
-
-        bins = 50
-        fig, axs = plt.subplots(4, 3, sharey=False, tight_layout=True)
-        axs[0, 0].hist(fullPointsLeftCheekLuminance, bins=bins)
-        axs[1, 0].hist(fullPointsRightCheekLuminance, bins=bins)
-        axs[2, 0].hist(fullPointsChinLuminance, bins=bins)
-        axs[3, 0].hist(fullPointsForeheadLuminance, bins=bins)
-
-        axs[0, 2].hist(rotateHue(fullPointsLeftCheek_hsv[:, 0]), bins=bins)   #Watch for clipping...
-        axs[1, 2].hist(rotateHue(fullPointsRightCheek_hsv[:, 0]), bins=bins)
-        axs[2, 2].hist(rotateHue(fullPointsChin_hsv[:, 0]), bins=bins)   #Watch for clipping...
-        axs[3, 2].hist(rotateHue(fullPointsForehead_hsv[:, 0]), bins=bins)
-
-        axs[0, 1].hist(fullPointsLeftCheek_hsv[:, 1], bins=bins)
-        axs[1, 1].hist(fullPointsRightCheek_hsv[:, 1], bins=bins)
-        axs[2, 1].hist(fullPointsChin_hsv[:, 1], bins=bins)
-        axs[3, 1].hist(fullPointsForehead_hsv[:, 1], bins=bins)
-        #plt.show()
-        saveStep.savePlot('Luminance_Hue_Saturation_hist', plt)
-
-        leftCheekValues = [leftFluxish, fullPointsLeftCheekMedianLuminance, list(fullPointsLeftCheekMedian_hsv), list(leftCheekLine)]
-        rightCheekValues = [rightFluxish, fullPointsRightCheekMedianLuminance, list(fullPointsRightCheekMedian_hsv), list(rightCheekLine)]
-        chinValues = [averageFluxish, fullPointsChinMedianLuminance, list(fullPointsChinMedian_hsv), list(chinLine)]
-        foreheadValues = [averageFluxish, fullPointsForeheadMedianLuminance, list(fullPointsForeheadMedian_hsv), list(foreheadLine)]
+        #PREP RETURN
+        leftCheekValues = [scaledLeftFluxish, leftCheekMedianLuminance, list(leftCheekMedianHSV), list(leftCheekLine)]
+        rightCheekValues = [scaledRightFluxish, rightCheekMedianLuminance, list(rightCheekMedianHSV), list(rightCheekLine)]
+        chinValues = [scaledAverageFluxish, chinMedianLuminance, list(chinMedianHSV), list(chinLine)]
+        foreheadValues = [scaledAverageFluxish, foreheadMedianLuminance, list(foreheadMedianHSV), list(foreheadLine)]
 
         return [imageName, True, [leftCheekValues, rightCheekValues, chinValues, foreheadValues]]
-
-
-
