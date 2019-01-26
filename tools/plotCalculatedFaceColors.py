@@ -93,6 +93,34 @@ plt.xlabel('Fluxish')
 plt.ylabel('Luminance')
 plt.show()
 
+#VALUE VS FLUXISH
+
+fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
+
+minFluxish = min(cheekStats[:, 1])
+maxFluxish = max(cheekStats[:, 1])
+
+fluxish_A = np.vstack([cheekStats[:, 1], np.ones(len(cheekStats))]).T
+
+FL_m, FL_c = np.linalg.lstsq(fluxish_A, cheekStats[:, 4], rcond=None)[0]
+print('Fluxish to Lightness Slope, Constant :: ' + str(FL_m) + ' ' + str(FL_c))
+margin = 10
+axs[0].plot([minFluxish, maxFluxish], [(FL_m * minFluxish + FL_c), (FL_m * maxFluxish + FL_c)])
+#axs[0].plot([minFluxish, maxFluxish], [(FL_m * minFluxish + FL_c - margin), (FL_m * maxFluxish + FL_c - margin)])
+#axs[0].plot([minFluxish, maxFluxish], [(FL_m * minFluxish + FL_c + margin), (FL_m * maxFluxish + FL_c + margin)])
+axs[0].scatter(cheekStats[:, 1], cheekStats[:, 4], size, (1, 0, 0))
+axs[0].set_title("CHEEK Fluxish vs Value")
+
+axs[1].scatter(chinStats[:, 1], chinStats[:, 4], size, (1, 0, 0))
+axs[1].set_title("CHIN Fluxish vs Value")
+
+axs[2].scatter(foreheadStats[:, 1], foreheadStats[:, 4], size, (1, 0, 0))
+axs[2].set_title("FOREHEAD Fluxish vs Value")
+
+plt.xlabel('Fluxish')
+plt.ylabel('Value')
+plt.show()
+
 #FLUXISH VS HUE
 
 fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)

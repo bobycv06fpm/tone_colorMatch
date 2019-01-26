@@ -59,6 +59,26 @@ def rotateHue(hue):
     hue[np.logical_not(shiftMask)] -= 2/3
     return hue
 
+def cullPoints(points):
+    median = np.median(points, axis=0)
+    sd = np.std(points, axis=0)
+
+    deviations = 2
+    boundsLow = median - (deviations * sd)
+    boundsHigh = median + (deviations * sd)
+
+    hueMask = np.logical_and(points[:, 0] > boundsLow[0], points[:, 0] < boundsHigh[0])
+    saturationMask = np.logical_and(points[:, 1] > boundsLow[1], points[:, 1] < boundsHigh[1])
+    valueMask = np.logical_and(points[:, 2] > boundsLow[2], points[:, 2] < boundsHigh[2])
+
+    fullMask = np.logical_and(hueMask, saturationMask)
+    fullMask = np.logical_and(fullMask, valueMask)
+    culled = points[fullMask]
+    #print('Shape Before :: ' + str(points.shape))
+    #print('Shape After :: ' + str(culled.shape))
+    return culled
+
+
 def plotZones(leftCheek, rightCheek, chin, forehead, saveStep, tag=''):
     [leftCheek_hsv, leftCheekLuminance] = leftCheek
     [rightCheek_hsv, rightCheekLuminance] = rightCheek
@@ -113,6 +133,12 @@ def plotZones(leftCheek, rightCheek, chin, forehead, saveStep, tag=''):
     #axs[2, 1].scatter(chinIntensity, np.clip(chin_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
     #axs[3, 1].scatter(foreheadIntensity, np.clip(forehead_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
 
+    minH = min(rotateHue(chin_hsv[:, 0]))
+    maxH = max(rotateHue(chin_hsv[:, 0]))
+    A = np.vstack([rotateHue(chin_hsv[:, 0]), np.ones(len(chin_hsv))]).T
+    m, c = np.linalg.lstsq(A, chin_hsv[:, 1], rcond=None)[0]
+    axs[2, 2].plot([minH, maxH], [(m * minH + c), (m * maxH + c)])
+
     axs[0, 2].scatter(rotateHue(leftCheek_hsv[:, 0]), leftCheek_hsv[:, 1], size, (1, 0, 0))
     axs[1, 2].scatter(rotateHue(rightCheek_hsv[:, 0]), rightCheek_hsv[:, 1], size, (1, 0, 0))
     axs[2, 2].scatter(rotateHue(chin_hsv[:, 0]), chin_hsv[:, 1], size, (1, 0, 0))
@@ -156,12 +182,24 @@ def convertPoints(points):
 
     return [HSV, medianHSV, luminance, medianLuminance]
 
+def applyLinearAdjustment(A, B):
+    [m, x] = np.polyfit(B, A, 1)
+    print('Slope :: ' + str(m) + ' | Const :: ' + str(x))
+
+    medB = np.median(B)
+
+    diffB = B - medB
+    print('Diff B :: ' + str(diffB))
+    diffA = diffB * m
+    print('Diff A :: ' + str(diffA))
+    return A + diffA
+
 
 def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #saveStep.resetLogFile(username, imageName)
     saveStep = Save(username, imageName)
     saveStep.resetLogFile()
-    saveStep.deleteReference()
+    #saveStep.deleteReference()
     images = loadImages(username, imageName)
 
     [noFlashImage, halfFlashImage, fullFlashImage] = images
@@ -317,9 +355,14 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         scaledPointsChin = fullPointsChin / scaleDivisor
         scaledPointsForehead = fullPointsForehead / scaleDivisor
 
-        print('Unscaled :: ' + str(fullPointsLeftCheek))
-        print('Scaled :: ' + str(scaledPointsLeftCheek))
+        print('Unscaled :: ' + str(fullPointsChin))
+        print('Scaled :: ' + str(scaledPointsChin))
 
+
+        scaledPointsLeftCheek = cullPoints(scaledPointsLeftCheek)
+        scaledPointsRightCheek = cullPoints(scaledPointsRightCheek)
+        scaledPointsChin = cullPoints(scaledPointsChin)
+        scaledPointsForehead = cullPoints(scaledPointsForehead)
 
         #CALCULATE IN LINEAR
 
@@ -344,6 +387,8 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         print('MEDIAN FOREHEAD LUMINANCE :: ' + str(foreheadMedianLuminance))
         print('---------------------')
 
+        chinHSV[:, 1] = applyLinearAdjustment(chinHSV[:, 1], chinHSV[:, 0])
+
         leftCheek = [leftCheekHSV, leftCheekLuminance]
         rightCheek = [rightCheekHSV, rightCheekLuminance]
         chin = [chinHSV, chinLuminance]
@@ -353,26 +398,26 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
 
         #RECALCULATE IN sBGR
 
-        print('Scaled Points Left Cheek :: ' + str(scaledPointsLeftCheek))
+        #print('Scaled Points Left Cheek :: ' + str(scaledPointsLeftCheek))
 
-        scaledPointsLeftCheek_sBGR = colorTools.convert_linearBGR_float_to_sBGR(scaledPointsLeftCheek / 255)
-        scaledPointsRightCheek_sBGR = colorTools.convert_linearBGR_float_to_sBGR(scaledPointsRightCheek / 255)
-        scaledPointsChin_sBGR = colorTools.convert_linearBGR_float_to_sBGR(scaledPointsChin / 255)
-        scaledPointsForehead_sBGR = colorTools.convert_linearBGR_float_to_sBGR(scaledPointsForehead / 255)
+        #scaledPointsLeftCheek_sBGR = colorTools.convert_linearBGR_float_to_sBGR(scaledPointsLeftCheek / 255)
+        #scaledPointsRightCheek_sBGR = colorTools.convert_linearBGR_float_to_sBGR(scaledPointsRightCheek / 255)
+        #scaledPointsChin_sBGR = colorTools.convert_linearBGR_float_to_sBGR(scaledPointsChin / 255)
+        #scaledPointsForehead_sBGR = colorTools.convert_linearBGR_float_to_sBGR(scaledPointsForehead / 255)
 
-        print('Scaled Points Left Cheek sBGR :: ' + str(scaledPointsLeftCheek_sBGR))
+        #print('Scaled Points Left Cheek sBGR :: ' + str(scaledPointsLeftCheek_sBGR))
 
-        [leftCheekHSV_sBGR, leftCheekMedianHSV_sBGR, leftCheekLuminance_sBGR, leftCheekMedianLuminance_sBGR] = convertPoints(scaledPointsLeftCheek_sBGR)
-        [rightCheekHSV_sBGR, rightCheekMedianHSV_sBGR, rightCheekLuminance_sBGR, rightCheekMedianLuminance_sBGR] = convertPoints(scaledPointsRightCheek_sBGR)
-        [chinHSV_sBGR, chinMedianHSV, chinLuminance_sBGR, chinMedianLuminance_sBGR] = convertPoints(scaledPointsChin_sBGR)
-        [foreheadHSV_sBGR, foreheadMedianHSV_sBGR, foreheadLuminance_sBGR, foreheadMedianLuminance_sBGR] = convertPoints(scaledPointsForehead_sBGR)
+        #[leftCheekHSV_sBGR, leftCheekMedianHSV_sBGR, leftCheekLuminance_sBGR, leftCheekMedianLuminance_sBGR] = convertPoints(scaledPointsLeftCheek_sBGR)
+        #[rightCheekHSV_sBGR, rightCheekMedianHSV_sBGR, rightCheekLuminance_sBGR, rightCheekMedianLuminance_sBGR] = convertPoints(scaledPointsRightCheek_sBGR)
+        #[chinHSV_sBGR, chinMedianHSV_sBGR, chinLuminance_sBGR, chinMedianLuminance_sBGR] = convertPoints(scaledPointsChin_sBGR)
+        #[foreheadHSV_sBGR, foreheadMedianHSV_sBGR, foreheadLuminance_sBGR, foreheadMedianLuminance_sBGR] = convertPoints(scaledPointsForehead_sBGR)
 
-        leftCheek_sBGR = [leftCheekHSV_sBGR, leftCheekLuminance_sBGR]
-        rightCheek_sBGR = [rightCheekHSV_sBGR, rightCheekLuminance_sBGR]
-        chin_sBGR = [chinHSV_sBGR, chinLuminance_sBGR]
-        forehead_sBGR = [foreheadHSV_sBGR, foreheadLuminance_sBGR]
+        #leftCheek_sBGR = [leftCheekHSV_sBGR, leftCheekLuminance_sBGR]
+        #rightCheek_sBGR = [rightCheekHSV_sBGR, rightCheekLuminance_sBGR]
+        #chin_sBGR = [chinHSV_sBGR, chinLuminance_sBGR]
+        #forehead_sBGR = [foreheadHSV_sBGR, foreheadLuminance_sBGR]
 
-        [leftCheekLine_sBGR, rightCheekLine_sBGR, chinLine_sBGR, foreheadLine_sBGR] = plotZones(leftCheek_sBGR, rightCheek_sBGR, chin_sBGR, forehead_sBGR, saveStep, '_sBGR')
+        #[leftCheekLine_sBGR, rightCheekLine_sBGR, chinLine_sBGR, foreheadLine_sBGR] = plotZones(leftCheek_sBGR, rightCheek_sBGR, chin_sBGR, forehead_sBGR, saveStep, '_sBGR')
 
         #PREP RETURN
         leftCheekValues = [scaledLeftFluxish, leftCheekMedianLuminance, list(leftCheekMedianHSV), list(leftCheekLine)]
