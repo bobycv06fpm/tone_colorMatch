@@ -54,9 +54,16 @@ def fitLine(A, B):
 
 def rotateHue(hue):
     hue = hue.copy()
-    shiftMask = hue < 2/3
+    shiftMask = hue <= 2/3
     hue[shiftMask] += 1/3
     hue[np.logical_not(shiftMask)] -= 2/3
+    return hue
+
+def unRotateHue(hue):
+    hue = hue.copy()
+    shiftMask = hue >= 1/3
+    hue[shiftMask] -= 1/3
+    hue[np.logical_not(shiftMask)] += 2/3
     return hue
 
 def cullPoints(points):
@@ -85,8 +92,8 @@ def plotZones(leftCheek, rightCheek, chin, forehead, saveStep, tag=''):
     [chin_hsv, chinLuminance] = chin
     [forehead_hsv, foreheadLuminance] = forehead
 
-    fig, axs = plt.subplots(4, 3, sharey=False, tight_layout=True)
-    size = 5
+    fig, axs = plt.subplots(5, 3, sharey=False, tight_layout=True)
+    size = 1
 
     #Luminance
     axs[0, 0].scatter(leftCheekLuminance, leftCheek_hsv[:, 1], size, (1, 0, 0))
@@ -100,6 +107,11 @@ def plotZones(leftCheek, rightCheek, chin, forehead, saveStep, tag=''):
 
     axs[3, 0].scatter(foreheadLuminance, forehead_hsv[:, 1], size, (1, 0, 0))
     foreheadLine = fitLine(foreheadLuminance, forehead_hsv[:, 1])
+
+    axs[4, 0].scatter(leftCheekLuminance, leftCheek_hsv[:, 1], size, (1, 0, 0))
+    axs[4, 0].scatter(rightCheekLuminance, rightCheek_hsv[:, 1], size, (1, 0, 0))
+    axs[4, 0].scatter(chinLuminance, chin_hsv[:, 1], size, (1, 0, 0))
+    axs[4, 0].scatter(foreheadLuminance, forehead_hsv[:, 1], size, (1, 0, 0))
 
     print('Lines :: ' + str(leftCheekLine) + ' | ' + str(rightCheekLine) + ' | ' + str(chinLine) + ' | ' + str(foreheadLine))
 
@@ -120,6 +132,11 @@ def plotZones(leftCheek, rightCheek, chin, forehead, saveStep, tag=''):
     axs[1, 1].scatter(rightCheekLuminance, rotateHue(rightCheek_hsv[:, 0]), size, (1, 0, 0))
     axs[2, 1].scatter(chinLuminance, rotateHue(chin_hsv[:, 0]), size, (1, 0, 0))
     axs[3, 1].scatter(foreheadLuminance, rotateHue(forehead_hsv[:, 0]), size, (1, 0, 0))
+
+    axs[4, 1].scatter(leftCheekLuminance, rotateHue(leftCheek_hsv[:, 0]), size, (1, 0, 0))
+    axs[4, 1].scatter(rightCheekLuminance, rotateHue(rightCheek_hsv[:, 0]), size, (1, 0, 0))
+    axs[4, 1].scatter(chinLuminance, rotateHue(chin_hsv[:, 0]), size, (1, 0, 0))
+    axs[4, 1].scatter(foreheadLuminance, rotateHue(forehead_hsv[:, 0]), size, (1, 0, 0))
 
     #Value
     #axs[0, 1].scatter(leftCheek_hsv[:, 2], np.clip(leftCheek_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
@@ -144,27 +161,35 @@ def plotZones(leftCheek, rightCheek, chin, forehead, saveStep, tag=''):
     axs[2, 2].scatter(rotateHue(chin_hsv[:, 0]), chin_hsv[:, 1], size, (1, 0, 0))
     axs[3, 2].scatter(rotateHue(forehead_hsv[:, 0]), forehead_hsv[:, 1], size, (1, 0, 0))
 
+    axs[4, 2].scatter(rotateHue(leftCheek_hsv[:, 0]), leftCheek_hsv[:, 1], size, (1, 0, 0))
+    axs[4, 2].scatter(rotateHue(rightCheek_hsv[:, 0]), rightCheek_hsv[:, 1], size, (1, 0, 0))
+    axs[4, 2].scatter(rotateHue(chin_hsv[:, 0]), chin_hsv[:, 1], size, (1, 0, 0))
+    axs[4, 2].scatter(rotateHue(forehead_hsv[:, 0]), forehead_hsv[:, 1], size, (1, 0, 0))
+
     #plt.show()
     saveStep.savePlot('Luminance_Hue_Saturation_Scatter' + tag, plt)
     #saveStep.savePlot('Value_Hue_Saturation_Scatter', plt)
     #saveStep.savePlot('Intensity_Hue_Saturation_Scatter', plt)
 
     bins = 50
-    fig, axs = plt.subplots(4, 3, sharey=False, tight_layout=True)
+    fig, axs = plt.subplots(5, 3, sharey=False, tight_layout=True)
     axs[0, 0].hist(leftCheekLuminance, bins=bins)
     axs[1, 0].hist(rightCheekLuminance, bins=bins)
     axs[2, 0].hist(chinLuminance, bins=bins)
     axs[3, 0].hist(foreheadLuminance, bins=bins)
-
-    axs[0, 2].hist(rotateHue(leftCheek_hsv[:, 0]), bins=bins)   #Watch for clipping...
-    axs[1, 2].hist(rotateHue(rightCheek_hsv[:, 0]), bins=bins)
-    axs[2, 2].hist(rotateHue(chin_hsv[:, 0]), bins=bins)   #Watch for clipping...
-    axs[3, 2].hist(rotateHue(forehead_hsv[:, 0]), bins=bins)
+    axs[4, 0].hist([list(foreheadLuminance) + list(chinLuminance) + list(rightCheekLuminance) + list(leftCheekLuminance)], bins=bins)
 
     axs[0, 1].hist(leftCheek_hsv[:, 1], bins=bins)
     axs[1, 1].hist(rightCheek_hsv[:, 1], bins=bins)
     axs[2, 1].hist(chin_hsv[:, 1], bins=bins)
     axs[3, 1].hist(forehead_hsv[:, 1], bins=bins)
+    axs[4, 1].hist([list(forehead_hsv[:, 1]) + list(chin_hsv[:, 1]) + list(rightCheek_hsv[:, 1]) + list(leftCheek_hsv[:, 1])], bins=bins)
+
+    axs[0, 2].hist(rotateHue(leftCheek_hsv[:, 0]), bins=bins)   #Watch for clipping...
+    axs[1, 2].hist(rotateHue(rightCheek_hsv[:, 0]), bins=bins)
+    axs[2, 2].hist(rotateHue(chin_hsv[:, 0]), bins=bins)   #Watch for clipping...
+    axs[3, 2].hist(rotateHue(forehead_hsv[:, 0]), bins=bins)
+    axs[4, 2].hist([list(rotateHue(forehead_hsv[:, 0])) + list(rotateHue(chin_hsv[:, 0])) + list(rotateHue(rightCheek_hsv[:, 0])) + list(rotateHue(leftCheek_hsv[:, 0]))], bins=bins)
     #plt.show()
     saveStep.savePlot('Luminance_Hue_Saturation_hist' + tag, plt)
 
@@ -192,7 +217,12 @@ def applyLinearAdjustment(A, B):
     print('Diff B :: ' + str(diffB))
     diffA = diffB * m
     print('Diff A :: ' + str(diffA))
-    return A + diffA
+    return A - diffA
+
+def adjustSatToHue(sat, hue):
+    hue = rotateHue(hue)
+    sat = applyLinearAdjustment(sat, hue)
+    return sat
 
 
 def run(username, imageName, fast=False, saveStats=False, failOnError=False):
@@ -266,7 +296,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     howLinear = np.abs((2 * halfDiffImage) - fullDiffImage)
     fullDiffImage[fullDiffImage == 0] = 1
     percentError = howLinear / fullDiffImage
-    perSubPixelMaxError = np.max(percentError, axis=2)
+    perSubPixelMaxError = np.mean(percentError, axis=2)
     nonLinearMask = perSubPixelMaxError > .10
     #nonLinearMask = perSubPixelMaxError > .05
 
@@ -387,7 +417,8 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         print('MEDIAN FOREHEAD LUMINANCE :: ' + str(foreheadMedianLuminance))
         print('---------------------')
 
-        chinHSV[:, 1] = applyLinearAdjustment(chinHSV[:, 1], chinHSV[:, 0])
+        #chinHSV[:, 1] = applyLinearAdjustment(chinHSV[:, 1], chinHSV[:, 0])
+        chinHSV[:, 1] = adjustSatToHue(chinHSV[:, 1], chinHSV[:, 0])
 
         leftCheek = [leftCheekHSV, leftCheekLuminance]
         rightCheek = [rightCheekHSV, rightCheekLuminance]

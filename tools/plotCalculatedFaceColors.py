@@ -121,6 +121,16 @@ plt.xlabel('Fluxish')
 plt.ylabel('Value')
 plt.show()
 
+#Saturation VS Luminance Slopes
+
+for stat in foreheadStats:
+    plt.plot([0, 255], [stat[6], (stat[5] * 255) + stat[6]])
+    plt.plot(stat[0], (stat[5] * stat[0] + stat[6]), 'ro')
+
+plt.xlabel('Luminance')
+plt.ylabel('Saturation')
+plt.show()
+
 #FLUXISH VS HUE
 
 fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
