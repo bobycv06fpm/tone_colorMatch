@@ -104,9 +104,11 @@ def plotZones(leftCheek, rightCheek, chin, forehead, saveStep, tag=''):
 
     axs[2, 0].scatter(chinLuminance, chin_hsv[:, 1], size, (1, 0, 0))
     chinLine = fitLine(chinLuminance, chin_hsv[:, 1])
+    axs[2, 0].plot([min(chinLuminance), max(chinLuminance)], [min(chinLuminance) * chinLine[0] + chinLine[1], max(chinLuminance) * chinLine[0] + chinLine[1]])
 
     axs[3, 0].scatter(foreheadLuminance, forehead_hsv[:, 1], size, (1, 0, 0))
     foreheadLine = fitLine(foreheadLuminance, forehead_hsv[:, 1])
+    axs[3, 0].plot([min(foreheadLuminance), max(foreheadLuminance)], [min(foreheadLuminance) * foreheadLine[0] + foreheadLine[1], max(foreheadLuminance) * foreheadLine[0] + foreheadLine[1]])
 
     axs[4, 0].scatter(leftCheekLuminance, leftCheek_hsv[:, 1], size, (1, 0, 0))
     axs[4, 0].scatter(rightCheekLuminance, rightCheek_hsv[:, 1], size, (1, 0, 0))
@@ -155,6 +157,12 @@ def plotZones(leftCheek, rightCheek, chin, forehead, saveStep, tag=''):
     A = np.vstack([rotateHue(chin_hsv[:, 0]), np.ones(len(chin_hsv))]).T
     m, c = np.linalg.lstsq(A, chin_hsv[:, 1], rcond=None)[0]
     axs[2, 2].plot([minH, maxH], [(m * minH + c), (m * maxH + c)])
+
+    minH = min(rotateHue(forehead_hsv[:, 0]))
+    maxH = max(rotateHue(forehead_hsv[:, 0]))
+    A = np.vstack([rotateHue(forehead_hsv[:, 0]), np.ones(len(forehead_hsv))]).T
+    m, c = np.linalg.lstsq(A, forehead_hsv[:, 1], rcond=None)[0]
+    axs[3, 2].plot([minH, maxH], [(m * minH + c), (m * maxH + c)])
 
     axs[0, 2].scatter(rotateHue(leftCheek_hsv[:, 0]), leftCheek_hsv[:, 1], size, (1, 0, 0))
     axs[1, 2].scatter(rotateHue(rightCheek_hsv[:, 0]), rightCheek_hsv[:, 1], size, (1, 0, 0))
@@ -219,10 +227,32 @@ def applyLinearAdjustment(A, B):
     print('Diff A :: ' + str(diffA))
     return A - diffA
 
-def adjustSatToHue(sat, hue):
-    hue = rotateHue(hue)
-    sat = applyLinearAdjustment(sat, hue)
-    return sat
+#def adjustSatToHue(sat, hue):
+#    hue = rotateHue(hue)
+#    sat = applyLinearAdjustment(sat, hue)
+#    return sat
+
+def adjustSatToHue(chinHSV, foreheadHSV):
+    chinHue = rotateHue(chinHSV[:, 0])
+    foreheadHue = rotateHue(foreheadHSV[:, 0])
+
+    chinSlope, chinConst = fitLine(chinHue, chinHSV[:, 1])
+    foreheadSlope, foreheadConst = fitLine(foreheadHue, foreheadHSV[:, 1])
+
+    averageSlope = (chinSlope + foreheadSlope) / 2
+
+    medianHue = np.median(list(chinHue) + list(foreheadHue))
+
+    diffChinHue = chinHue - medianHue
+    diffForeheadHue = foreheadHue - medianHue
+
+    diffChinSat = diffChinHue * averageSlope
+    diffForeheadSat = diffForeheadHue * averageSlope
+
+    chinHSV[:, 1] -= diffChinSat
+    foreheadHSV[:, 1] -= diffForeheadSat
+
+    return [chinHSV, foreheadHSV]
 
 
 def run(username, imageName, fast=False, saveStats=False, failOnError=False):
@@ -285,11 +315,15 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     print('Testing Linearity')
     #howLinear = np.abs((2 * halfFlashCapture.image) - (fullFlashCapture.image + noFlashCapture.image))
     print('Subtracting Base from Flash')
-    halfDiffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
-    #halfDiffImageBlur = cv2.GaussianBlur(halfDiffImage, (25, 25), 0)
+    #halfDiffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
+    halfDiffImage = halfFlashCapture.blurredImage().astype('int32') - noFlashCapture.blurredImage().astype('int32')
+
+    #halfDiffImageBlur = cv2.GaussianBlur(halfDiffImage, (11, 11), 0)
     #halfDiffImageBlur = cv2.medianBlur(halfDiffImage, 9)
 
-    fullDiffImage = fullFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
+    #fullDiffImage = fullFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
+    fullDiffImage = fullFlashCapture.blurredImage().astype('int32') - noFlashCapture.blurredImage().astype('int32')
+
     #fullDiffImageBlur = cv2.GaussianBlur(fullDiffImage, (25, 25), 0)
     #fullDiffImageBlur = cv2.medianBlur(fullDiffImage, 9)
 
@@ -297,8 +331,10 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     fullDiffImage[fullDiffImage == 0] = 1
     percentError = howLinear / fullDiffImage
     perSubPixelMaxError = np.mean(percentError, axis=2)
-    nonLinearMask = perSubPixelMaxError > .10
-    #nonLinearMask = perSubPixelMaxError > .05
+    #perSubPixelMaxError = np.max(percentError, axis=2)
+    #nonLinearMask = perSubPixelMaxError > .10
+    #perChannelNonLinearMask = perSubPixelMaxError > .02
+    nonLinearMask = perSubPixelMaxError > .05
 
     #cv2.imshow('All Points mask', allPointsMask.astype('uint8') * 255)
     #cv2.imshow('Non Linear Mask', nonLinearMask.astype('uint8') * 255)
@@ -418,7 +454,8 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         print('---------------------')
 
         #chinHSV[:, 1] = applyLinearAdjustment(chinHSV[:, 1], chinHSV[:, 0])
-        chinHSV[:, 1] = adjustSatToHue(chinHSV[:, 1], chinHSV[:, 0])
+        #chinHSV[:, 1] = adjustSatToHue(chinHSV[:, 1], chinHSV[:, 0])
+        [chinHSV, foreheadHSV] = adjustSatToHue(chinHSV, foreheadHSV)
 
         leftCheek = [leftCheekHSV, leftCheekLuminance]
         rightCheek = [rightCheekHSV, rightCheekLuminance]

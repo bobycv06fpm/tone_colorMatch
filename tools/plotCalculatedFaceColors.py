@@ -123,7 +123,7 @@ plt.show()
 
 #Saturation VS Luminance Slopes
 
-for stat in foreheadStats:
+for stat in chinStats:
     plt.plot([0, 255], [stat[6], (stat[5] * 255) + stat[6]])
     plt.plot(stat[0], (stat[5] * stat[0] + stat[6]), 'ro')
 

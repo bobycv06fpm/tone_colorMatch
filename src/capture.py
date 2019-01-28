@@ -21,6 +21,9 @@ class Capture:
         if mask is not None:
             self.mask = np.logical_or(self.mask, mask)
 
+    def blurredImage(self):
+        return cv2.GaussianBlur(self.image, (5, 5), 0)
+
     def whiteBalanceImageToD65(self):
         self.image = colorTools.whitebalance_from_asShot_to_d65(self.image.astype('uint16'), self.whiteBalance['x'], self.whiteBalance['y'])
 
