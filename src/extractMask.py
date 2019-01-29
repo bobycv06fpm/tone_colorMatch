@@ -96,6 +96,7 @@ def extractMask(capture, saveStep):
 
     #cutoff = 0.2
     cutoff = 0.1
+    #cutoff = 0.05
     if leftCheekClippedPixelRatio < cutoff:
         raise NameError('LEFT: Not enough clean non-clipped pixels. Ratio :: ' + str(leftCheekClippedPixelRatio))
 

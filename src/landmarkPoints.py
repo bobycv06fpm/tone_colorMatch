@@ -308,6 +308,19 @@ class Landmarks:
         boundingBox = np.array([[rightX, topY], [rightX, middleY], [leftX, topY], [leftX, middleY], [middleX, bottomY]]).astype('int32')
         return boundingBox
 
+
+    def test_getLeftCheekBB(self):
+        return cv2.boundingRect(self.getLeftCheekPoints())
+
+    def test_getRightCheekBB(self):
+        return cv2.boundingRect(self.getRightCheekPoints())
+
+    def test_getChinBB(self):
+        return cv2.boundingRect(self.getChinPoints())
+
+    def test_getForeheadBB(self):
+        return cv2.boundingRect(self.getForeheadPoints())
+
     #def getFacePolygons(self):
         #return np.array([self.getForeheadPoints(), self.getLeftCheekPoints(), self.getRightCheekPoints(), self.getChinPoints()])
 
