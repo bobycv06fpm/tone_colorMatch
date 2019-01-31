@@ -15,6 +15,7 @@ colors = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
 
 sRGB_points = [[], [], []]
 linearRGB_points = [[], [], []]
+luminance_points = [[], [], []]
 HSV_points = [[], [], []]
 HLS_points = [[], [], []]
 
@@ -147,6 +148,9 @@ for index, path in enumerate(paths):
         for point in pointReader:
             sRGB_point = np.array([int(i) / 255 for i in point])
             sRGB_points[index].append(sRGB_point)
+
+            #luminance_point = colorTools.getRelativeLuminance(np.flip(np.array([np.copy(linearRGB_point)]), axis=1))
+            luminance_point = colorTools.getRelativeLuminance(np.flip(np.array([np.copy(sRGB_point)]), axis=1))
             
             linearRGB_point = colorTools.convert_sBGR_to_linearBGR_float(np.copy(sRGB_point), isFloat=True)
             linearRGB_points[index].append(linearRGB_point)
@@ -154,12 +158,16 @@ for index, path in enumerate(paths):
             #sRGB_point = np.array(sRGB_point)
             HSV_point = colorsys.rgb_to_hsv(*sRGB_point)
             HSV_points[index].append(np.array(HSV_point))
+            HSV_points[index][-1][2] = luminance_point
+
 
             HLS_point = colorsys.rgb_to_hls(*sRGB_point)
             HLS_points[index].append(np.array(HLS_point))
 
-plotRGB()
-plotLinearRGB()
+            #luminance_points[index].append(luminance_point)
+
+#plotRGB()
+#plotLinearRGB()
 plotHSV()
 #plotHLS()
-plotLAB()
+#plotLAB()

@@ -233,6 +233,25 @@ plt.xlabel('Luminance')
 plt.ylabel('Hue')
 plt.show()
 
+#LUMINANCE VS SAT
+
+fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
+axs[0].scatter(halfCheekStats[:, 0], halfCheekStats[:, 3], size, (0, 1, 0))
+axs[0].scatter(fullCheekStats[:, 0], fullCheekStats[:, 3], size, (1, 0, 0))
+axs[0].set_title("CHEEK Luminance vs Saturation")
+
+axs[1].scatter(halfChinStats[:, 0], halfChinStats[:, 3], size, (0, 1, 0))
+axs[1].scatter(fullChinStats[:, 0], fullChinStats[:, 3], size, (1, 0, 0))
+axs[1].set_title("CHIN Luminance vs Saturation")
+
+axs[2].scatter(halfForeheadStats[:, 0], halfForeheadStats[:, 3], size, (0, 1, 0))
+axs[2].scatter(fullForeheadStats[:, 0], fullForeheadStats[:, 3], size, (1, 0, 0))
+axs[2].set_title("FOREHEAD Luminance vs Saturation")
+
+plt.xlabel('Luminance')
+plt.ylabel('Saturation')
+plt.show()
+
 #FLUXISH VS SAT
 
 fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
@@ -249,6 +268,25 @@ axs[2].scatter(fullForeheadStats[:, 1], fullForeheadStats[:, 3], size, (1, 0, 0)
 axs[2].set_title("FOREHEAD Fluxish vs Saturation")
 
 plt.xlabel('Fluxish')
+plt.ylabel('Saturation')
+plt.show()
+
+#VALUE VS SAT
+
+fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
+axs[0].scatter(halfCheekStats[:, 4], halfCheekStats[:, 3], size, (0, 1, 0))
+axs[0].scatter(fullCheekStats[:, 4], fullCheekStats[:, 3], size, (1, 0, 0))
+axs[0].set_title("CHEEK Value vs Saturation")
+
+axs[1].scatter(halfChinStats[:, 4], halfChinStats[:, 3], size, (0, 1, 0))
+axs[1].scatter(fullChinStats[:, 4], fullChinStats[:, 3], size, (1, 0, 0))
+axs[1].set_title("CHIN Value vs Saturation")
+
+axs[2].scatter(halfForeheadStats[:, 4], halfForeheadStats[:, 3], size, (0, 1, 0))
+axs[2].scatter(fullForeheadStats[:, 4], fullForeheadStats[:, 3], size, (1, 0, 0))
+axs[2].set_title("FOREHEAD Value vs Saturation")
+
+plt.xlabel('Value')
 plt.ylabel('Saturation')
 plt.show()
 
