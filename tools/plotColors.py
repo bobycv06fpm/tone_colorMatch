@@ -1,7 +1,11 @@
+import sys
+sys.path.insert(0, '../src')
+
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import csv
 import colorsys
+import colorTools
 import numpy as np
 from skimage import color
 
@@ -10,6 +14,7 @@ names = ['Bare Minerals', 'Fenti', 'Makeup Forever']
 colors = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
 
 sRGB_points = [[], [], []]
+linearRGB_points = [[], [], []]
 HSV_points = [[], [], []]
 HLS_points = [[], [], []]
 
@@ -90,12 +95,61 @@ def plotLAB():
         plt.suptitle("LAB " + names[index])
         plt.show()
 
+def plotRGB():
+    for index, rgbPoints in enumerate(sRGB_points):
+        colors = np.array(sRGB_points[index])
+        rgbPoints = np.array(rgbPoints)
+
+        plt.subplot(131)
+        plt.scatter(rgbPoints[:, 0], rgbPoints[:, 1], 50, colors)
+        plt.xlabel('R')
+        plt.ylabel('G')
+
+        plt.subplot(132)
+        plt.scatter(rgbPoints[:, 0], rgbPoints[:, 2], 50, colors)
+        plt.xlabel('R')
+        plt.ylabel('B')
+
+        plt.subplot(133)
+        plt.scatter(rgbPoints[:, 1], rgbPoints[:, 2], 50, colors)
+        plt.xlabel('G')
+        plt.ylabel('B')
+
+        plt.suptitle("RGB " + names[index])
+        plt.show()
+
+def plotLinearRGB():
+    for index, rgbPoints in enumerate(linearRGB_points):
+        colors = np.array(sRGB_points[index])
+        rgbPoints = np.array(rgbPoints)
+
+        plt.subplot(131)
+        plt.scatter(rgbPoints[:, 0], rgbPoints[:, 1], 50, colors)
+        plt.xlabel('R')
+        plt.ylabel('G')
+
+        plt.subplot(132)
+        plt.scatter(rgbPoints[:, 0], rgbPoints[:, 2], 50, colors)
+        plt.xlabel('R')
+        plt.ylabel('B')
+
+        plt.subplot(133)
+        plt.scatter(rgbPoints[:, 1], rgbPoints[:, 2], 50, colors)
+        plt.xlabel('G')
+        plt.ylabel('B')
+
+        plt.suptitle("Linear RGB " + names[index])
+        plt.show()
+
 for index, path in enumerate(paths):
     with open(path, 'r', newline='') as f:
         pointReader = csv.reader(f, delimiter=' ', quotechar='|')
         for point in pointReader:
             sRGB_point = np.array([int(i) / 255 for i in point])
             sRGB_points[index].append(sRGB_point)
+            
+            linearRGB_point = colorTools.convert_sBGR_to_linearBGR_float(np.copy(sRGB_point), isFloat=True)
+            linearRGB_points[index].append(linearRGB_point)
 
             #sRGB_point = np.array(sRGB_point)
             HSV_point = colorsys.rgb_to_hsv(*sRGB_point)
@@ -104,6 +158,8 @@ for index, path in enumerate(paths):
             HLS_point = colorsys.rgb_to_hls(*sRGB_point)
             HLS_points[index].append(np.array(HLS_point))
 
+plotRGB()
+plotLinearRGB()
 plotHSV()
 #plotHLS()
 plotLAB()
