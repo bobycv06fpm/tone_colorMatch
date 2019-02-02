@@ -284,6 +284,7 @@ class Save:
     def savePlot(self, name, plot):
         path = self.referencePathBuilder(name, '.png')
         plot.savefig(path, dpi=200)
+        plot.close()
 
     def saveImageStat(self, statName, statValue):
         path = self.referencePathBuilder('imageStats', '.csv')

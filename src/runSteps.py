@@ -477,7 +477,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         #chinFullHSV[:, 1] = applyLinearAdjustment(chinFullHSV[:, 1], chinFullHSV[:, 0])
         #chinFullHSV[:, 1] = adjustSatToHue(chinFullHSV[:, 1], chinFullHSV[:, 0])
         #FULL FLASH
-        [chinFullHSV, foreheadFullHSV] = adjustSatToHue(chinFullHSV, foreheadFullHSV)
+        #[chinFullHSV, foreheadFullHSV] = adjustSatToHue(chinFullHSV, foreheadFullHSV)
 
         leftCheekFull = [leftCheekFullHSV, leftCheekFullLuminance]
         rightCheekFull = [rightCheekFullHSV, rightCheekFullLuminance]
@@ -487,7 +487,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         [leftCheekLineFull, rightCheekLineFull, chinLineFull, foreheadLineFull] = plotZones(leftCheekFull, rightCheekFull, chinFull, foreheadFull, saveStep, '_full_linear')
 
         #HALF FLASH
-        [chinHalfHSV, foreheadHalfHSV] = adjustSatToHue(chinHalfHSV, foreheadHalfHSV)
+        #[chinHalfHSV, foreheadHalfHSV] = adjustSatToHue(chinHalfHSV, foreheadHalfHSV)
 
         leftCheekHalf = [leftCheekHalfHSV, leftCheekHalfLuminance]
         rightCheekHalf = [rightCheekHalfHSV, rightCheekHalfLuminance]
@@ -495,6 +495,15 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         foreheadHalf = [foreheadHalfHSV, foreheadHalfLuminance]
 
         [leftCheekLineHalf, rightCheekLineHalf, chinLineHalf, foreheadLineHalf] = plotZones(leftCheekHalf, rightCheekHalf, chinHalf, foreheadHalf, saveStep, '_half_linear')
+
+        #TEST ALL POINTS
+
+        leftCheekHalf = [np.append(leftCheekHalfHSV, leftCheekFullHSV, axis=0), np.append(leftCheekHalfLuminance, leftCheekFullLuminance, axis=0)]
+        rightCheekHalf = [np.append(rightCheekHalfHSV, rightCheekFullHSV, axis=0), np.append(rightCheekHalfLuminance, rightCheekFullLuminance, axis=0)]
+        chinHalf = [np.append(chinHalfHSV, chinFullHSV, axis=0), np.append(chinHalfLuminance, chinFullLuminance, axis=0)]
+        foreheadHalf = [np.append(foreheadHalfHSV, foreheadFullHSV, axis=0), np.append(foreheadHalfLuminance, foreheadFullLuminance, axis=0)]
+
+        [leftCheekLineHalf, rightCheekLineHalf, chinLineHalf, foreheadLineHalf] = plotZones(leftCheekHalf, rightCheekHalf, chinHalf, foreheadHalf, saveStep, '_all_linear')
 
         #RECALCULATE IN FULL in sBGR
 

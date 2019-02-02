@@ -166,7 +166,7 @@ for index, path in enumerate(paths):
 
             #luminance_points[index].append(luminance_point)
 
-#plotRGB()
+plotRGB()
 #plotLinearRGB()
 plotHSV()
 #plotHLS()

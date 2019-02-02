@@ -2,6 +2,7 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import colorsys
 
 def sortBy(elem):
     #print(elem)
@@ -106,6 +107,129 @@ fullForeheadStats = np.array(fullForeheadStats)
 
 #LUMINANCE VS FLUXISH
 
+fig, axs = plt.subplots(2, 3, sharex=True, tight_layout=True)
+
+minFullFluxish = min(fullCheekStats[:, 1])
+maxFullFluxish = max(fullCheekStats[:, 1])
+full_fluxish_A = np.vstack([fullCheekStats[:, 1], np.ones(len(fullCheekStats))]).T
+FL_m, FL_c = np.linalg.lstsq(full_fluxish_A, fullCheekStats[:, 0] / 255, rcond=None)[0]
+
+minHalfFluxish = min(halfCheekStats[:, 1])
+maxHalfFluxish = max(halfCheekStats[:, 1])
+half_fluxish_A = np.vstack([halfCheekStats[:, 1], np.ones(len(halfCheekStats))]).T
+HL_m, HL_c = np.linalg.lstsq(half_fluxish_A, halfCheekStats[:, 0] / 255, rcond=None)[0]
+
+print('Full Fluxish to Lightness Slope, Constant :: ' + str(FL_m) + ' ' + str(FL_c))
+print('Half Fluxish to Lightness Slope, Constant :: ' + str(HL_m) + ' ' + str(HL_c))
+
+#margin = 10
+margin = 0.1
+axs[0, 0].plot([minFullFluxish, maxFullFluxish], [(FL_m * minFullFluxish + FL_c), (FL_m * maxFullFluxish + FL_c)])
+#axs[0].plot([minFullFluxish, maxFullFluxish], [(FL_m * minFullFluxish + FL_c - margin), (FL_m * maxFullFluxish + FL_c - margin)])
+#axs[0].plot([minFullFluxish, maxFullFluxish], [(FL_m * minFullFluxish + FL_c + margin), (FL_m * maxFullFluxish + FL_c + margin)])
+
+axs[0, 0].plot([minHalfFluxish, maxHalfFluxish], [(HL_m * minHalfFluxish + HL_c), (HL_m * maxHalfFluxish + HL_c)])
+#axs[0].plot([minHalfFluxish, maxHalfFluxish], [(HL_m * minHalfFluxish + HL_c - margin), (HL_m * maxHalfFluxish + HL_c - margin)])
+#axs[0].plot([minHalfFluxish, maxHalfFluxish], [(HL_m * minHalfFluxish + HL_c + margin), (HL_m * maxHalfFluxish + HL_c + margin)])
+axs[0, 0].plot([0, 1], [0, 1])
+
+axs[0, 0].scatter(halfCheekStats[:, 1], halfCheekStats[:, 0] / 255, size, (0, 1, 0))
+axs[0, 0].scatter(fullCheekStats[:, 1], fullCheekStats[:, 0] / 255, size, (1, 0, 0))
+axs[0, 0].set_title("CHEEK Fluxish vs Luminance")
+
+axs[0, 1].plot([0, 1], [0, 1])
+axs[0, 1].scatter(halfChinStats[:, 1], halfChinStats[:, 0] / 255, size, (0, 1, 0))
+axs[0, 1].scatter(fullChinStats[:, 1], fullChinStats[:, 0] / 255, size, (1, 0, 0))
+axs[0, 1].set_title("CHIN Fluxish vs Luminance")
+
+axs[0, 2].plot([0, 1], [0, 1])
+axs[0, 2].scatter(halfForeheadStats[:, 1], halfForeheadStats[:, 0] / 255, size, (0, 1, 0))
+axs[0, 2].scatter(fullForeheadStats[:, 1], fullForeheadStats[:, 0] / 255, size, (1, 0, 0))
+axs[0, 2].set_title("FOREHEAD Fluxish vs Luminance")
+
+axs[0, 0].set_xlabel('Fluxish')
+axs[0, 0].set_ylabel('Luminance')
+
+axs[1, 0].scatter(halfCheekStats[:, 1], halfCheekStats[:, 3], size, (0, 1, 0))
+axs[1, 0].scatter(fullCheekStats[:, 1], fullCheekStats[:, 3], size, (1, 0, 0))
+axs[1, 0].set_title("CHEEK Fluxish vs Saturation")
+
+axs[1, 1].scatter(halfChinStats[:, 1], halfChinStats[:, 3], size, (0, 1, 0))
+axs[1, 1].scatter(fullChinStats[:, 1], fullChinStats[:, 3], size, (1, 0, 0))
+axs[1, 1].set_title("CHIN Fluxish vs Saturation")
+
+axs[1, 2].scatter(halfForeheadStats[:, 1], halfForeheadStats[:, 3], size, (0, 1, 0))
+axs[1, 2].scatter(fullForeheadStats[:, 1], fullForeheadStats[:, 3], size, (1, 0, 0))
+axs[1, 2].set_title("FOREHEAD Fluxish vs Saturation")
+
+axs[1, 0].set_xlabel('Fluxish')
+axs[1, 0].set_ylabel('Saturation')
+#plt.show()
+plt.show()
+
+#RGB
+halfCheekRGB = np.array([colorsys.hsv_to_rgb(*point) for point in halfCheekStats[:, 2:5]])
+fullCheekRGB = np.array([colorsys.hsv_to_rgb(*point) for point in fullCheekStats[:, 2:5]])
+
+halfChinRGB = np.array([colorsys.hsv_to_rgb(*point) for point in halfChinStats[:, 2:5]])
+fullChinRGB = np.array([colorsys.hsv_to_rgb(*point) for point in fullChinStats[:, 2:5]])
+
+halfForeheadRGB = np.array([colorsys.hsv_to_rgb(*point) for point in halfForeheadStats[:, 2:5]])
+fullForeheadRGB = np.array([colorsys.hsv_to_rgb(*point) for point in fullForeheadStats[:, 2:5]])
+
+fig, axs = plt.subplots(3, 3, sharex=True, sharey=True, tight_layout=True)
+
+axs[0, 0].scatter(halfCheekRGB[:, 0], halfCheekRGB[:, 1], size, (0, 1, 0))
+axs[0, 0].scatter(fullCheekRGB[:, 0], fullCheekRGB[:, 1], size, (1, 0, 0))
+axs[0, 0].set_xlabel('Red')
+axs[0, 0].set_ylabel('Green')
+
+axs[0, 1].scatter(halfChinRGB[:, 0], halfChinRGB[:, 1], size, (0, 1, 0))
+axs[0, 1].scatter(fullChinRGB[:, 0], fullChinRGB[:, 1], size, (1, 0, 0))
+axs[0, 1].set_xlabel('Red')
+axs[0, 1].set_ylabel('Green')
+
+axs[0, 2].scatter(halfForeheadRGB[:, 0], halfForeheadRGB[:, 1], size, (0, 1, 0))
+axs[0, 2].scatter(fullForeheadRGB[:, 0], fullForeheadRGB[:, 1], size, (1, 0, 0))
+axs[0, 2].set_xlabel('Red')
+axs[0, 2].set_ylabel('Green')
+
+axs[1, 0].scatter(halfCheekRGB[:, 0], halfCheekRGB[:, 2], size, (0, 1, 0))
+axs[1, 0].scatter(fullCheekRGB[:, 0], fullCheekRGB[:, 2], size, (1, 0, 0))
+axs[1, 0].set_xlabel('Red')
+axs[1, 0].set_ylabel('Blue')
+
+axs[1, 1].scatter(halfChinRGB[:, 0], halfChinRGB[:, 2], size, (0, 1, 0))
+axs[1, 1].scatter(fullChinRGB[:, 0], fullChinRGB[:, 2], size, (1, 0, 0))
+axs[1, 1].set_xlabel('Red')
+axs[1, 1].set_ylabel('Blue')
+
+axs[1, 2].scatter(halfForeheadRGB[:, 0], halfForeheadRGB[:, 2], size, (0, 1, 0))
+axs[1, 2].scatter(fullForeheadRGB[:, 0], fullForeheadRGB[:, 2], size, (1, 0, 0))
+axs[1, 2].set_xlabel('Red')
+axs[1, 2].set_ylabel('Blue')
+
+axs[2, 0].scatter(halfCheekRGB[:, 1], halfCheekRGB[:, 2], size, (0, 1, 0))
+axs[2, 0].scatter(fullCheekRGB[:, 1], fullCheekRGB[:, 2], size, (1, 0, 0))
+axs[2, 0].set_xlabel('Green')
+axs[2, 0].set_ylabel('Blue')
+
+axs[2, 1].scatter(halfChinRGB[:, 1], halfChinRGB[:, 2], size, (0, 1, 0))
+axs[2, 1].scatter(fullChinRGB[:, 1], fullChinRGB[:, 2], size, (1, 0, 0))
+axs[2, 1].set_xlabel('Green')
+axs[2, 1].set_ylabel('Blue')
+
+axs[2, 2].scatter(halfForeheadRGB[:, 1], halfForeheadRGB[:, 2], size, (0, 1, 0))
+axs[2, 2].scatter(fullForeheadRGB[:, 1], fullForeheadRGB[:, 2], size, (1, 0, 0))
+axs[2, 2].set_xlabel('Green')
+axs[2, 2].set_ylabel('Blue')
+#axs[0].plot([0, 1], [0, 1])
+#axs[0].plot([0, 1], [0, 1])
+#axs[0].plot([0, 1], [0, 1])
+plt.show()
+
+#VALUE VS FLUXISH
+
 fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
 
 minFluxish = min(cheekStats[:, 1])
@@ -113,57 +237,27 @@ maxFluxish = max(cheekStats[:, 1])
 
 fluxish_A = np.vstack([cheekStats[:, 1], np.ones(len(cheekStats))]).T
 
-FL_m, FL_c = np.linalg.lstsq(fluxish_A, cheekStats[:, 0] / 255, rcond=None)[0]
+FL_m, FL_c = np.linalg.lstsq(fluxish_A, cheekStats[:, 4], rcond=None)[0]
 print('Fluxish to Lightness Slope, Constant :: ' + str(FL_m) + ' ' + str(FL_c))
-#margin = 10
-margin = 0.1
+margin = 10
 axs[0].plot([minFluxish, maxFluxish], [(FL_m * minFluxish + FL_c), (FL_m * maxFluxish + FL_c)])
-axs[0].plot([minFluxish, maxFluxish], [(FL_m * minFluxish + FL_c - margin), (FL_m * maxFluxish + FL_c - margin)])
-axs[0].plot([minFluxish, maxFluxish], [(FL_m * minFluxish + FL_c + margin), (FL_m * maxFluxish + FL_c + margin)])
+#axs[0].plot([minFluxish, maxFluxish], [(FL_m * minFluxish + FL_c - margin), (FL_m * maxFluxish + FL_c - margin)])
+#axs[0].plot([minFluxish, maxFluxish], [(FL_m * minFluxish + FL_c + margin), (FL_m * maxFluxish + FL_c + margin)])
+axs[0].scatter(cheekStats[:, 1], cheekStats[:, 4], size, (1, 0, 0))
+axs[0].set_title("CHEEK Fluxish vs Value")
+axs[0].plot([0, 1], [0, 1])
 
-axs[0].scatter(halfCheekStats[:, 1], halfCheekStats[:, 0] / 255, size, (0, 1, 0))
-axs[0].scatter(fullCheekStats[:, 1], fullCheekStats[:, 0] / 255, size, (1, 0, 0))
-axs[0].set_title("CHEEK Fluxish vs Luminance")
+axs[1].scatter(chinStats[:, 1], chinStats[:, 4], size, (1, 0, 0))
+axs[1].set_title("CHIN Fluxish vs Value")
+axs[1].plot([0, 1], [0, 1])
 
-axs[1].scatter(halfChinStats[:, 1], halfChinStats[:, 0] / 255, size, (0, 1, 0))
-axs[1].scatter(fullChinStats[:, 1], fullChinStats[:, 0] / 255, size, (1, 0, 0))
-axs[1].set_title("CHIN Fluxish vs Luminance")
-
-axs[2].scatter(halfForeheadStats[:, 1], halfForeheadStats[:, 0] / 255, size, (0, 1, 0))
-axs[2].scatter(fullForeheadStats[:, 1], fullForeheadStats[:, 0] / 255, size, (1, 0, 0))
-axs[2].set_title("FOREHEAD Fluxish vs Luminance")
+axs[2].scatter(foreheadStats[:, 1], foreheadStats[:, 4], size, (1, 0, 0))
+axs[2].set_title("FOREHEAD Fluxish vs Value")
+axs[2].plot([0, 1], [0, 1])
 
 plt.xlabel('Fluxish')
-plt.ylabel('Luminance')
+plt.ylabel('Value')
 plt.show()
-
-#VALUE VS FLUXISH
-
-#fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
-#
-#minFluxish = min(cheekStats[:, 1])
-#maxFluxish = max(cheekStats[:, 1])
-#
-#fluxish_A = np.vstack([cheekStats[:, 1], np.ones(len(cheekStats))]).T
-#
-#FL_m, FL_c = np.linalg.lstsq(fluxish_A, cheekStats[:, 4], rcond=None)[0]
-#print('Fluxish to Lightness Slope, Constant :: ' + str(FL_m) + ' ' + str(FL_c))
-#margin = 10
-#axs[0].plot([minFluxish, maxFluxish], [(FL_m * minFluxish + FL_c), (FL_m * maxFluxish + FL_c)])
-##axs[0].plot([minFluxish, maxFluxish], [(FL_m * minFluxish + FL_c - margin), (FL_m * maxFluxish + FL_c - margin)])
-##axs[0].plot([minFluxish, maxFluxish], [(FL_m * minFluxish + FL_c + margin), (FL_m * maxFluxish + FL_c + margin)])
-#axs[0].scatter(cheekStats[:, 1], cheekStats[:, 4], size, (1, 0, 0))
-#axs[0].set_title("CHEEK Fluxish vs Value")
-#
-#axs[1].scatter(chinStats[:, 1], chinStats[:, 4], size, (1, 0, 0))
-#axs[1].set_title("CHIN Fluxish vs Value")
-#
-#axs[2].scatter(foreheadStats[:, 1], foreheadStats[:, 4], size, (1, 0, 0))
-#axs[2].set_title("FOREHEAD Fluxish vs Value")
-#
-#plt.xlabel('Fluxish')
-#plt.ylabel('Value')
-#plt.show()
 
 #Saturation VS Luminance Slopes
 
@@ -216,41 +310,22 @@ plt.show()
 
 #LUMINANCE VS HUE
 
-fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
-axs[0].scatter(halfCheekStats[:, 0], halfCheekStats[:, 2], size, (0, 1, 0))
-axs[0].scatter(fullCheekStats[:, 0], fullCheekStats[:, 2], size, (1, 0, 0))
-axs[0].set_title("CHEEK Luminance vs Hue")
-
-axs[1].scatter(halfChinStats[:, 0], halfChinStats[:, 2], size, (0, 1, 0))
-axs[1].scatter(fullChinStats[:, 0], fullChinStats[:, 2], size, (1, 0, 0))
-axs[1].set_title("CHIN Luminance vs Hue")
-
-axs[2].scatter(halfForeheadStats[:, 0], halfForeheadStats[:, 2], size, (0, 1, 0))
-axs[2].scatter(fullForeheadStats[:, 0], fullForeheadStats[:, 2], size, (1, 0, 0))
-axs[2].set_title("FOREHEAD Luminance vs Hue")
-
-plt.xlabel('Luminance')
-plt.ylabel('Hue')
-plt.show()
-
-#LUMINANCE VS SAT
-
-fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
-axs[0].scatter(halfCheekStats[:, 0], halfCheekStats[:, 3], size, (0, 1, 0))
-axs[0].scatter(fullCheekStats[:, 0], fullCheekStats[:, 3], size, (1, 0, 0))
-axs[0].set_title("CHEEK Luminance vs Saturation")
-
-axs[1].scatter(halfChinStats[:, 0], halfChinStats[:, 3], size, (0, 1, 0))
-axs[1].scatter(fullChinStats[:, 0], fullChinStats[:, 3], size, (1, 0, 0))
-axs[1].set_title("CHIN Luminance vs Saturation")
-
-axs[2].scatter(halfForeheadStats[:, 0], halfForeheadStats[:, 3], size, (0, 1, 0))
-axs[2].scatter(fullForeheadStats[:, 0], fullForeheadStats[:, 3], size, (1, 0, 0))
-axs[2].set_title("FOREHEAD Luminance vs Saturation")
-
-plt.xlabel('Luminance')
-plt.ylabel('Saturation')
-plt.show()
+#fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
+#axs[0].scatter(halfCheekStats[:, 0], halfCheekStats[:, 2], size, (0, 1, 0))
+#axs[0].scatter(fullCheekStats[:, 0], fullCheekStats[:, 2], size, (1, 0, 0))
+#axs[0].set_title("CHEEK Luminance vs Hue")
+#
+#axs[1].scatter(halfChinStats[:, 0], halfChinStats[:, 2], size, (0, 1, 0))
+#axs[1].scatter(fullChinStats[:, 0], fullChinStats[:, 2], size, (1, 0, 0))
+#axs[1].set_title("CHIN Luminance vs Hue")
+#
+#axs[2].scatter(halfForeheadStats[:, 0], halfForeheadStats[:, 2], size, (0, 1, 0))
+#axs[2].scatter(fullForeheadStats[:, 0], fullForeheadStats[:, 2], size, (1, 0, 0))
+#axs[2].set_title("FOREHEAD Luminance vs Hue")
+#
+#plt.xlabel('Luminance')
+#plt.ylabel('Hue')
+#plt.show()
 
 #FLUXISH VS SAT
 
@@ -269,6 +344,25 @@ axs[2].set_title("FOREHEAD Fluxish vs Saturation")
 
 plt.xlabel('Fluxish')
 plt.ylabel('Saturation')
+plt.show()
+
+#LUMINANCE VS SAT
+
+fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
+axs[0].scatter(halfCheekStats[:, 3], halfCheekStats[:, 0], size, (0, 1, 0))
+axs[0].scatter(fullCheekStats[:, 3], fullCheekStats[:, 0], size, (1, 0, 0))
+axs[0].set_title("CHEEK Luminance vs Saturation")
+
+axs[1].scatter(halfChinStats[:, 3], halfChinStats[:, 0], size, (0, 1, 0))
+axs[1].scatter(fullChinStats[:, 3], fullChinStats[:, 0], size, (1, 0, 0))
+axs[1].set_title("CHIN Luminance vs Saturation")
+
+axs[2].scatter(halfForeheadStats[:, 3], halfForeheadStats[:, 0], size, (0, 1, 0))
+axs[2].scatter(fullForeheadStats[:, 3], fullForeheadStats[:, 0], size, (1, 0, 0))
+axs[2].set_title("FOREHEAD Luminance vs Saturation")
+
+plt.xlabel('Saturation')
+plt.ylabel('Luminance')
 plt.show()
 
 #VALUE VS SAT
@@ -314,6 +408,7 @@ plt.show()
 fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
 axs[0].scatter(halfCheekStats[:, 0], halfCheekStats[:, 4], size, (0, 1, 0))
 axs[0].scatter(fullCheekStats[:, 0], fullCheekStats[:, 4], size, (1, 0, 0))
+axs[0].plot([0, 255], [0, 1])
 axs[0].set_title("CHEEK Luminance vs Value")
 
 axs[1].scatter(halfChinStats[:, 0], halfChinStats[:, 4], size, (0, 1, 0))
