@@ -282,8 +282,8 @@ class Save:
         return data
 
     def savePlot(self, name, plot):
-        path = self.referencePathBuilder(name, '.png')
-        plot.savefig(path, dpi=200)
+        path = self.referencePathBuilder(name, '.jpg')
+        plot.savefig(path, dpi=300)
         plot.close()
 
     def saveImageStat(self, statName, statValue):

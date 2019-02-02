@@ -254,6 +254,15 @@ def adjustSatToHue(chinHSV, foreheadHSV):
 
     return [chinHSV, foreheadHSV]
 
+def plotBGR(axs, color, x, y):
+    size = 1
+    start_x = min(x)
+    end_x = max(x)
+
+    axs.scatter(x, y, size, color)
+
+    m, c = fitLine(x, y)
+    axs.plot([start_x, end_x], [(m * start_x + c), (m * end_x + c)])
 
 def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #saveStep.resetLogFile(username, imageName)
@@ -431,15 +440,87 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         print('Scaled Half :: ' + str(scaledHalfPointsChin))
 
 
-        scaledFullPointsLeftCheek = cullPoints(scaledFullPointsLeftCheek)
-        scaledFullPointsRightCheek = cullPoints(scaledFullPointsRightCheek)
-        scaledFullPointsChin = cullPoints(scaledFullPointsChin)
-        scaledFullPointsForehead = cullPoints(scaledFullPointsForehead)
+        #scaledFullPointsLeftCheek = cullPoints(scaledFullPointsLeftCheek)
+        #scaledFullPointsRightCheek = cullPoints(scaledFullPointsRightCheek)
+        #scaledFullPointsChin = cullPoints(scaledFullPointsChin)
+        #scaledFullPointsForehead = cullPoints(scaledFullPointsForehead)
 
-        scaledHalfPointsLeftCheek = cullPoints(scaledHalfPointsLeftCheek)
-        scaledHalfPointsRightCheek = cullPoints(scaledHalfPointsRightCheek)
-        scaledHalfPointsChin = cullPoints(scaledHalfPointsChin)
-        scaledHalfPointsForehead = cullPoints(scaledHalfPointsForehead)
+        #scaledHalfPointsLeftCheek = cullPoints(scaledHalfPointsLeftCheek)
+        #scaledHalfPointsRightCheek = cullPoints(scaledHalfPointsRightCheek)
+        #scaledHalfPointsChin = cullPoints(scaledHalfPointsChin)
+        #scaledHalfPointsForehead = cullPoints(scaledHalfPointsForehead)
+
+        #BGR PLOT
+        size=1
+        fig, axs = plt.subplots(3, 3, sharex=False, sharey=False, tight_layout=True)
+        scaledHalfPointsCheek = np.array(list(scaledHalfPointsLeftCheek) + list(scaledHalfPointsRightCheek))
+        scaledFullPointsCheek = np.array(list(scaledFullPointsLeftCheek) + list(scaledFullPointsRightCheek))
+
+        # --- (0, 0) ---
+        plotBGR(axs[0, 0], (1, 0, 0), scaledHalfPointsCheek[:, 2], scaledHalfPointsCheek[:, 1])
+        plotBGR(axs[0, 0], (0, 1, 0), scaledFullPointsCheek[:, 2], scaledFullPointsCheek[:, 1])
+
+        axs[0, 0].set_xlabel('Red')
+        axs[0, 0].set_ylabel('Green')
+
+        # --- (0, 1) ---
+        plotBGR(axs[0, 1], (1, 0, 0), scaledHalfPointsChin[:, 2], scaledHalfPointsChin[:, 1])
+        plotBGR(axs[0, 1], (0, 1, 0), scaledFullPointsChin[:, 2], scaledFullPointsChin[:, 1])
+
+        axs[0, 1].set_xlabel('Red')
+        axs[0, 1].set_ylabel('Green')
+
+        # --- (0, 2) ---
+        plotBGR(axs[0, 2], (1, 0, 0), scaledHalfPointsForehead[:, 2], scaledHalfPointsForehead[:, 1])
+        plotBGR(axs[0, 2], (0, 1, 0), scaledFullPointsForehead[:, 2], scaledFullPointsForehead[:, 1])
+
+        axs[0, 2].set_xlabel('Red')
+        axs[0, 2].set_ylabel('Green')
+
+        # --- (1, 0) ---
+        plotBGR(axs[1, 0], (1, 0, 0), scaledHalfPointsCheek[:, 2], scaledHalfPointsCheek[:, 0])
+        plotBGR(axs[1, 0], (0, 1, 0), scaledFullPointsCheek[:, 2], scaledFullPointsCheek[:, 0])
+
+        axs[1, 0].set_xlabel('Red')
+        axs[1, 0].set_ylabel('Blue')
+
+        # --- (1, 1) ---
+        plotBGR(axs[1, 1], (1, 0, 0), scaledHalfPointsChin[:, 2], scaledHalfPointsChin[:, 0])
+        plotBGR(axs[1, 1], (0, 1, 0), scaledFullPointsChin[:, 2], scaledFullPointsChin[:, 0])
+
+        axs[1, 1].set_xlabel('Red')
+        axs[1, 1].set_ylabel('Blue')
+
+        # --- (1, 2) ---
+        plotBGR(axs[1, 2], (1, 0, 0), scaledHalfPointsForehead[:, 2], scaledHalfPointsForehead[:, 0])
+        plotBGR(axs[1, 2], (0, 1, 0), scaledFullPointsForehead[:, 2], scaledFullPointsForehead[:, 0])
+
+        axs[1, 2].set_xlabel('Red')
+        axs[1, 2].set_ylabel('Blue')
+
+        # --- (2, 0) ---
+        plotBGR(axs[2, 0], (1, 0, 0), scaledHalfPointsCheek[:, 1], scaledHalfPointsCheek[:, 0])
+        plotBGR(axs[2, 0], (0, 1, 0), scaledFullPointsCheek[:, 1], scaledFullPointsCheek[:, 0])
+
+        axs[2, 0].set_xlabel('Green')
+        axs[2, 0].set_ylabel('Blue')
+
+        # --- (2, 1) ---
+        plotBGR(axs[2, 1], (1, 0, 0), scaledHalfPointsChin[:, 1], scaledHalfPointsChin[:, 0])
+        plotBGR(axs[2, 1], (0, 1, 0), scaledFullPointsChin[:, 1], scaledFullPointsChin[:, 0])
+
+        axs[2, 1].set_xlabel('Green')
+        axs[2, 1].set_ylabel('Blue')
+
+        # --- (2, 2) ---
+        plotBGR(axs[2, 2], (1, 0, 0), scaledHalfPointsForehead[:, 1], scaledHalfPointsForehead[:, 0])
+        plotBGR(axs[2, 2], (0, 1, 0), scaledFullPointsForehead[:, 1], scaledFullPointsForehead[:, 0])
+
+        axs[2, 2].set_xlabel('Green')
+        axs[2, 2].set_ylabel('Blue')
+
+        #plt.show()
+        saveStep.savePlot('BGR', plt)
 
         #CALCULATE IN LINEAR
 
