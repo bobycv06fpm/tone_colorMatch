@@ -212,8 +212,9 @@ def convertPoints(points):
     HSV = np.array([list(colorsys.rgb_to_hsv(r, g, b)) for [r, g, b] in RGB])
 
     medianHSV = np.median(HSV, axis=0)
+    medianBGR = np.median(points, axis=0)
 
-    return [HSV, medianHSV, luminance, medianLuminance]
+    return [HSV, medianHSV, medianBGR, luminance, medianLuminance]
 
 def applyLinearAdjustment(A, B):
     [m, x] = np.polyfit(B, A, 1)
@@ -524,15 +525,15 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
 
         #CALCULATE IN LINEAR
 
-        [leftCheekFullHSV, leftCheekMedianFullHSV, leftCheekFullLuminance, leftCheekMedianFullLuminance] = convertPoints(scaledFullPointsLeftCheek)
-        [rightCheekFullHSV, rightCheekMedianFullHSV, rightCheekFullLuminance, rightCheekMedianFullLuminance] = convertPoints(scaledFullPointsRightCheek)
-        [chinFullHSV, chinMedianFullHSV, chinFullLuminance, chinMedianFullLuminance] = convertPoints(scaledFullPointsChin)
-        [foreheadFullHSV, foreheadMedianFullHSV, foreheadFullLuminance, foreheadMedianFullLuminance] = convertPoints(scaledFullPointsForehead)
+        [leftCheekFullHSV, leftCheekMedianFullHSV, leftCheekMedianFullBGR, leftCheekFullLuminance, leftCheekMedianFullLuminance] = convertPoints(scaledFullPointsLeftCheek)
+        [rightCheekFullHSV, rightCheekMedianFullHSV, rightCheekMedianFullBGR, rightCheekFullLuminance, rightCheekMedianFullLuminance] = convertPoints(scaledFullPointsRightCheek)
+        [chinFullHSV, chinMedianFullHSV, chinMedianFullBGR, chinFullLuminance, chinMedianFullLuminance] = convertPoints(scaledFullPointsChin)
+        [foreheadFullHSV, foreheadMedianFullHSV, foreheadMedianFullBGR, foreheadFullLuminance, foreheadMedianFullLuminance] = convertPoints(scaledFullPointsForehead)
 
-        [leftCheekHalfHSV, leftCheekMedianHalfHSV, leftCheekHalfLuminance, leftCheekMedianHalfLuminance] = convertPoints(scaledHalfPointsLeftCheek)
-        [rightCheekHalfHSV, rightCheekMedianHalfHSV, rightCheekHalfLuminance, rightCheekMedianHalfLuminance] = convertPoints(scaledHalfPointsRightCheek)
-        [chinHalfHSV, chinMedianHalfHSV, chinHalfLuminance, chinMedianHalfLuminance] = convertPoints(scaledHalfPointsChin)
-        [foreheadHalfHSV, foreheadMedianHalfHSV, foreheadHalfLuminance, foreheadMedianHalfLuminance] = convertPoints(scaledHalfPointsForehead)
+        [leftCheekHalfHSV, leftCheekMedianHalfHSV, leftCheekMedianHalfBGR, leftCheekHalfLuminance, leftCheekMedianHalfLuminance] = convertPoints(scaledHalfPointsLeftCheek)
+        [rightCheekHalfHSV, rightCheekMedianHalfHSV, rightCheekMedianHalfBGR, rightCheekHalfLuminance, rightCheekMedianHalfLuminance] = convertPoints(scaledHalfPointsRightCheek)
+        [chinHalfHSV, chinMedianHalfHSV, chinMedianHalfBGR, chinHalfLuminance, chinMedianHalfLuminance] = convertPoints(scaledHalfPointsChin)
+        [foreheadHalfHSV, foreheadMedianHalfHSV, foreheadMedianHalfBGR, foreheadHalfLuminance, foreheadMedianHalfLuminance] = convertPoints(scaledHalfPointsForehead)
 
         #leftCheekRatio = (leftCheekMedianFullLuminance - leftCheekMedianHalfLuminance) / (0.5 * scaledLeftFluxish)
         #rightCheekRatio = (rightCheekMedianFullLuminance - rightCheekMedianHalfLuminance) / (0.5 * scaledRightFluxish)
@@ -616,16 +617,16 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         #foreheadValues = [scaledAverageFluxish, foreheadMedianLuminance_sBGR, list(foreheadMedianHSV_sBGR), list(foreheadLine_sBGR)]
 
         #PREP FULL RETURN
-        leftCheekValuesFull = [scaledLeftFluxish, leftCheekMedianFullLuminance, list(leftCheekMedianFullHSV), list(leftCheekLineFull)]
-        rightCheekValuesFull = [scaledRightFluxish, rightCheekMedianFullLuminance, list(rightCheekMedianFullHSV), list(rightCheekLineFull)]
-        chinValuesFull = [scaledAverageFluxish, chinMedianFullLuminance, list(chinMedianFullHSV), list(chinLineFull)]
-        foreheadValuesFull = [scaledAverageFluxish, foreheadMedianFullLuminance, list(foreheadMedianFullHSV), list(foreheadLineFull)]
+        leftCheekValuesFull = [scaledLeftFluxish, leftCheekMedianFullLuminance, list(leftCheekMedianFullHSV), list(leftCheekMedianFullBGR), list(leftCheekLineFull)]
+        rightCheekValuesFull = [scaledRightFluxish, rightCheekMedianFullLuminance, list(rightCheekMedianFullHSV), list(rightCheekMedianFullBGR), list(rightCheekLineFull)]
+        chinValuesFull = [scaledAverageFluxish, chinMedianFullLuminance, list(chinMedianFullHSV), list(chinMedianFullBGR), list(chinLineFull)]
+        foreheadValuesFull = [scaledAverageFluxish, foreheadMedianFullLuminance, list(foreheadMedianFullHSV), list(foreheadMedianFullBGR), list(foreheadLineFull)]
 
         #PREP HALF RETURN
-        leftCheekValuesHalf = [scaledLeftFluxish / 2, leftCheekMedianHalfLuminance, list(leftCheekMedianHalfHSV), list(leftCheekLineHalf)]
-        rightCheekValuesHalf = [scaledRightFluxish / 2, rightCheekMedianHalfLuminance, list(rightCheekMedianHalfHSV), list(rightCheekLineHalf)]
-        chinValuesHalf = [scaledAverageFluxish / 2, chinMedianHalfLuminance, list(chinMedianHalfHSV), list(chinLineHalf)]
-        foreheadValuesHalf = [scaledAverageFluxish / 2, foreheadMedianHalfLuminance, list(foreheadMedianHalfHSV), list(foreheadLineHalf)]
+        leftCheekValuesHalf = [scaledLeftFluxish / 2, leftCheekMedianHalfLuminance, list(leftCheekMedianHalfHSV), list(leftCheekMedianHalfBGR), list(leftCheekLineHalf)]
+        rightCheekValuesHalf = [scaledRightFluxish / 2, rightCheekMedianHalfLuminance, list(rightCheekMedianHalfHSV), list(rightCheekMedianHalfBGR), list(rightCheekLineHalf)]
+        chinValuesHalf = [scaledAverageFluxish / 2, chinMedianHalfLuminance, list(chinMedianHalfHSV), list(chinMedianHalfBGR), list(chinLineHalf)]
+        foreheadValuesHalf = [scaledAverageFluxish / 2, foreheadMedianHalfLuminance, list(foreheadMedianHalfHSV), list(foreheadMedianHalfBGR), list(foreheadLineHalf)]
 
         return [imageName, True, [leftCheekValuesHalf, rightCheekValuesHalf, chinValuesHalf, foreheadValuesHalf], [leftCheekValuesFull, rightCheekValuesFull, chinValuesFull, foreheadValuesFull]]
 

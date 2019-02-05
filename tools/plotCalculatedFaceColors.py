@@ -45,29 +45,29 @@ for faceColor in faceColors:
     [leftCheekFull, rightCheekFull, chinFull, foreheadFull] = faceColor[3]
 
     #HALF 
-    [leftFluxishHalf, leftLuminanceHalf, leftHSVHalf, leftLineHalf] = leftCheekHalf
-    [rightFluxishHalf, rightLuminanceHalf, rightHSVHalf, rightLineHalf] = rightCheekHalf
-    [chinFluxishHalf, chinLuminanceHalf, chinHSVHalf, chinLineHalf] = chinHalf
-    [foreheadFluxishHalf, foreheadLuminanceHalf, foreheadHSVHalf, foreheadLineHalf] = foreheadHalf
+    [leftFluxishHalf, leftLuminanceHalf, leftHSVHalf, leftBGRHalf, leftLineHalf] = leftCheekHalf
+    [rightFluxishHalf, rightLuminanceHalf, rightHSVHalf, rightBGRHalf, rightLineHalf] = rightCheekHalf
+    [chinFluxishHalf, chinLuminanceHalf, chinHSVHalf, chinBGRHalf, chinLineHalf] = chinHalf
+    [foreheadFluxishHalf, foreheadLuminanceHalf, foreheadHSVHalf, foreheadBGRHalf, foreheadLineHalf] = foreheadHalf
 
     #FULL
-    [leftFluxishFull, leftLuminanceFull, leftHSVFull, leftLineFull] = leftCheekFull
-    [rightFluxishFull, rightLuminanceFull, rightHSVFull, rightLineFull] = rightCheekFull
-    [chinFluxishFull, chinLuminanceFull, chinHSVFull, chinLineFull] = chinFull
-    [foreheadFluxishFull, foreheadLuminanceFull, foreheadHSVFull, foreheadLineFull] = foreheadFull
+    [leftFluxishFull, leftLuminanceFull, leftHSVFull, leftBGRFull, leftLineFull] = leftCheekFull
+    [rightFluxishFull, rightLuminanceFull, rightHSVFull, rightBGRFull, rightLineFull] = rightCheekFull
+    [chinFluxishFull, chinLuminanceFull, chinHSVFull, chinBGRFull, chinLineFull] = chinFull
+    [foreheadFluxishFull, foreheadLuminanceFull, foreheadHSVFull, foreheadBGRFull, foreheadLineFull] = foreheadFull
 
 
-    template =  '{} - {} - :: {} | {} | {} | {} | {} | {} | {}'
+    template =  '{} - {} - :: {} | {} | {} | {} | {} | {} | {} | {} | {} | {}'
 
-    leftHalf = template.format(imageName, 'HALF LEFT', leftFluxishHalf, leftLuminanceHalf, *leftHSVHalf, *leftLineHalf)
-    rightHalf = template.format(imageName, 'HALF RIGHT', rightFluxishHalf, rightLuminanceHalf, *rightHSVHalf, *rightLineHalf)
-    chinHalf = template.format(imageName, 'HALF CHIN', chinFluxishHalf, chinLuminanceHalf, *chinHSVHalf, *chinLineHalf)
-    foreheadHalf = template.format(imageName, 'HALF FOREHEAD', foreheadFluxishHalf, foreheadLuminanceHalf, *foreheadHSVHalf, *foreheadLineHalf)
+    leftHalf = template.format(imageName, 'HALF LEFT', leftFluxishHalf, leftLuminanceHalf, *leftHSVHalf, *leftBGRHalf, *leftLineHalf)
+    rightHalf = template.format(imageName, 'HALF RIGHT', rightFluxishHalf, rightLuminanceHalf, *rightHSVHalf, *rightBGRHalf, *rightLineHalf)
+    chinHalf = template.format(imageName, 'HALF CHIN', chinFluxishHalf, chinLuminanceHalf, *chinHSVHalf, *chinBGRHalf, *chinLineHalf)
+    foreheadHalf = template.format(imageName, 'HALF FOREHEAD', foreheadFluxishHalf, foreheadLuminanceHalf, *foreheadHSVHalf, *foreheadBGRHalf, *foreheadLineHalf)
 
-    leftFull = template.format(imageName, 'FULL LEFT', leftFluxishFull, leftLuminanceFull, *leftHSVFull, *leftLineFull)
-    rightFull = template.format(imageName, 'FULL RIGHT', rightFluxishFull, rightLuminanceFull, *rightHSVFull, *rightLineFull)
-    chinFull = template.format(imageName, 'FULL CHIN', chinFluxishFull, chinLuminanceFull, *chinHSVFull, *chinLineFull)
-    foreheadFull = template.format(imageName, 'FULL FOREHEAD', foreheadFluxishFull, foreheadLuminanceFull, *foreheadHSVFull, *foreheadLineFull)
+    leftFull = template.format(imageName, 'FULL LEFT', leftFluxishFull, leftLuminanceFull, *leftHSVFull, *leftBGRFull, *leftLineFull)
+    rightFull = template.format(imageName, 'FULL RIGHT', rightFluxishFull, rightLuminanceFull, *rightHSVFull, *rightBGRFull, *rightLineFull)
+    chinFull = template.format(imageName, 'FULL CHIN', chinFluxishFull, chinLuminanceFull, *chinHSVFull, *chinBGRFull, *chinLineFull)
+    foreheadFull = template.format(imageName, 'FULL FOREHEAD', foreheadFluxishFull, foreheadLuminanceFull, *foreheadHSVFull, *foreheadBGRFull, *foreheadLineFull)
 
     print('~~~~~')
     print(leftHalf)
@@ -79,16 +79,16 @@ for faceColor in faceColors:
     print(chinFull)
     print(foreheadFull)
 
-    halfCheekStats.append(np.array([leftLuminanceHalf, leftFluxishHalf, *leftHSVHalf, *leftLineHalf]))
-    halfCheekStats.append(np.array([rightLuminanceHalf, rightFluxishHalf, *rightHSVHalf, *rightLineHalf]))
-    fullCheekStats.append(np.array([leftLuminanceFull, leftFluxishFull, *leftHSVFull, *leftLineFull]))
-    fullCheekStats.append(np.array([rightLuminanceFull, rightFluxishFull, *rightHSVFull, *rightLineFull]))
+    halfCheekStats.append(np.array([leftLuminanceHalf, leftFluxishHalf, *leftHSVHalf, *leftBGRHalf, *leftLineHalf]))
+    halfCheekStats.append(np.array([rightLuminanceHalf, rightFluxishHalf, *rightHSVHalf, *rightBGRHalf, *rightLineHalf]))
+    fullCheekStats.append(np.array([leftLuminanceFull, leftFluxishFull, *leftHSVFull, *leftBGRFull, *leftLineFull]))
+    fullCheekStats.append(np.array([rightLuminanceFull, rightFluxishFull, *rightHSVFull, *rightBGRFull, *rightLineFull]))
 
-    halfChinStats.append(np.array([chinLuminanceHalf, chinFluxishHalf, *chinHSVHalf, *chinLineHalf]))
-    fullChinStats.append(np.array([chinLuminanceFull, chinFluxishFull, *chinHSVFull, *chinLineFull]))
+    halfChinStats.append(np.array([chinLuminanceHalf, chinFluxishHalf, *chinHSVHalf, *chinBGRHalf, *chinLineHalf]))
+    fullChinStats.append(np.array([chinLuminanceFull, chinFluxishFull, *chinHSVFull, *chinBGRFull, *chinLineFull]))
 
-    halfForeheadStats.append(np.array([foreheadLuminanceHalf, foreheadFluxishHalf, *foreheadHSVHalf, *foreheadLineHalf]))
-    fullForeheadStats.append(np.array([foreheadLuminanceFull, foreheadFluxishFull, *foreheadHSVFull, *foreheadLineFull]))
+    halfForeheadStats.append(np.array([foreheadLuminanceHalf, foreheadFluxishHalf, *foreheadHSVHalf, *foreheadBGRHalf, *foreheadLineHalf]))
+    fullForeheadStats.append(np.array([foreheadLuminanceFull, foreheadFluxishFull, *foreheadHSVFull, *foreheadBGRFull, *foreheadLineFull]))
 
 cheekStats = halfCheekStats + fullCheekStats
 cheekStats = np.array(cheekStats)
@@ -109,15 +109,17 @@ fullForeheadStats = np.array(fullForeheadStats)
 
 fig, axs = plt.subplots(2, 3, sharex=True, tight_layout=True)
 
+compareIndex, compareName = [0, 'Luminance'] #[5, 'Blue'] [6, 'Green'] [7, 'Red']
+
 minFullFluxish = min(fullCheekStats[:, 1])
 maxFullFluxish = max(fullCheekStats[:, 1])
 full_fluxish_A = np.vstack([fullCheekStats[:, 1], np.ones(len(fullCheekStats))]).T
-FL_m, FL_c = np.linalg.lstsq(full_fluxish_A, fullCheekStats[:, 0] / 255, rcond=None)[0]
+FL_m, FL_c = np.linalg.lstsq(full_fluxish_A, fullCheekStats[:, compareIndex] / 255, rcond=None)[0]
 
 minHalfFluxish = min(halfCheekStats[:, 1])
 maxHalfFluxish = max(halfCheekStats[:, 1])
 half_fluxish_A = np.vstack([halfCheekStats[:, 1], np.ones(len(halfCheekStats))]).T
-HL_m, HL_c = np.linalg.lstsq(half_fluxish_A, halfCheekStats[:, 0] / 255, rcond=None)[0]
+HL_m, HL_c = np.linalg.lstsq(half_fluxish_A, halfCheekStats[:, compareIndex] / 255, rcond=None)[0]
 
 print('Full Fluxish to Lightness Slope, Constant :: ' + str(FL_m) + ' ' + str(FL_c))
 print('Half Fluxish to Lightness Slope, Constant :: ' + str(HL_m) + ' ' + str(HL_c))
@@ -133,22 +135,22 @@ axs[0, 0].plot([minHalfFluxish, maxHalfFluxish], [(HL_m * minHalfFluxish + HL_c)
 #axs[0].plot([minHalfFluxish, maxHalfFluxish], [(HL_m * minHalfFluxish + HL_c + margin), (HL_m * maxHalfFluxish + HL_c + margin)])
 axs[0, 0].plot([0, 1], [0, 1])
 
-axs[0, 0].scatter(halfCheekStats[:, 1], halfCheekStats[:, 0] / 255, size, (0, 1, 0))
-axs[0, 0].scatter(fullCheekStats[:, 1], fullCheekStats[:, 0] / 255, size, (1, 0, 0))
-axs[0, 0].set_title("CHEEK Fluxish vs Luminance")
+axs[0, 0].scatter(halfCheekStats[:, 1], halfCheekStats[:, compareIndex] / 255, size, (0, 1, 0))
+axs[0, 0].scatter(fullCheekStats[:, 1], fullCheekStats[:, compareIndex] / 255, size, (1, 0, 0))
+axs[0, 0].set_title("CHEEK Fluxish vs " + compareName)
 
 axs[0, 1].plot([0, 1], [0, 1])
-axs[0, 1].scatter(halfChinStats[:, 1], halfChinStats[:, 0] / 255, size, (0, 1, 0))
-axs[0, 1].scatter(fullChinStats[:, 1], fullChinStats[:, 0] / 255, size, (1, 0, 0))
-axs[0, 1].set_title("CHIN Fluxish vs Luminance")
+axs[0, 1].scatter(halfChinStats[:, 1], halfChinStats[:, compareIndex] / 255, size, (0, 1, 0))
+axs[0, 1].scatter(fullChinStats[:, 1], fullChinStats[:, compareIndex] / 255, size, (1, 0, 0))
+axs[0, 1].set_title("CHIN Fluxish vs " + compareName)
 
 axs[0, 2].plot([0, 1], [0, 1])
-axs[0, 2].scatter(halfForeheadStats[:, 1], halfForeheadStats[:, 0] / 255, size, (0, 1, 0))
-axs[0, 2].scatter(fullForeheadStats[:, 1], fullForeheadStats[:, 0] / 255, size, (1, 0, 0))
-axs[0, 2].set_title("FOREHEAD Fluxish vs Luminance")
+axs[0, 2].scatter(halfForeheadStats[:, 1], halfForeheadStats[:, compareIndex] / 255, size, (0, 1, 0))
+axs[0, 2].scatter(fullForeheadStats[:, 1], fullForeheadStats[:, compareIndex] / 255, size, (1, 0, 0))
+axs[0, 2].set_title("FOREHEAD Fluxish vs " + compareName)
 
 axs[0, 0].set_xlabel('Fluxish')
-axs[0, 0].set_ylabel('Luminance')
+axs[0, 0].set_ylabel(compareName)
 
 axs[1, 0].scatter(halfCheekStats[:, 1], halfCheekStats[:, 3], size, (0, 1, 0))
 axs[1, 0].scatter(fullCheekStats[:, 1], fullCheekStats[:, 3], size, (1, 0, 0))
@@ -168,14 +170,23 @@ axs[1, 0].set_ylabel('Saturation')
 plt.show()
 
 #RGB
-halfCheekRGB = np.array([colorsys.hsv_to_rgb(*point) for point in halfCheekStats[:, 2:5]])
-fullCheekRGB = np.array([colorsys.hsv_to_rgb(*point) for point in fullCheekStats[:, 2:5]])
+#halfCheekRGB = np.array([colorsys.hsv_to_rgb(*point) for point in halfCheekStats[:, 2:5]])
+#fullCheekRGB = np.array([colorsys.hsv_to_rgb(*point) for point in fullCheekStats[:, 2:5]])
+#
+#halfChinRGB = np.array([colorsys.hsv_to_rgb(*point) for point in halfChinStats[:, 2:5]])
+#fullChinRGB = np.array([colorsys.hsv_to_rgb(*point) for point in fullChinStats[:, 2:5]])
+#
+#halfForeheadRGB = np.array([colorsys.hsv_to_rgb(*point) for point in halfForeheadStats[:, 2:5]])
+#fullForeheadRGB = np.array([colorsys.hsv_to_rgb(*point) for point in fullForeheadStats[:, 2:5]])
 
-halfChinRGB = np.array([colorsys.hsv_to_rgb(*point) for point in halfChinStats[:, 2:5]])
-fullChinRGB = np.array([colorsys.hsv_to_rgb(*point) for point in fullChinStats[:, 2:5]])
+halfCheekRGB = np.array([np.flip(point, axis=0) for point in halfCheekStats[:, 5:8]])
+fullCheekRGB = np.array([np.flip(point, axis=0) for point in fullCheekStats[:, 5:8]])
 
-halfForeheadRGB = np.array([colorsys.hsv_to_rgb(*point) for point in halfForeheadStats[:, 2:5]])
-fullForeheadRGB = np.array([colorsys.hsv_to_rgb(*point) for point in fullForeheadStats[:, 2:5]])
+halfChinRGB = np.array([np.flip(point, axis=0) for point in halfChinStats[:, 5:8]])
+fullChinRGB = np.array([np.flip(point, axis=0) for point in fullChinStats[:, 5:8]])
+
+halfForeheadRGB = np.array([np.flip(point, axis=0) for point in halfForeheadStats[:, 5:8]])
+fullForeheadRGB = np.array([np.flip(point, axis=0) for point in fullForeheadStats[:, 5:8]])
 
 fig, axs = plt.subplots(3, 3, sharex=True, sharey=True, tight_layout=True)
 
@@ -259,15 +270,83 @@ plt.xlabel('Fluxish')
 plt.ylabel('Value')
 plt.show()
 
+#ColorChannel VS ColorChannel Slopes
+fig, axs = plt.subplots(1, 3, sharey=True, tight_layout=True)
+
+allHalfDataSources = [halfCheekStats, halfChinStats, halfForeheadStats]
+allFullDataSources = [fullCheekStats, fullChinStats, fullForeheadStats]
+
+#halfDataSource = halfForeheadStats
+#fullDataSource = fullForeheadStats
+
+for i in range(2, 3):
+    halfDataSource = allHalfDataSources[i]
+    fullDataSource = allFullDataSources[i]
+
+    xChannelIndex, xChannelName = [6, 'Green']
+    yChannelIndex, yChannelName = [5, 'Blue']
+
+    for index in range(0, len(halfDataSource)):
+        xHalfStat = halfDataSource[index, xChannelIndex]
+        yHalfStat = halfDataSource[index, yChannelIndex]
+
+        xFullStat = fullDataSource[index, xChannelIndex]
+        yFullStat = fullDataSource[index, yChannelIndex]
+
+        axs[0].plot([xHalfStat, xFullStat], [yHalfStat, yFullStat])
+        #axs[0].scatter([xHalfStat, xFullStat], [yHalfStat, yFullStat])
+
+    axs[0].plot([0, 255], [0, 255])
+    axs[0].set_xlabel(xChannelName)
+    axs[0].set_ylabel(yChannelName)
+
+    #ColorChannel VS ColorChannel Slopes
+    xChannelIndex, xChannelName = [7, 'Red']
+    yChannelIndex, yChannelName = [5, 'Blue']
+
+    for index in range(0, len(halfDataSource)):
+        xHalfStat = halfDataSource[index, xChannelIndex]
+        yHalfStat = halfDataSource[index, yChannelIndex]
+
+        xFullStat = fullDataSource[index, xChannelIndex]
+        yFullStat = fullDataSource[index, yChannelIndex]
+
+        axs[1].plot([xHalfStat, xFullStat], [yHalfStat, yFullStat])
+        #axs[1].scatter([xHalfStat, xFullStat], [yHalfStat, yFullStat])
+
+    axs[1].plot([0, 255], [0, 255])
+    axs[1].set_xlabel(xChannelName)
+    axs[1].set_ylabel(yChannelName)
+
+    #ColorChannel VS ColorChannel Slopes
+    xChannelIndex, xChannelName = [7, 'Red']
+    yChannelIndex, yChannelName = [6, 'Green']
+
+    for index in range(0, len(halfDataSource)):
+        xHalfStat = halfDataSource[index, xChannelIndex]
+        yHalfStat = halfDataSource[index, yChannelIndex]
+
+        xFullStat = fullDataSource[index, xChannelIndex]
+        yFullStat = fullDataSource[index, yChannelIndex]
+
+        axs[2].plot([xHalfStat, xFullStat], [yHalfStat, yFullStat])
+        #axs[2].scatter([xHalfStat, xFullStat], [yHalfStat, yFullStat])
+
+    axs[2].plot([0, 255], [0, 255])
+    axs[2].set_xlabel(xChannelName)
+    axs[2].set_ylabel(yChannelName)
+
+plt.show()
+
 #Saturation VS Luminance Slopes
 
 for stat in halfChinStats:
-    plt.plot([0, 255], [stat[6], (stat[5] * 255) + stat[6]])
-    plt.plot(stat[0], (stat[5] * stat[0] + stat[6]), 'go')
+    plt.plot([0, 255], [stat[9], (stat[8] * 255) + stat[9]])
+    plt.plot(stat[0], (stat[8] * stat[0] + stat[9]), 'go')
 
 for stat in fullChinStats:
-    plt.plot([0, 255], [stat[6], (stat[5] * 255) + stat[6]])
-    plt.plot(stat[0], (stat[5] * stat[0] + stat[6]), 'ro')
+    plt.plot([0, 255], [stat[9], (stat[8] * 255) + stat[9]])
+    plt.plot(stat[0], (stat[8] * stat[0] + stat[9]), 'ro')
 
 plt.xlabel('Luminance')
 plt.ylabel('Saturation')
