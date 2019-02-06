@@ -121,8 +121,11 @@ import cv2
 # - - - 1  Intercept
 
 def getKeyValue(imageStats):
-    #return imageStats[3][0][1] #Full Flash Left Luminance
-    return imageStats[3][0][0] #Full Flash Left Fluxish
+    return imageStats[3][0][1] #Full Flash Left Luminance
+    #return imageStats[3][0][0] #Full Flash Left Fluxish
+
+def getSecondaryStats(imageStats):
+    return [imageStats[3][0][0]]
 
 root = '../../'
 path = root + 'images/'
@@ -137,7 +140,7 @@ with open('faceColors.json', 'r') as f:
 faceColors = [faceColor for faceColor in faceColors if faceColor[1]]
 faceColors = sorted(faceColors, key = getKeyValue) 
 
-sampleSize = 5
+sampleSize = 7
 sampleSize -= 1
 
 mod = int(len(faceColors) / sampleSize)
@@ -152,12 +155,16 @@ for index, image in enumerate(faceColors):
         referenceImagePaths = [os.path.join(imagePathRoot, 'reference', imageId + '.PNG') for imageId in ['half_WhitebalancedImage', 'Diff_masked']]
         imagePaths += referenceImagePaths
 
-        print('{} :: {}'.format(imageName, getKeyValue(image)))
+        print('{} :: {} | {}'.format(imageName, getKeyValue(image), getSecondaryStats(image)))
+
         imageSet = None
         blankImage = None
 
         for path in imagePaths:
             image = cv2.imread(path)
+
+            if image.shape[0] < image.shape[1]:
+                image = np.rot90(image, 3)
 
             ratio = 8
             smallImage = cv2.resize(image, (0, 0), fx=1/ratio, fy=1/ratio)

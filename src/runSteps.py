@@ -21,6 +21,8 @@ from capture import Capture
 import multiprocessing as mp
 import colorsys
 
+chartSampleSize = 1000
+
 def scalePointstoFluxish(capture, fluxish):
     #targetFluxish = 100000
     targetFluxish = 50000
@@ -92,112 +94,145 @@ def plotZones(leftCheek, rightCheek, chin, forehead, saveStep, tag=''):
     [chin_hsv, chinLuminance] = chin
     [forehead_hsv, foreheadLuminance] = forehead
 
+    if len(leftCheek_hsv) > chartSampleSize:
+        sample = np.random.choice(len(leftCheek_hsv), chartSampleSize)
+        leftCheek_hsv_sample = np.take(leftCheek_hsv, sample, axis=0)
+        leftCheekLuminance_sample = np.take(leftCheekLuminance, sample, axis=0)
+    else:
+        leftCheek_hsv_sample = leftCheek_hsv
+        leftCheekLuminance_sample = leftCheekLuminance
+
+    if len(rightCheek_hsv) > chartSampleSize:
+        sample = np.random.choice(len(rightCheek_hsv), chartSampleSize)
+        rightCheek_hsv_sample = np.take(rightCheek_hsv, sample, axis=0)
+        rightCheekLuminance_sample = np.take(rightCheekLuminance, sample, axis=0)
+    else:
+        rightCheek_hsv_sample = rightCheek_hsv
+        rightCheekLuminance_sample = rightCheekLuminance
+
+    if len(chin_hsv) > chartSampleSize:
+        sample = np.random.choice(len(chin_hsv), chartSampleSize)
+        chin_hsv_sample = np.take(chin_hsv, sample, axis=0)
+        chinLuminance_sample = np.take(chinLuminance, sample, axis=0)
+    else:
+        chin_hsv_sample = chin_hsv
+        chinLuminance_sample = chinLuminance
+
+    if len(forehead_hsv) > chartSampleSize:
+        sample = np.random.choice(len(forehead_hsv), chartSampleSize)
+        forehead_hsv_sample = np.take(forehead_hsv, sample, axis=0)
+        foreheadLuminance_sample = np.take(foreheadLuminance, sample, axis=0)
+    else:
+        forehead_hsv_sample = forehead_hsv
+        foreheadLuminance_sample = foreheadLuminance
+
+
     fig, axs = plt.subplots(5, 3, sharey=False, tight_layout=True)
     size = 1
 
-    #Luminance
-    axs[0, 0].scatter(leftCheekLuminance, leftCheek_hsv[:, 1], size, (1, 0, 0))
-    leftCheekLine = fitLine(leftCheekLuminance, leftCheek_hsv[:, 1])
+    #Luminance_sample
+    axs[0, 0].scatter(leftCheekLuminance_sample, leftCheek_hsv_sample[:, 1], size, (1, 0, 0))
+    leftCheekLine = fitLine(leftCheekLuminance_sample, leftCheek_hsv_sample[:, 1])
 
-    axs[1, 0].scatter(rightCheekLuminance, rightCheek_hsv[:, 1], size, (1, 0, 0))
-    rightCheekLine = fitLine(rightCheekLuminance, rightCheek_hsv[:, 1])
+    axs[1, 0].scatter(rightCheekLuminance_sample, rightCheek_hsv_sample[:, 1], size, (1, 0, 0))
+    rightCheekLine = fitLine(rightCheekLuminance_sample, rightCheek_hsv_sample[:, 1])
 
-    axs[2, 0].scatter(chinLuminance, chin_hsv[:, 1], size, (1, 0, 0))
-    chinLine = fitLine(chinLuminance, chin_hsv[:, 1])
-    axs[2, 0].plot([min(chinLuminance), max(chinLuminance)], [min(chinLuminance) * chinLine[0] + chinLine[1], max(chinLuminance) * chinLine[0] + chinLine[1]])
+    axs[2, 0].scatter(chinLuminance_sample, chin_hsv_sample[:, 1], size, (1, 0, 0))
+    chinLine = fitLine(chinLuminance_sample, chin_hsv_sample[:, 1])
+    axs[2, 0].plot([min(chinLuminance_sample), max(chinLuminance_sample)], [min(chinLuminance_sample) * chinLine[0] + chinLine[1], max(chinLuminance_sample) * chinLine[0] + chinLine[1]])
 
-    axs[3, 0].scatter(foreheadLuminance, forehead_hsv[:, 1], size, (1, 0, 0))
-    foreheadLine = fitLine(foreheadLuminance, forehead_hsv[:, 1])
-    axs[3, 0].plot([min(foreheadLuminance), max(foreheadLuminance)], [min(foreheadLuminance) * foreheadLine[0] + foreheadLine[1], max(foreheadLuminance) * foreheadLine[0] + foreheadLine[1]])
+    axs[3, 0].scatter(foreheadLuminance_sample, forehead_hsv_sample[:, 1], size, (1, 0, 0))
+    foreheadLine = fitLine(foreheadLuminance_sample, forehead_hsv_sample[:, 1])
+    axs[3, 0].plot([min(foreheadLuminance_sample), max(foreheadLuminance_sample)], [min(foreheadLuminance_sample) * foreheadLine[0] + foreheadLine[1], max(foreheadLuminance_sample) * foreheadLine[0] + foreheadLine[1]])
 
-    axs[4, 0].scatter(leftCheekLuminance, leftCheek_hsv[:, 1], size, (1, 0, 0))
-    axs[4, 0].scatter(rightCheekLuminance, rightCheek_hsv[:, 1], size, (1, 0, 0))
-    axs[4, 0].scatter(chinLuminance, chin_hsv[:, 1], size, (1, 0, 0))
-    axs[4, 0].scatter(foreheadLuminance, forehead_hsv[:, 1], size, (1, 0, 0))
+    axs[4, 0].scatter(leftCheekLuminance_sample, leftCheek_hsv_sample[:, 1], size, (1, 0, 0))
+    axs[4, 0].scatter(rightCheekLuminance_sample, rightCheek_hsv_sample[:, 1], size, (1, 0, 0))
+    axs[4, 0].scatter(chinLuminance_sample, chin_hsv_sample[:, 1], size, (1, 0, 0))
+    axs[4, 0].scatter(foreheadLuminance_sample, forehead_hsv_sample[:, 1], size, (1, 0, 0))
 
     print('Lines :: ' + str(leftCheekLine) + ' | ' + str(rightCheekLine) + ' | ' + str(chinLine) + ' | ' + str(foreheadLine))
 
     #Value
-    #axs[0, 0].scatter(leftCheek_hsv[:, 2], leftCheek_hsv[:, 1], size, (1, 0, 0))
-    #axs[1, 0].scatter(rightCheek_hsv[:, 2], rightCheek_hsv[:, 1], size, (1, 0, 0))
-    #axs[2, 0].scatter(chin_hsv[:, 2], chin_hsv[:, 1], size, (1, 0, 0))
-    #axs[3, 0].scatter(forehead_hsv[:, 2], forehead_hsv[:, 1], size, (1, 0, 0))
+    #axs[0, 0].scatter(leftCheek_hsv_sample[:, 2], leftCheek_hsv_sample[:, 1], size, (1, 0, 0))
+    #axs[1, 0].scatter(rightCheek_hsv_sample[:, 2], rightCheek_hsv_sample[:, 1], size, (1, 0, 0))
+    #axs[2, 0].scatter(chin_hsv_sample[:, 2], chin_hsv_sample[:, 1], size, (1, 0, 0))
+    #axs[3, 0].scatter(forehead_hsv_sample[:, 2], forehead_hsv_sample[:, 1], size, (1, 0, 0))
 
     #Intensity
-    #axs[0, 0].scatter(leftCheekIntensity, leftCheek_hsv[:, 1], size, (1, 0, 0))
-    #axs[1, 0].scatter(rightCheekIntensity, rightCheek_hsv[:, 1], size, (1, 0, 0))
-    #axs[2, 0].scatter(chinIntensity, chin_hsv[:, 1], size, (1, 0, 0))
-    #axs[3, 0].scatter(foreheadIntensity, forehead_hsv[:, 1], size, (1, 0, 0))
+    #axs[0, 0].scatter(leftCheekIntensity, leftCheek_hsv_sample[:, 1], size, (1, 0, 0))
+    #axs[1, 0].scatter(rightCheekIntensity, rightCheek_hsv_sample[:, 1], size, (1, 0, 0))
+    #axs[2, 0].scatter(chinIntensity, chin_hsv_sample[:, 1], size, (1, 0, 0))
+    #axs[3, 0].scatter(foreheadIntensity, forehead_hsv_sample[:, 1], size, (1, 0, 0))
 
-    #Luminance
-    axs[0, 1].scatter(leftCheekLuminance, rotateHue(leftCheek_hsv[:, 0]), size, (1, 0, 0))
-    axs[1, 1].scatter(rightCheekLuminance, rotateHue(rightCheek_hsv[:, 0]), size, (1, 0, 0))
-    axs[2, 1].scatter(chinLuminance, rotateHue(chin_hsv[:, 0]), size, (1, 0, 0))
-    axs[3, 1].scatter(foreheadLuminance, rotateHue(forehead_hsv[:, 0]), size, (1, 0, 0))
+    #Luminance_sample
+    axs[0, 1].scatter(leftCheekLuminance_sample, rotateHue(leftCheek_hsv_sample[:, 0]), size, (1, 0, 0))
+    axs[1, 1].scatter(rightCheekLuminance_sample, rotateHue(rightCheek_hsv_sample[:, 0]), size, (1, 0, 0))
+    axs[2, 1].scatter(chinLuminance_sample, rotateHue(chin_hsv_sample[:, 0]), size, (1, 0, 0))
+    axs[3, 1].scatter(foreheadLuminance_sample, rotateHue(forehead_hsv_sample[:, 0]), size, (1, 0, 0))
 
-    axs[4, 1].scatter(leftCheekLuminance, rotateHue(leftCheek_hsv[:, 0]), size, (1, 0, 0))
-    axs[4, 1].scatter(rightCheekLuminance, rotateHue(rightCheek_hsv[:, 0]), size, (1, 0, 0))
-    axs[4, 1].scatter(chinLuminance, rotateHue(chin_hsv[:, 0]), size, (1, 0, 0))
-    axs[4, 1].scatter(foreheadLuminance, rotateHue(forehead_hsv[:, 0]), size, (1, 0, 0))
+    axs[4, 1].scatter(leftCheekLuminance_sample, rotateHue(leftCheek_hsv_sample[:, 0]), size, (1, 0, 0))
+    axs[4, 1].scatter(rightCheekLuminance_sample, rotateHue(rightCheek_hsv_sample[:, 0]), size, (1, 0, 0))
+    axs[4, 1].scatter(chinLuminance_sample, rotateHue(chin_hsv_sample[:, 0]), size, (1, 0, 0))
+    axs[4, 1].scatter(foreheadLuminance_sample, rotateHue(forehead_hsv_sample[:, 0]), size, (1, 0, 0))
 
     #Value
-    #axs[0, 1].scatter(leftCheek_hsv[:, 2], np.clip(leftCheek_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
-    #axs[1, 1].scatter(rightCheek_hsv[:, 2], np.clip(rightCheek_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
-    #axs[2, 1].scatter(chin_hsv[:, 2], np.clip(chin_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
-    #axs[3, 1].scatter(forehead_hsv[:, 2], np.clip(forehead_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
+    #axs[0, 1].scatter(leftCheek_hsv_sample[:, 2], np.clip(leftCheek_hsv_sample[:, 0], 0, 0.1), size, (1, 0, 0))
+    #axs[1, 1].scatter(rightCheek_hsv_sample[:, 2], np.clip(rightCheek_hsv_sample[:, 0], 0, 0.1), size, (1, 0, 0))
+    #axs[2, 1].scatter(chin_hsv_sample[:, 2], np.clip(chin_hsv_sample[:, 0], 0, 0.1), size, (1, 0, 0))
+    #axs[3, 1].scatter(forehead_hsv_sample[:, 2], np.clip(forehead_hsv_sample[:, 0], 0, 0.1), size, (1, 0, 0))
 
     #Intensity
-    #axs[0, 1].scatter(leftCheekIntensity, np.clip(leftCheek_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
-    #axs[1, 1].scatter(rightCheekIntensity, np.clip(rightCheek_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
-    #axs[2, 1].scatter(chinIntensity, np.clip(chin_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
-    #axs[3, 1].scatter(foreheadIntensity, np.clip(forehead_hsv[:, 0], 0, 0.1), size, (1, 0, 0))
+    #axs[0, 1].scatter(leftCheekIntensity, np.clip(leftCheek_hsv_sample[:, 0], 0, 0.1), size, (1, 0, 0))
+    #axs[1, 1].scatter(rightCheekIntensity, np.clip(rightCheek_hsv_sample[:, 0], 0, 0.1), size, (1, 0, 0))
+    #axs[2, 1].scatter(chinIntensity, np.clip(chin_hsv_sample[:, 0], 0, 0.1), size, (1, 0, 0))
+    #axs[3, 1].scatter(foreheadIntensity, np.clip(forehead_hsv_sample[:, 0], 0, 0.1), size, (1, 0, 0))
 
-    minH = min(rotateHue(chin_hsv[:, 0]))
-    maxH = max(rotateHue(chin_hsv[:, 0]))
-    A = np.vstack([rotateHue(chin_hsv[:, 0]), np.ones(len(chin_hsv))]).T
-    m, c = np.linalg.lstsq(A, chin_hsv[:, 1], rcond=None)[0]
+    minH = min(rotateHue(chin_hsv_sample[:, 0]))
+    maxH = max(rotateHue(chin_hsv_sample[:, 0]))
+    A = np.vstack([rotateHue(chin_hsv_sample[:, 0]), np.ones(len(chin_hsv_sample))]).T
+    m, c = np.linalg.lstsq(A, chin_hsv_sample[:, 1], rcond=None)[0]
     axs[2, 2].plot([minH, maxH], [(m * minH + c), (m * maxH + c)])
 
-    minH = min(rotateHue(forehead_hsv[:, 0]))
-    maxH = max(rotateHue(forehead_hsv[:, 0]))
-    A = np.vstack([rotateHue(forehead_hsv[:, 0]), np.ones(len(forehead_hsv))]).T
-    m, c = np.linalg.lstsq(A, forehead_hsv[:, 1], rcond=None)[0]
+    minH = min(rotateHue(forehead_hsv_sample[:, 0]))
+    maxH = max(rotateHue(forehead_hsv_sample[:, 0]))
+    A = np.vstack([rotateHue(forehead_hsv_sample[:, 0]), np.ones(len(forehead_hsv_sample))]).T
+    m, c = np.linalg.lstsq(A, forehead_hsv_sample[:, 1], rcond=None)[0]
     axs[3, 2].plot([minH, maxH], [(m * minH + c), (m * maxH + c)])
 
-    axs[0, 2].scatter(rotateHue(leftCheek_hsv[:, 0]), leftCheek_hsv[:, 1], size, (1, 0, 0))
-    axs[1, 2].scatter(rotateHue(rightCheek_hsv[:, 0]), rightCheek_hsv[:, 1], size, (1, 0, 0))
-    axs[2, 2].scatter(rotateHue(chin_hsv[:, 0]), chin_hsv[:, 1], size, (1, 0, 0))
-    axs[3, 2].scatter(rotateHue(forehead_hsv[:, 0]), forehead_hsv[:, 1], size, (1, 0, 0))
+    axs[0, 2].scatter(rotateHue(leftCheek_hsv_sample[:, 0]), leftCheek_hsv_sample[:, 1], size, (1, 0, 0))
+    axs[1, 2].scatter(rotateHue(rightCheek_hsv_sample[:, 0]), rightCheek_hsv_sample[:, 1], size, (1, 0, 0))
+    axs[2, 2].scatter(rotateHue(chin_hsv_sample[:, 0]), chin_hsv_sample[:, 1], size, (1, 0, 0))
+    axs[3, 2].scatter(rotateHue(forehead_hsv_sample[:, 0]), forehead_hsv_sample[:, 1], size, (1, 0, 0))
 
-    axs[4, 2].scatter(rotateHue(leftCheek_hsv[:, 0]), leftCheek_hsv[:, 1], size, (1, 0, 0))
-    axs[4, 2].scatter(rotateHue(rightCheek_hsv[:, 0]), rightCheek_hsv[:, 1], size, (1, 0, 0))
-    axs[4, 2].scatter(rotateHue(chin_hsv[:, 0]), chin_hsv[:, 1], size, (1, 0, 0))
-    axs[4, 2].scatter(rotateHue(forehead_hsv[:, 0]), forehead_hsv[:, 1], size, (1, 0, 0))
+    axs[4, 2].scatter(rotateHue(leftCheek_hsv_sample[:, 0]), leftCheek_hsv_sample[:, 1], size, (1, 0, 0))
+    axs[4, 2].scatter(rotateHue(rightCheek_hsv_sample[:, 0]), rightCheek_hsv_sample[:, 1], size, (1, 0, 0))
+    axs[4, 2].scatter(rotateHue(chin_hsv_sample[:, 0]), chin_hsv_sample[:, 1], size, (1, 0, 0))
+    axs[4, 2].scatter(rotateHue(forehead_hsv_sample[:, 0]), forehead_hsv_sample[:, 1], size, (1, 0, 0))
 
     #plt.show()
-    saveStep.savePlot('Luminance_Hue_Saturation_Scatter' + tag, plt)
+    saveStep.savePlot('Luminance_sample_Hue_Saturation_Scatter' + tag, plt)
     #saveStep.savePlot('Value_Hue_Saturation_Scatter', plt)
     #saveStep.savePlot('Intensity_Hue_Saturation_Scatter', plt)
 
     bins = 50
     fig, axs = plt.subplots(5, 3, sharey=False, tight_layout=True)
-    axs[0, 0].hist(leftCheekLuminance, bins=bins)
-    axs[1, 0].hist(rightCheekLuminance, bins=bins)
-    axs[2, 0].hist(chinLuminance, bins=bins)
-    axs[3, 0].hist(foreheadLuminance, bins=bins)
-    axs[4, 0].hist([list(foreheadLuminance) + list(chinLuminance) + list(rightCheekLuminance) + list(leftCheekLuminance)], bins=bins)
+    axs[0, 0].hist(leftCheekLuminance_sample, bins=bins)
+    axs[1, 0].hist(rightCheekLuminance_sample, bins=bins)
+    axs[2, 0].hist(chinLuminance_sample, bins=bins)
+    axs[3, 0].hist(foreheadLuminance_sample, bins=bins)
+    axs[4, 0].hist([list(foreheadLuminance_sample) + list(chinLuminance_sample) + list(rightCheekLuminance_sample) + list(leftCheekLuminance_sample)], bins=bins)
 
-    axs[0, 1].hist(leftCheek_hsv[:, 1], bins=bins)
-    axs[1, 1].hist(rightCheek_hsv[:, 1], bins=bins)
-    axs[2, 1].hist(chin_hsv[:, 1], bins=bins)
-    axs[3, 1].hist(forehead_hsv[:, 1], bins=bins)
-    axs[4, 1].hist([list(forehead_hsv[:, 1]) + list(chin_hsv[:, 1]) + list(rightCheek_hsv[:, 1]) + list(leftCheek_hsv[:, 1])], bins=bins)
+    axs[0, 1].hist(leftCheek_hsv_sample[:, 1], bins=bins)
+    axs[1, 1].hist(rightCheek_hsv_sample[:, 1], bins=bins)
+    axs[2, 1].hist(chin_hsv_sample[:, 1], bins=bins)
+    axs[3, 1].hist(forehead_hsv_sample[:, 1], bins=bins)
+    axs[4, 1].hist([list(forehead_hsv_sample[:, 1]) + list(chin_hsv_sample[:, 1]) + list(rightCheek_hsv_sample[:, 1]) + list(leftCheek_hsv_sample[:, 1])], bins=bins)
 
-    axs[0, 2].hist(rotateHue(leftCheek_hsv[:, 0]), bins=bins)   #Watch for clipping...
-    axs[1, 2].hist(rotateHue(rightCheek_hsv[:, 0]), bins=bins)
-    axs[2, 2].hist(rotateHue(chin_hsv[:, 0]), bins=bins)   #Watch for clipping...
-    axs[3, 2].hist(rotateHue(forehead_hsv[:, 0]), bins=bins)
-    axs[4, 2].hist([list(rotateHue(forehead_hsv[:, 0])) + list(rotateHue(chin_hsv[:, 0])) + list(rotateHue(rightCheek_hsv[:, 0])) + list(rotateHue(leftCheek_hsv[:, 0]))], bins=bins)
+    axs[0, 2].hist(rotateHue(leftCheek_hsv_sample[:, 0]), bins=bins)   #Watch for clipping...
+    axs[1, 2].hist(rotateHue(rightCheek_hsv_sample[:, 0]), bins=bins)
+    axs[2, 2].hist(rotateHue(chin_hsv_sample[:, 0]), bins=bins)   #Watch for clipping...
+    axs[3, 2].hist(rotateHue(forehead_hsv_sample[:, 0]), bins=bins)
+    axs[4, 2].hist([list(rotateHue(forehead_hsv_sample[:, 0])) + list(rotateHue(chin_hsv_sample[:, 0])) + list(rotateHue(rightCheek_hsv_sample[:, 0])) + list(rotateHue(leftCheek_hsv_sample[:, 0]))], bins=bins)
     #plt.show()
     saveStep.savePlot('Luminance_Hue_Saturation_hist' + tag, plt)
 
@@ -256,13 +291,21 @@ def adjustSatToHue(chinHSV, foreheadHSV):
     return [chinHSV, foreheadHSV]
 
 def plotBGR(axs, color, x, y):
+    if len(x) > chartSampleSize:
+        sample = np.random.choice(len(x), chartSampleSize)
+        x_sample = np.take(x, sample, axis=0)
+        y_sample = np.take(y, sample, axis=0)
+    else:
+        x_sample = x
+        y_sample = y
+
     size = 1
-    start_x = min(x)
-    end_x = max(x)
+    start_x = min(x_sample)
+    end_x = max(x_sample)
 
-    axs.scatter(x, y, size, color)
+    axs.scatter(x_sample, y_sample, size, color)
 
-    m, c = fitLine(x, y)
+    m, c = fitLine(x_sample, y_sample)
     axs.plot([start_x, end_x], [(m * start_x + c), (m * end_x + c)])
 
 def run(username, imageName, fast=False, saveStats=False, failOnError=False):
@@ -408,8 +451,8 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     saveStep.saveReferenceImageBGR(halfDiffCapture.getClippedImage(), 'half_WhitebalancedImage')
 
     try:
-        [fullPoints, fullPointsLeftCheek, fullPointsRightCheek, fullPointsChin, fullPointsForehead] = extractMask(fullDiffCapture, saveStep)
-        [halfPoints, halfPointsLeftCheek, halfPointsRightCheek, halfPointsChin, halfPointsForehead] = extractMask(halfDiffCapture, saveStep)
+        [fullPoints, fullPointsLeftCheek, fullPointsRightCheek, fullPointsChin, fullPointsForehead] = extractMask(fullDiffCapture, percentError, saveStep)
+        [halfPoints, halfPointsLeftCheek, halfPointsRightCheek, halfPointsChin, halfPointsForehead] = extractMask(halfDiffCapture, percentError, saveStep)
     except Exception as err:
         if failOnError:
             raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
@@ -417,6 +460,15 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
             print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
             return [imageName, False]
     else:
+        fullPointsLeftCheek, leftCheekLinearityError, leftCheekClippingRatio = fullPointsLeftCheek
+        fullPointsRightCheek, rightCheekLinearityError, rightCheekClippingRatio = fullPointsRightCheek
+        fullPointsChin, chinLinearityError, chinClippingRatio = fullPointsChin
+        fullPointsForehead, foreheadLinearityError, foreheadClippingRatio = fullPointsForehead
+
+        halfPointsLeftCheek, leftCheekLinearityError, leftCheekClippingRatio = halfPointsLeftCheek
+        halfPointsRightCheek, rightCheekLinearityError, rightCheekClippingRatio = halfPointsRightCheek
+        halfPointsChin, chinLinearityError, chinClippingRatio = halfPointsChin
+        halfPointsForehead, foreheadLinearityError, foreheadClippingRatio = halfPointsForehead
 
         largestValue = np.max(fullPoints)
         print('LARGEST VALUE :: ' + str(largestValue))
@@ -628,5 +680,5 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         chinValuesHalf = [scaledAverageFluxish / 2, chinMedianHalfLuminance, list(chinMedianHalfHSV), list(chinMedianHalfBGR), list(chinLineHalf)]
         foreheadValuesHalf = [scaledAverageFluxish / 2, foreheadMedianHalfLuminance, list(foreheadMedianHalfHSV), list(foreheadMedianHalfBGR), list(foreheadLineHalf)]
 
-        return [imageName, True, [leftCheekValuesHalf, rightCheekValuesHalf, chinValuesHalf, foreheadValuesHalf], [leftCheekValuesFull, rightCheekValuesFull, chinValuesFull, foreheadValuesFull]]
+        return [imageName, True, [leftCheekValuesHalf, rightCheekValuesHalf, chinValuesHalf, foreheadValuesHalf], [leftCheekValuesFull, rightCheekValuesFull, chinValuesFull, foreheadValuesFull], [leftCheekLinearityError, rightCheekLinearityError, chinLinearityError, foreheadLinearityError], [leftCheekClippingRatio, rightCheekClippingRatio, chinClippingRatio, foreheadClippingRatio]]
 

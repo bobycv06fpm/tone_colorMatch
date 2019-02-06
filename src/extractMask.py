@@ -13,8 +13,7 @@ def maskPolygons(mask, polygons):
 
     return np.logical_and(polyMask.astype('bool'), mask)
 
-
-def extractMask(capture, saveStep):
+def extractMask(capture, linearityError, saveStep):
     forehead = capture.landmarks.getForeheadPoints()
     leftCheek = capture.landmarks.getLeftCheekPoints()
     rightCheek = capture.landmarks.getRightCheekPoints()
@@ -76,9 +75,19 @@ def extractMask(capture, saveStep):
     maskedPoints = image[mask]
 
     leftCheekPoints = image[leftCheekMask]
+    leftCheekMedianLinearityError = np.median(linearityError[leftCheekMask])
+
     rightCheekPoints = image[rightCheekMask]
+    rightCheekMedianLinearityError = np.median(linearityError[rightCheekMask])
+
     chinPoints = image[chinMask]
+    chinMedianLinearityError = np.median(linearityError[chinMask])
+
     foreheadPoints = image[foreheadMask]
+    foreheadMedianLinearityError = np.median(linearityError[foreheadMask])
+
+    linearityErrorString = "Left Cheek Linearity Error :: {} | Right Cheek Linearity Error :: {} | Chin Linearity Error :: {} | Forehead Linearity Error :: {}"
+    print(linearityErrorString.format(leftCheekMedianLinearityError, rightCheekMedianLinearityError, chinMedianLinearityError, foreheadMedianLinearityError))
 
     #Base Clipping on cheeks for now...
     #clippedPixelRatio = (leftCheekPoints.size + rightCheekPoints.size) / (unmaskedLeftCheekPoints.size + unmaskedRightCheekPoints.size)
@@ -114,5 +123,5 @@ def extractMask(capture, saveStep):
     #cv2.waitKey(0)
     saveStep.saveReferenceImageBGR(maskedImage.astype('uint8'), capture.name + '_masked')
 
-    return [np.array(maskedPoints), np.array(leftCheekPoints), np.array(rightCheekPoints), np.array(chinPoints), np.array(foreheadPoints)]
+    return [np.array(maskedPoints), [np.array(leftCheekPoints), leftCheekMedianLinearityError, leftCheekClippedPixelRatio], [np.array(rightCheekPoints), rightCheekMedianLinearityError, rightCheekClippedPixelRatio], [np.array(chinPoints), chinMedianLinearityError, chinClippedPixelRatio], [np.array(foreheadPoints), foreheadMedianLinearityError, foreheadClippedPixelRatio]]
 
