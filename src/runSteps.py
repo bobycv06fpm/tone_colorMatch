@@ -344,7 +344,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #perSubPixelMaxError = np.max(percentError, axis=2)
     #nonLinearMask = perSubPixelMaxError > .10
     #perChannelNonLinearMask = perSubPixelMaxError > .02
-    nonLinearMask = perSubPixelMaxError > .05
+    nonLinearMask = perSubPixelMaxError > 10.05
 
     #cv2.imshow('All Points mask', allPointsMask.astype('uint8') * 255)
     #cv2.imshow('Non Linear Mask', nonLinearMask.astype('uint8') * 255)

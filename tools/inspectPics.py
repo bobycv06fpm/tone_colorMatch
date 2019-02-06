@@ -34,7 +34,7 @@ import cv2
 # - - 4  Half Right Line
 # - - - 0  Slope
 # - - - 1  Intercept
-# - 2  Half Chin Cheek
+# - 2  Half Chin 
 # - - 0  Half Chin Fluxish
 # - - 1  Half Chin Luminance
 # - - 2  Half Chin HSV
@@ -48,7 +48,7 @@ import cv2
 # - - 4  Half Chin Line
 # - - - 0  Slope
 # - - - 1  Intercept
-# - 3  Half Forehead Cheek
+# - 3  Half Forehead 
 # - - 0  Half Forehead Fluxish
 # - - 1  Half Forehead Luminance
 # - - 2  Half Forehead HSV
@@ -91,7 +91,7 @@ import cv2
 # - - 4  Full Right Line
 # - - - 0  Slope
 # - - - 1  Intercept
-# - 2  Full Chin Cheek
+# - 2  Full Chin 
 # - - 0  Full Chin Fluxish
 # - - 1  Full Chin Luminance
 # - - 2  Full Chin HSV
@@ -105,7 +105,7 @@ import cv2
 # - - 4  Full Chin Line
 # - - - 0  Slope
 # - - - 1  Intercept
-# - 3  Full Forehead Cheek
+# - 3  Full Forehead 
 # - - 0  Full Forehead Fluxish
 # - - 1  Full Forehead Luminance
 # - - 2  Full Forehead HSV
@@ -181,34 +181,4 @@ for index, image in enumerate(faceColors):
 
 cv2.imshow('Side By Side', imageComparison)
 cv2.waitKey(0)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

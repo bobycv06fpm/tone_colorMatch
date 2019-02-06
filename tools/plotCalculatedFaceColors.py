@@ -109,7 +109,7 @@ fullForeheadStats = np.array(fullForeheadStats)
 
 fig, axs = plt.subplots(2, 3, sharex=True, tight_layout=True)
 
-compareIndex, compareName = [0, 'Luminance'] #[5, 'Blue'] [6, 'Green'] [7, 'Red']
+compareIndex, compareName = [0, 'Luminance'] #[5, 'Blue'] [6, 'Green'] [7, 'Red'] [4, 'Value']
 
 minFullFluxish = min(fullCheekStats[:, 1])
 maxFullFluxish = max(fullCheekStats[:, 1])
@@ -133,18 +133,18 @@ axs[0, 0].plot([minFullFluxish, maxFullFluxish], [(FL_m * minFullFluxish + FL_c)
 axs[0, 0].plot([minHalfFluxish, maxHalfFluxish], [(HL_m * minHalfFluxish + HL_c), (HL_m * maxHalfFluxish + HL_c)])
 #axs[0].plot([minHalfFluxish, maxHalfFluxish], [(HL_m * minHalfFluxish + HL_c - margin), (HL_m * maxHalfFluxish + HL_c - margin)])
 #axs[0].plot([minHalfFluxish, maxHalfFluxish], [(HL_m * minHalfFluxish + HL_c + margin), (HL_m * maxHalfFluxish + HL_c + margin)])
-axs[0, 0].plot([0, 1], [0, 1])
+axs[0, 0].plot([0, 1], [0, 255])
 
 axs[0, 0].scatter(halfCheekStats[:, 1], halfCheekStats[:, compareIndex], size, (0, 1, 0))
 axs[0, 0].scatter(fullCheekStats[:, 1], fullCheekStats[:, compareIndex], size, (1, 0, 0))
 axs[0, 0].set_title("CHEEK Fluxish vs " + compareName)
 
-axs[0, 1].plot([0, 1], [0, 1])
+axs[0, 1].plot([0, 1], [0, 255])
 axs[0, 1].scatter(halfChinStats[:, 1], halfChinStats[:, compareIndex], size, (0, 1, 0))
 axs[0, 1].scatter(fullChinStats[:, 1], fullChinStats[:, compareIndex], size, (1, 0, 0))
 axs[0, 1].set_title("CHIN Fluxish vs " + compareName)
 
-axs[0, 2].plot([0, 1], [0, 1])
+axs[0, 2].plot([0, 1], [0, 255])
 axs[0, 2].scatter(halfForeheadStats[:, 1], halfForeheadStats[:, compareIndex], size, (0, 1, 0))
 axs[0, 2].scatter(fullForeheadStats[:, 1], fullForeheadStats[:, compareIndex], size, (1, 0, 0))
 axs[0, 2].set_title("FOREHEAD Fluxish vs " + compareName)
