@@ -119,13 +119,32 @@ import cv2
 # - - 4  Full Forehead Line
 # - - - 0  Slope
 # - - - 1  Intercept
+# 4  Median Linearity Error
+# - 0 Left Cheek
+# - 1 Right Cheek
+# - 2 Chin
+# - 3 Forehead
+# 5  Clipping Ratio
+# - 0 Left Cheek
+# - 1 Right Cheek
+# - 2 Chin
+# - 3 Forehead
+# 6 No Flash BGR
+# - 0 Left Cheek
+# - 1 Right Cheek
+# - 2 Chin
+# - 3 Forehead
 
 def getKeyValue(imageStats):
-    return imageStats[3][0][1] #Full Flash Left Luminance
+    #return imageStats[4][0] #Left Cheek Linearity Error
+    return imageStats[3][1][1] #Full Flash Left Luminance
     #return imageStats[3][0][0] #Full Flash Left Fluxish
 
+bgrLuminanceConsts = np.array([0.0722, 0.7152, 0.2126])
 def getSecondaryStats(imageStats):
-    return [imageStats[3][0][0]]
+    return [imageStats[3][1][1], imageStats[4][1], imageStats[5][1], np.sum(imageStats[6][1] * bgrLuminanceConsts)]
+
+save = True
 
 root = '../../'
 path = root + 'images/'
@@ -166,7 +185,7 @@ for index, image in enumerate(faceColors):
             if image.shape[0] < image.shape[1]:
                 image = np.rot90(image, 3)
 
-            ratio = 8
+            ratio = 2#8
             smallImage = cv2.resize(image, (0, 0), fx=1/ratio, fy=1/ratio)
 
             if imageSet is None:
@@ -186,6 +205,9 @@ for index, image in enumerate(faceColors):
         else:
             imageComparison = np.vstack([imageComparison, imageSet])
 
-cv2.imshow('Side By Side', imageComparison)
-cv2.waitKey(0)
+if save:
+    cv2.imwrite('./compare.PNG', imageComparison)
+else:
+    cv2.imshow('Side By Side', imageComparison)
+    cv2.waitKey(0)
 

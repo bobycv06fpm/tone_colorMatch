@@ -410,6 +410,8 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #halfDiffCapture = Capture('Diff', halfDiffImage, halfFlashCapture.metadata, noMask)
     halfDiffCapture = Capture('Diff', halfDiffImage, halfFlashCapture.metadata, allPointsMask)
 
+    noFlashCapture.mask = allPointsMask
+
     #print('Getting Polygons')
     #polygons = fullDiffCapture.landmarks.getFacePolygons()
     #print('POLYGONS :: ' + str(polygons))
@@ -453,6 +455,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     try:
         [fullPoints, fullPointsLeftCheek, fullPointsRightCheek, fullPointsChin, fullPointsForehead] = extractMask(fullDiffCapture, percentError, saveStep)
         [halfPoints, halfPointsLeftCheek, halfPointsRightCheek, halfPointsChin, halfPointsForehead] = extractMask(halfDiffCapture, percentError, saveStep)
+        [noFlashPoints, noFlashPointsLeftCheek, noFlashPointsRightCheek, noFlashPointsChin, noFlashPointsForehead] = extractMask(noFlashCapture, percentError, saveStep)
     except Exception as err:
         if failOnError:
             raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
@@ -460,6 +463,16 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
             print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
             return [imageName, False]
     else:
+        noFlashPointsLeftCheek, leftCheekLinearityError, leftCheekClippingRatio = noFlashPointsLeftCheek
+        noFlashPointsRightCheek, rightCheekLinearityError, rightCheekClippingRatio = noFlashPointsRightCheek
+        noFlashPointsChin, chinLinearityError, chinClippingRatio = noFlashPointsChin
+        noFlashPointsForehead, foreheadLinearityError, foreheadClippingRatio = noFlashPointsForehead
+
+        noFlashPointsLeftCheekMedian = np.median(noFlashPointsLeftCheek, axis=0)
+        noFlashPointsRightCheekMedian = np.median(noFlashPointsRightCheek, axis=0)
+        noFlashPointsChinMedian = np.median(noFlashPointsChin, axis=0)
+        noFlashPointsForeheadMedian = np.median(noFlashPointsForehead, axis=0)
+
         fullPointsLeftCheek, leftCheekLinearityError, leftCheekClippingRatio = fullPointsLeftCheek
         fullPointsRightCheek, rightCheekLinearityError, rightCheekClippingRatio = fullPointsRightCheek
         fullPointsChin, chinLinearityError, chinClippingRatio = fullPointsChin
@@ -680,5 +693,5 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         chinValuesHalf = [scaledAverageFluxish / 2, chinMedianHalfLuminance, list(chinMedianHalfHSV), list(chinMedianHalfBGR), list(chinLineHalf)]
         foreheadValuesHalf = [scaledAverageFluxish / 2, foreheadMedianHalfLuminance, list(foreheadMedianHalfHSV), list(foreheadMedianHalfBGR), list(foreheadLineHalf)]
 
-        return [imageName, True, [leftCheekValuesHalf, rightCheekValuesHalf, chinValuesHalf, foreheadValuesHalf], [leftCheekValuesFull, rightCheekValuesFull, chinValuesFull, foreheadValuesFull], [leftCheekLinearityError, rightCheekLinearityError, chinLinearityError, foreheadLinearityError], [leftCheekClippingRatio, rightCheekClippingRatio, chinClippingRatio, foreheadClippingRatio]]
+        return [imageName, True, [leftCheekValuesHalf, rightCheekValuesHalf, chinValuesHalf, foreheadValuesHalf], [leftCheekValuesFull, rightCheekValuesFull, chinValuesFull, foreheadValuesFull], [leftCheekLinearityError, rightCheekLinearityError, chinLinearityError, foreheadLinearityError], [leftCheekClippingRatio, rightCheekClippingRatio, chinClippingRatio, foreheadClippingRatio], [list(noFlashPointsLeftCheekMedian), list(noFlashPointsRightCheekMedian), list(noFlashPointsChinMedian), list(noFlashPointsForeheadMedian)]]
 
