@@ -4,11 +4,14 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import colorsys
 
+bgrLuminanceConsts = np.array([0.0722, 0.7152, 0.2126])
+def getRelativeLuminance(bgr):
+    return np.sum(bgr * bgrLuminanceConsts)
+
 def sortBy(elem):
     #print(elem)
     #print('elem[1][3] :: ', str(elem[1][3]))
     return elem[0][0]
-
 
 blacklist = ['doug205', 'doug206', 'doug246', 'doug258', 'doug257', 'doug247', 'doug250', 'doug255', 'doug294', 'doug274', 'doug286', 'doug272', 'doug282', 'doug197', 'doug293', 'doug277', 'doug273', 'doug275', 'doug358']
 
@@ -45,6 +48,12 @@ for faceColor in faceColors:
     [leftCheekFull, rightCheekFull, chinFull, foreheadFull] = faceColor[3]
     [leftCheekMedianLinearityError, rightCheekMedianLinearityError, chinMedianLinearityError, foreheadMedianLinearityError] = faceColor[4]
     [leftCheekClippingRatio, rightCheekClippingRatio, chinClippingRatio, foreheadClippingRatio] = faceColor[5]
+    [leftCheekNoFlashBGR, rightCheekNoFlashBGR, chinNoFlashBGR, foreheadNoFlashBGR] = faceColor[5]
+
+    leftCheekNoFlashLuminance = getRelativeLuminance(leftCheekNoFlashBGR)
+    rightCheekNoFlashLuminance = getRelativeLuminance(rightCheekNoFlashBGR)
+    chinNoFlashLuminance = getRelativeLuminance(chinNoFlashBGR)
+    foreheadNoFlashLuminance = getRelativeLuminance(foreheadNoFlashBGR)
 
     #HALF 
     [leftFluxishHalf, leftLuminanceHalf, leftHSVHalf, leftBGRHalf, leftLineHalf] = leftCheekHalf
@@ -59,17 +68,17 @@ for faceColor in faceColors:
     [foreheadFluxishFull, foreheadLuminanceFull, foreheadHSVFull, foreheadBGRFull, foreheadLineFull] = foreheadFull
 
 
-    template =  '{} - {} - :: {} | {} | {} | {} | {} | {} | {} | {} | {} | {}'
+    template =  '{} - {} - :: {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}'
 
-    leftHalf = template.format(imageName, 'HALF LEFT', leftFluxishHalf, leftLuminanceHalf, *leftHSVHalf, *leftBGRHalf, *leftLineHalf, leftCheekMedianLinearityError, leftCheekClippingRatio)
-    rightHalf = template.format(imageName, 'HALF RIGHT', rightFluxishHalf, rightLuminanceHalf, *rightHSVHalf, *rightBGRHalf, *rightLineHalf, rightCheekMedianLinearityError, rightCheekClippingRatio)
-    chinHalf = template.format(imageName, 'HALF CHIN', chinFluxishHalf, chinLuminanceHalf, *chinHSVHalf, *chinBGRHalf, *chinLineHalf, chinMedianLinearityError, chinClippingRatio)
-    foreheadHalf = template.format(imageName, 'HALF FOREHEAD', foreheadFluxishHalf, foreheadLuminanceHalf, *foreheadHSVHalf, *foreheadBGRHalf, *foreheadLineHalf, foreheadMedianLinearityError, foreheadClippingRatio)
+    leftHalf = template.format(imageName, 'HALF LEFT', leftFluxishHalf, leftLuminanceHalf, *leftHSVHalf, *leftBGRHalf, *leftLineHalf, leftCheekMedianLinearityError, leftCheekClippingRatio, leftCheekNoFlashLuminance)
+    rightHalf = template.format(imageName, 'HALF RIGHT', rightFluxishHalf, rightLuminanceHalf, *rightHSVHalf, *rightBGRHalf, *rightLineHalf, rightCheekMedianLinearityError, rightCheekClippingRatio, rightCheekNoFlashLuminance)
+    chinHalf = template.format(imageName, 'HALF CHIN', chinFluxishHalf, chinLuminanceHalf, *chinHSVHalf, *chinBGRHalf, *chinLineHalf, chinMedianLinearityError, chinClippingRatio, chinNoFlashLuminance)
+    foreheadHalf = template.format(imageName, 'HALF FOREHEAD', foreheadFluxishHalf, foreheadLuminanceHalf, *foreheadHSVHalf, *foreheadBGRHalf, *foreheadLineHalf, foreheadMedianLinearityError, foreheadClippingRatio, foreheadNoFlashLuminance)
 
-    leftFull = template.format(imageName, 'FULL LEFT', leftFluxishFull, leftLuminanceFull, *leftHSVFull, *leftBGRFull, *leftLineFull, leftCheekMedianLinearityError, leftCheekClippingRatio)
-    rightFull = template.format(imageName, 'FULL RIGHT', rightFluxishFull, rightLuminanceFull, *rightHSVFull, *rightBGRFull, *rightLineFull, rightCheekMedianLinearityError, rightCheekClippingRatio)
-    chinFull = template.format(imageName, 'FULL CHIN', chinFluxishFull, chinLuminanceFull, *chinHSVFull, *chinBGRFull, *chinLineFull, chinMedianLinearityError, chinClippingRatio)
-    foreheadFull = template.format(imageName, 'FULL FOREHEAD', foreheadFluxishFull, foreheadLuminanceFull, *foreheadHSVFull, *foreheadBGRFull, *foreheadLineFull, foreheadMedianLinearityError, foreheadClippingRatio)
+    leftFull = template.format(imageName, 'FULL LEFT', leftFluxishFull, leftLuminanceFull, *leftHSVFull, *leftBGRFull, *leftLineFull, leftCheekMedianLinearityError, leftCheekClippingRatio, leftCheekNoFlashLuminance)
+    rightFull = template.format(imageName, 'FULL RIGHT', rightFluxishFull, rightLuminanceFull, *rightHSVFull, *rightBGRFull, *rightLineFull, rightCheekMedianLinearityError, rightCheekClippingRatio, rightCheekNoFlashLuminance)
+    chinFull = template.format(imageName, 'FULL CHIN', chinFluxishFull, chinLuminanceFull, *chinHSVFull, *chinBGRFull, *chinLineFull, chinMedianLinearityError, chinClippingRatio, chinNoFlashLuminance)
+    foreheadFull = template.format(imageName, 'FULL FOREHEAD', foreheadFluxishFull, foreheadLuminanceFull, *foreheadHSVFull, *foreheadBGRFull, *foreheadLineFull, foreheadMedianLinearityError, foreheadClippingRatio, foreheadNoFlashLuminance)
 
     print('~~~~~')
     print(leftHalf)
@@ -81,16 +90,16 @@ for faceColor in faceColors:
     print(chinFull)
     print(foreheadFull)
 
-    halfCheekStats.append(np.array([leftLuminanceHalf, leftFluxishHalf, *leftHSVHalf, *leftBGRHalf, *leftLineHalf]))
-    halfCheekStats.append(np.array([rightLuminanceHalf, rightFluxishHalf, *rightHSVHalf, *rightBGRHalf, *rightLineHalf]))
-    fullCheekStats.append(np.array([leftLuminanceFull, leftFluxishFull, *leftHSVFull, *leftBGRFull, *leftLineFull]))
-    fullCheekStats.append(np.array([rightLuminanceFull, rightFluxishFull, *rightHSVFull, *rightBGRFull, *rightLineFull]))
+    halfCheekStats.append(np.array([leftLuminanceHalf, leftFluxishHalf, *leftHSVHalf, *leftBGRHalf, *leftLineHalf, leftCheekMedianLinearityError, leftCheekClippingRatio, leftCheekNoFlashLuminance, (leftLuminanceHalf / leftFluxishHalf)]))
+    halfCheekStats.append(np.array([rightLuminanceHalf, rightFluxishHalf, *rightHSVHalf, *rightBGRHalf, *rightLineHalf, rightCheekMedianLinearityError, rightCheekClippingRatio, rightCheekNoFlashLuminance, (rightLuminanceHalf / rightFluxishHalf)]))
+    fullCheekStats.append(np.array([leftLuminanceFull, leftFluxishFull, *leftHSVFull, *leftBGRFull, *leftLineFull, leftCheekMedianLinearityError, leftCheekClippingRatio, leftCheekNoFlashLuminance, (leftLuminanceFull / leftFluxishFull)]))
+    fullCheekStats.append(np.array([rightLuminanceFull, rightFluxishFull, *rightHSVFull, *rightBGRFull, *rightLineFull, rightCheekMedianLinearityError, rightCheekClippingRatio, rightCheekNoFlashLuminance, (rightLuminanceFull / rightFluxishFull)]))
 
-    halfChinStats.append(np.array([chinLuminanceHalf, chinFluxishHalf, *chinHSVHalf, *chinBGRHalf, *chinLineHalf]))
-    fullChinStats.append(np.array([chinLuminanceFull, chinFluxishFull, *chinHSVFull, *chinBGRFull, *chinLineFull]))
+    halfChinStats.append(np.array([chinLuminanceHalf, chinFluxishHalf, *chinHSVHalf, *chinBGRHalf, *chinLineHalf, chinMedianLinearityError, chinClippingRatio, chinNoFlashLuminance, (chinLuminanceHalf / chinFluxishHalf)]))
+    fullChinStats.append(np.array([chinLuminanceFull, chinFluxishFull, *chinHSVFull, *chinBGRFull, *chinLineFull, chinMedianLinearityError, chinClippingRatio, chinNoFlashLuminance, (chinLuminanceFull / chinFluxishFull)]))
 
-    halfForeheadStats.append(np.array([foreheadLuminanceHalf, foreheadFluxishHalf, *foreheadHSVHalf, *foreheadBGRHalf, *foreheadLineHalf]))
-    fullForeheadStats.append(np.array([foreheadLuminanceFull, foreheadFluxishFull, *foreheadHSVFull, *foreheadBGRFull, *foreheadLineFull]))
+    halfForeheadStats.append(np.array([foreheadLuminanceHalf, foreheadFluxishHalf, *foreheadHSVHalf, *foreheadBGRHalf, *foreheadLineHalf, foreheadMedianLinearityError, foreheadClippingRatio, foreheadNoFlashLuminance, (foreheadLuminanceHalf / foreheadFluxishHalf)]))
+    fullForeheadStats.append(np.array([foreheadLuminanceFull, foreheadFluxishFull, *foreheadHSVFull, *foreheadBGRFull, *foreheadLineFull, foreheadMedianLinearityError, foreheadClippingRatio, foreheadNoFlashLuminance, (foreheadLuminanceFull/ foreheadFluxishFull)]))
 
 cheekStats = halfCheekStats + fullCheekStats
 cheekStats = np.array(cheekStats)
@@ -111,62 +120,63 @@ fullForeheadStats = np.array(fullForeheadStats)
 
 fig, axs = plt.subplots(2, 3, sharex=True, tight_layout=True)
 
-compareIndex, compareName = [0, 'Luminance'] #[5, 'Blue'] [6, 'Green'] [7, 'Red'] [4, 'Value']
+compareIndex_y, compareName_y = [13, 'Luminance / Fluxish'] #[5, 'Blue'] [6, 'Green'] [7, 'Red'] [4, 'Value'] [10, 'Linearity Error'], [13, 'Luminance / Fluxish'][0, 'Luminance']
+compareIndex_x, compareName_x = [10, 'Linearity Error'] #[5, 'Blue'] [6, 'Green'] [7, 'Red'] [4, 'Value'] [1, 'Fluxish'] [12, 'No Flash Luminance'][11, 'Clean Pixel Ratio']
 
-minFullFluxish = min(fullCheekStats[:, 1])
-maxFullFluxish = max(fullCheekStats[:, 1])
-full_fluxish_A = np.vstack([fullCheekStats[:, 1], np.ones(len(fullCheekStats))]).T
-FL_m, FL_c = np.linalg.lstsq(full_fluxish_A, fullCheekStats[:, compareIndex], rcond=None)[0]
+minFull_x = min(fullCheekStats[:, compareIndex_x])
+maxFull_x = max(fullCheekStats[:, compareIndex_x])
+full_x_A = np.vstack([fullCheekStats[:, compareIndex_x], np.ones(len(fullCheekStats))]).T
+full_slope, full_const = np.linalg.lstsq(full_x_A, fullCheekStats[:, compareIndex_y], rcond=None)[0]
 
-minHalfFluxish = min(halfCheekStats[:, 1])
-maxHalfFluxish = max(halfCheekStats[:, 1])
-half_fluxish_A = np.vstack([halfCheekStats[:, 1], np.ones(len(halfCheekStats))]).T
-HL_m, HL_c = np.linalg.lstsq(half_fluxish_A, halfCheekStats[:, compareIndex], rcond=None)[0]
+minHalf_x = min(halfCheekStats[:, compareIndex_x])
+maxHalf_x = max(halfCheekStats[:, compareIndex_x])
+half_x_A = np.vstack([halfCheekStats[:, compareIndex_x], np.ones(len(halfCheekStats))]).T
+half_slope, half_const = np.linalg.lstsq(half_x_A, halfCheekStats[:, compareIndex_y], rcond=None)[0]
 
-print('Full Fluxish to Lightness Slope, Constant :: ' + str(FL_m) + ' ' + str(FL_c))
-print('Half Fluxish to Lightness Slope, Constant :: ' + str(HL_m) + ' ' + str(HL_c))
+print('Full Fluxish to Lightness Slope, Constant :: ' + str(full_slope) + ' ' + str(full_const))
+print('Half Fluxish to Lightness Slope, Constant :: ' + str(half_slope) + ' ' + str(half_const))
 
 #margin = 10
 margin = 0.1
-axs[0, 0].plot([minFullFluxish, maxFullFluxish], [(FL_m * minFullFluxish + FL_c), (FL_m * maxFullFluxish + FL_c)])
-#axs[0].plot([minFullFluxish, maxFullFluxish], [(FL_m * minFullFluxish + FL_c - margin), (FL_m * maxFullFluxish + FL_c - margin)])
-#axs[0].plot([minFullFluxish, maxFullFluxish], [(FL_m * minFullFluxish + FL_c + margin), (FL_m * maxFullFluxish + FL_c + margin)])
+axs[0, 0].plot([minFull_x, maxFull_x], [(full_slope * minFull_x + full_const), (full_slope * maxFull_x + full_const)])
+#axs[0].plot([minFull_x, maxFull_x], [(full_slope * minFull_x + full_const - margin), (full_slope * maxFull_x + full_const - margin)])
+#axs[0].plot([minFull_x, maxFull_x], [(full_slope * minFull_x + full_const + margin), (full_slope * maxFull_x + full_const + margin)])
 
-axs[0, 0].plot([minHalfFluxish, maxHalfFluxish], [(HL_m * minHalfFluxish + HL_c), (HL_m * maxHalfFluxish + HL_c)])
-#axs[0].plot([minHalfFluxish, maxHalfFluxish], [(HL_m * minHalfFluxish + HL_c - margin), (HL_m * maxHalfFluxish + HL_c - margin)])
-#axs[0].plot([minHalfFluxish, maxHalfFluxish], [(HL_m * minHalfFluxish + HL_c + margin), (HL_m * maxHalfFluxish + HL_c + margin)])
-axs[0, 0].plot([0, 1], [0, 255])
+axs[0, 0].plot([minHalf_x, maxHalf_x], [(half_slope * minHalf_x + half_const), (half_slope * maxHalf_x + half_const)])
+#axs[0].plot([minHalf_x, maxHalf_x], [(half_slope * minHalf_x + half_const - margin), (half_slope * maxHalf_x + half_const - margin)])
+#axs[0].plot([minHalf_x, maxHalf_x], [(half_slope * minHalf_x + half_const + margin), (half_slope * maxHalf_x + half_const + margin)])
+#axs[0, 0].plot([0, 1], [0, 255])
 
-axs[0, 0].scatter(halfCheekStats[:, 1], halfCheekStats[:, compareIndex], size, (0, 1, 0))
-axs[0, 0].scatter(fullCheekStats[:, 1], fullCheekStats[:, compareIndex], size, (1, 0, 0))
-axs[0, 0].set_title("CHEEK Fluxish vs " + compareName)
+axs[0, 0].scatter(halfCheekStats[:, compareIndex_x], halfCheekStats[:, compareIndex_y], size, (0, 1, 0))
+axs[0, 0].scatter(fullCheekStats[:, compareIndex_x], fullCheekStats[:, compareIndex_y], size, (1, 0, 0))
+axs[0, 0].set_title("CHEEK {} vs {}".format(compareName_x, compareName_y))
 
-axs[0, 1].plot([0, 1], [0, 255])
-axs[0, 1].scatter(halfChinStats[:, 1], halfChinStats[:, compareIndex], size, (0, 1, 0))
-axs[0, 1].scatter(fullChinStats[:, 1], fullChinStats[:, compareIndex], size, (1, 0, 0))
-axs[0, 1].set_title("CHIN Fluxish vs " + compareName)
+#axs[0, 1].plot([0, 1], [0, 255])
+axs[0, 1].scatter(halfChinStats[:, compareIndex_x], halfChinStats[:, compareIndex_y], size, (0, 1, 0))
+axs[0, 1].scatter(fullChinStats[:, compareIndex_x], fullChinStats[:, compareIndex_y], size, (1, 0, 0))
+axs[0, 1].set_title("CHIN {} vs {}".format(compareName_x, compareName_y))
 
-axs[0, 2].plot([0, 1], [0, 255])
-axs[0, 2].scatter(halfForeheadStats[:, 1], halfForeheadStats[:, compareIndex], size, (0, 1, 0))
-axs[0, 2].scatter(fullForeheadStats[:, 1], fullForeheadStats[:, compareIndex], size, (1, 0, 0))
-axs[0, 2].set_title("FOREHEAD Fluxish vs " + compareName)
+#axs[0, 2].plot([0, 1], [0, 255])
+axs[0, 2].scatter(halfForeheadStats[:, compareIndex_x], halfForeheadStats[:, compareIndex_y], size, (0, 1, 0))
+axs[0, 2].scatter(fullForeheadStats[:, compareIndex_x], fullForeheadStats[:, compareIndex_y], size, (1, 0, 0))
+axs[0, 2].set_title("FOREHEAD {} vs {}".format(compareName_x, compareName_y))
 
-axs[0, 0].set_xlabel('Fluxish')
-axs[0, 0].set_ylabel(compareName)
+axs[0, 0].set_xlabel(compareName_x)
+axs[0, 0].set_ylabel(compareName_y)
 
-axs[1, 0].scatter(halfCheekStats[:, 1], halfCheekStats[:, 3], size, (0, 1, 0))
-axs[1, 0].scatter(fullCheekStats[:, 1], fullCheekStats[:, 3], size, (1, 0, 0))
-axs[1, 0].set_title("CHEEK Fluxish vs Saturation")
+axs[1, 0].scatter(halfCheekStats[:, compareIndex_x], halfCheekStats[:, 3], size, (0, 1, 0))
+axs[1, 0].scatter(fullCheekStats[:, compareIndex_x], fullCheekStats[:, 3], size, (1, 0, 0))
+axs[1, 0].set_title("CHEEK {} vs Saturation".format(compareName_x))
 
-axs[1, 1].scatter(halfChinStats[:, 1], halfChinStats[:, 3], size, (0, 1, 0))
-axs[1, 1].scatter(fullChinStats[:, 1], fullChinStats[:, 3], size, (1, 0, 0))
-axs[1, 1].set_title("CHIN Fluxish vs Saturation")
+axs[1, 1].scatter(halfChinStats[:, compareIndex_x], halfChinStats[:, 3], size, (0, 1, 0))
+axs[1, 1].scatter(fullChinStats[:, compareIndex_x], fullChinStats[:, 3], size, (1, 0, 0))
+axs[1, 1].set_title("CHIN {} vs Saturation".format(compareName_x))
 
-axs[1, 2].scatter(halfForeheadStats[:, 1], halfForeheadStats[:, 3], size, (0, 1, 0))
-axs[1, 2].scatter(fullForeheadStats[:, 1], fullForeheadStats[:, 3], size, (1, 0, 0))
-axs[1, 2].set_title("FOREHEAD Fluxish vs Saturation")
+axs[1, 2].scatter(halfForeheadStats[:, compareIndex_x], halfForeheadStats[:, 3], size, (0, 1, 0))
+axs[1, 2].scatter(fullForeheadStats[:, compareIndex_x], fullForeheadStats[:, 3], size, (1, 0, 0))
+axs[1, 2].set_title("FOREHEAD {} vs Saturation".format(compareName_x))
 
-axs[1, 0].set_xlabel('Fluxish')
+axs[1, 0].set_xlabel(compareName_x)
 axs[1, 0].set_ylabel('Saturation')
 #plt.show()
 plt.show()

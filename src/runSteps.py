@@ -387,7 +387,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #perSubPixelMaxError = np.max(percentError, axis=2)
     #nonLinearMask = perSubPixelMaxError > .10
     #perChannelNonLinearMask = perSubPixelMaxError > .02
-    nonLinearMask = perSubPixelMaxError > 10.05
+    nonLinearMask = perSubPixelMaxError > .05
 
     #cv2.imshow('All Points mask', allPointsMask.astype('uint8') * 255)
     #cv2.imshow('Non Linear Mask', nonLinearMask.astype('uint8') * 255)
@@ -430,7 +430,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     fullFlashCapture.landmarks = halfFlashCapture.landmarks
 
     try:
-        [reflectionValue, leftFluxish, rightFluxish] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep)
+        [reflectionValue, leftLuminance, leftFluxish, rightLuminance, rightFluxish] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep)
     except Exception as err:
         if failOnError:
             raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))

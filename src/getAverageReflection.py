@@ -375,7 +375,9 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     rightReflectionLuminance = colorTools.getRelativeLuminance([rightReflectionMedian])[0]
 
     print('left reflection median :: ' + str(leftReflectionMedian))
+    print('left reflection luminance :: ' + str(leftReflectionLuminance))
     print('right reflection median :: ' + str(rightReflectionMedian))
+    print('right reflection luminance :: ' + str(rightReflectionLuminance))
     leftReflectionHLS = colorsys.rgb_to_hls(leftReflectionMedian[2] / 255, leftReflectionMedian[1] / 255, leftReflectionMedian[0] / 255)
     rightReflectionHLS = colorsys.rgb_to_hls(rightReflectionMedian[2] / 255, rightReflectionMedian[1] / 255, rightReflectionMedian[0] / 255)
 
@@ -419,4 +421,4 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     rightFluxish = rightReflectionArea * rightReflectionLuminance
     print('RIGHT FLUXISH :: ' + str(rightFluxish) + ' | AREA :: ' + str(rightReflectionArea) + ' | LUMINOSITY :: ' + str(rightReflectionLuminance))
 
-    return [averageMedian, leftFluxish, rightFluxish]
+    return [averageMedian, leftReflectionLuminance, leftFluxish, rightReflectionLuminance, rightFluxish]
