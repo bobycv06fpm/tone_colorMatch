@@ -85,6 +85,7 @@ def cropImagesToAxis(images, offsets, axis):
     return croppedImages[:, 0]
 
 def cropImagesToOffsets(images, offsets):
+    print('OFFSETS :: ' + str(offsets))
     images = cropImagesToAxis(images, offsets[:, X], X)
     images = cropImagesToAxis(images, offsets[:, Y], Y)
     return images

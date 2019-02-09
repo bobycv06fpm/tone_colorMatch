@@ -246,7 +246,7 @@ def calculateOffset(offsetImage, targetImage):
     offset = list(offset)
     offset = [round(value) for value in offset]
     print("Offset :: " + str(offset))
-    return offset
+    return np.array(offset)
 
 #X=0
 #Y=1
@@ -410,17 +410,20 @@ def cropAndAlignEyes(noFlashEye, halfFlashEye, fullFlashEye):
     preparedHalfFlashImage = getPreparedEye(halfFlashGreyStretched)
     preparedFullFlashImage = getPreparedEye(fullFlashGreyStretched)
 
-    noFlashOffset = [0, 0]
-    halfFlashOffset = [0, 0]
+    noFlashOffset = np.array([0, 0])
+    halfFlashOffset = np.array([0, 0])
     fullFlashOffset = calculateOffset(preparedFullFlashImage, preparedHalfFlashImage)
 
     print('no flash offset :: ' + str(noFlashOffset))
     print('half flash offset :: ' + str(halfFlashOffset))
     print('full flash offset :: ' + str(fullFlashOffset))
 
-    [noFlashEyeCropped, halfFlashEyeCropped, fullFlashEyeCropped] = cropTools.cropImagesToOffsets([noFlashEye, halfFlashEye, fullFlashEye], np.array([noFlashOffset, halfFlashOffset, fullFlashOffset]))
+    eyes = np.array([noFlashEye, halfFlashEye, fullFlashEye])
+    offsets = np.array([noFlashOffset, halfFlashOffset, fullFlashOffset])
 
-    return [[noFlashOffset, halfFlashOffset, fullFlashOffset], [noFlashEyeCropped, halfFlashEyeCropped, fullFlashEyeCropped]]
+    croppedEyes = cropTools.cropImagesToOffsets(eyes, offsets)
+
+    return [offsets, croppedEyes]
 
 def getOffsetMagnitude(offsets, imageShape):
     offsets = np.array(offsets)

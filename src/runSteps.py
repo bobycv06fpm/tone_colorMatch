@@ -430,7 +430,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     fullFlashCapture.landmarks = halfFlashCapture.landmarks
 
     try:
-        [reflectionValue, leftLuminance, leftFluxish, rightLuminance, rightFluxish] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep)
+        [reflectionValue, leftLuminance, leftFluxish, rightLuminance, rightFluxish, leftReflectionValues, rightReflectionValues] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep)
     except Exception as err:
         if failOnError:
             raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
@@ -693,5 +693,5 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         chinValuesHalf = [scaledAverageFluxish / 2, chinMedianHalfLuminance, list(chinMedianHalfHSV), list(chinMedianHalfBGR), list(chinLineHalf)]
         foreheadValuesHalf = [scaledAverageFluxish / 2, foreheadMedianHalfLuminance, list(foreheadMedianHalfHSV), list(foreheadMedianHalfBGR), list(foreheadLineHalf)]
 
-        return [imageName, True, [leftCheekValuesHalf, rightCheekValuesHalf, chinValuesHalf, foreheadValuesHalf], [leftCheekValuesFull, rightCheekValuesFull, chinValuesFull, foreheadValuesFull], [leftCheekLinearityError, rightCheekLinearityError, chinLinearityError, foreheadLinearityError], [leftCheekClippingRatio, rightCheekClippingRatio, chinClippingRatio, foreheadClippingRatio], [list(noFlashPointsLeftCheekMedian), list(noFlashPointsRightCheekMedian), list(noFlashPointsChinMedian), list(noFlashPointsForeheadMedian)]]
+        return [imageName, True, [leftCheekValuesHalf, rightCheekValuesHalf, chinValuesHalf, foreheadValuesHalf], [leftCheekValuesFull, rightCheekValuesFull, chinValuesFull, foreheadValuesFull], [leftCheekLinearityError, rightCheekLinearityError, chinLinearityError, foreheadLinearityError], [leftCheekClippingRatio, rightCheekClippingRatio, chinClippingRatio, foreheadClippingRatio], [list(noFlashPointsLeftCheekMedian), list(noFlashPointsRightCheekMedian), list(noFlashPointsChinMedian), list(noFlashPointsForeheadMedian)], [list(leftReflectionValues), list(rightReflectionValues)]]
 

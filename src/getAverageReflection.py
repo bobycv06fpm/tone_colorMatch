@@ -16,7 +16,7 @@ def getEyeCrops(capture):
     rightEye = capture.image[ry:ry+h, rx:rx+w]
     rightEyeMask = capture.mask[ry:ry+h, rx:rx+w]
 
-    return [[leftEye, leftEyeMask, [lx, ly]], [rightEye, rightEyeMask, [rx, ry]]]
+    return np.array([[leftEye, leftEyeMask, [lx, ly]], [rightEye, rightEyeMask, [rx, ry]]])
 
 #def getEyeRegionCrops(capture):
 #    (x, y, w, h) = capture.landmarks.getLeftEyeRegionBB()
@@ -216,16 +216,38 @@ def maskReflectionBB(noFlash, halfFlash, fullFlash):
 #    eyeStripCoordDiff_left += leftEyeOffsets[2]
 #    eyeStripCoordDiff_right += rightEyeOffsets[2]
 
-def getAnnotatedEyeStrip(leftReflectionBB, rightReflectionBB, capture):
-    x, y, w, h = np.array(capture.landmarks.getEyeStripBB())
+def cropToBB(image, bb):
+    [x, y, w, h] = bb
+    return image[y:y+h, x:x+w]
 
-    start_x = x
-    end_x = x + w
+def getAnnotatedEyeStrip(leftReflectionBB, leftOffsetCoords, rightReflectionBB, rightOffsetCoords, capture):
+    eyeStripBB = np.array(capture.landmarks.getEyeStripBB())
 
-    eyeStrip = capture.image[y:y+h, x:x+w]
+    eyeWidthPoints = np.append(capture.landmarks.getLeftEyeWidthPoints(), capture.landmarks.getRightEyeWidthPoints(), axis=0)
 
-    eyeStripCoordDiff_left = np.array(halfFlashLeftEyeCoord) - halfFlashEyeStripCoords[0:2]
-    eyeStripCoordDiff_right = np.array(halfFlashRightEyeCoord) - halfFlashEyeStripCoords[0:2]
+    eyeWidthPoints -= eyeStripBB[0:2]
+    leftOffsetCoords -= eyeStripBB[0:2]
+    rightOffsetCoords -= eyeStripBB[0:2]
+
+    leftReflectionP1 = leftOffsetCoords + leftReflectionBB[0:2]
+    leftReflectionP2 = leftReflectionP1 + leftReflectionBB[2:4]
+    leftReflectionP1 = tuple(leftReflectionP1)
+    leftReflectionP2 = tuple(leftReflectionP2)
+
+    rightReflectionP1 = rightOffsetCoords + rightReflectionBB[0:2]
+    rightReflectionP2 = rightReflectionP1 + rightReflectionBB[2:4]
+    rightReflectionP1 = tuple(rightReflectionP1)
+    rightReflectionP2 = tuple(rightReflectionP2)
+
+    eyeStrip = np.copy(cropToBB(capture.image.astype('uint8'), eyeStripBB))
+
+    for [x, y] in eyeWidthPoints:
+        cv2.circle(eyeStrip, (x, y), 5, (0, 255, 0), -1)
+
+    cv2.rectangle(eyeStrip, leftReflectionP1, leftReflectionP2, (0, 0, 255), 1)
+    cv2.rectangle(eyeStrip, rightReflectionP1, rightReflectionP2, (0, 0, 255), 1)
+
+    return eyeStrip
 
 #Note: both parent and child offsets should originally be measured to the same origin
 def calculateRelativeOffset(parentOffset, childOffset):
@@ -239,13 +261,24 @@ def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask):
     reflectionCrop = eyeCrop[y:y+h, x:x+w]
     reflectionMask = eyeMask[y:y+h, x:x+w]
 
-    reflectionPoints = reflectionCrop[reflectionMask]
+    reflectionPoints = reflectionCrop[np.logical_not(reflectionMask)]
     cleanPixelRatio = reflectionPoints.shape[0] / (reflectionMask.shape[0] * reflectionMask.shape[1])
 
     representativeReflectionPoint = calculateRepresentativeReflectionPoint(reflectionPoints)
 
+    if cleanPixelRatio < 0.8:
+        raise NameError('Not enough clean non-clipped pixels in eye reflections')
+
     return [representativeReflectionPoint, cleanPixelRatio]
 
+def getEyeWidth(capture):
+    [leftP1, leftP2] = capture.landmarks.getLeftEyeWidthPoints()
+    [rightP1, rightP2] = capture.landmarks.getRightEyeWidthPoints()
+
+    leftEyeWidth = max(leftP1[0], leftP2[0]) - min(leftP1[0], leftP2[0])
+    rightEyeWidth = max(rightP1[0], rightP2[0]) - min(rightP1[0], rightP2[0])
+
+    return (leftEyeWidth + rightEyeWidth) / 2
 
 def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep):
     [[noFlashLeftEyeCrop, noFlashLeftEyeMask, noFlashLeftEyeCoord], [noFlashRightEyeCrop, noFlashRightEyeMask, noFlashRightEyeCoord]] = getEyeCrops(noFlashCapture)
@@ -261,131 +294,86 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
 
     leftReflectionBB = maskReflectionBB(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop)
 
-    halfLeftPoint, halfLeftCleanRatio = extractReflectionPoints(leftReflectionBB, halfFlashLeftEyeCrop, halfFlashLeftEyeMask)
-    fullLeftPoint, fullLeftCleanRatio = extractReflectionPoints(leftReflectionBB, fullFlashLeftEyeCrop, fullFlashLeftEyeMask)
+    halfLeftReflectionPoint, halfLeftCleanRatio = extractReflectionPoints(leftReflectionBB, halfFlashLeftEyeCrop, halfFlashLeftEyeMask)
+    fullLeftReflectionPoint, fullLeftCleanRatio = extractReflectionPoints(leftReflectionBB, fullFlashLeftEyeCrop, fullFlashLeftEyeMask)
 
     rightReflectionBB = maskReflectionBB(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop)
 
-    halfRightPoint, halfRightCleanRatio = extractReflectionPoints(rightReflectionBB, halfFlashRightEyeCrop, halfFlashRightEyeMask)
-    fullRightPoint, fullRightCleanRatio = extractReflectionPoints(rightReflectionBB, fullFlashRightEyeCrop, fullFlashRightEyeMask)
+    halfRightReflectionPoint, halfRightCleanRatio = extractReflectionPoints(rightReflectionBB, halfFlashRightEyeCrop, halfFlashRightEyeMask)
+    fullRightReflectionPoint, fullRightCleanRatio = extractReflectionPoints(rightReflectionBB, fullFlashRightEyeCrop, fullFlashRightEyeMask)
 
     print('LEFT CLEAN RATIO HALF VS FULL ::  {} | {} '.format(halfLeftCleanRatio, fullLeftCleanRatio))
     print('RIGHT CLEAN RATIO HALF VS FULL :: {} | {} '.format(halfRightCleanRatio, fullRightCleanRatio))
 
+    halfFlashLeftEyeCoord += leftEyeOffsets[1]
+    fullFlashLeftEyeCoord += leftEyeOffsets[2]
 
-    [leftRightPoint, leftLeftPoint] = halfFlashCapture.landmarks.getLeftEyeWidthPoints()
-    [rightRightPoint, rightLeftPoint] = halfFlashCapture.landmarks.getRightEyeWidthPoints()
+    halfFlashRightEyeCoord += rightEyeOffsets[1]
+    fullFlashRightEyeCoord += rightEyeOffsets[2]
 
-    (x, y, w, h) = halfFlashEyeStripCoords
+    halfFlashEyeStrip = getAnnotatedEyeStrip(leftReflectionBB, halfFlashLeftEyeCoord, rightReflectionBB, halfFlashRightEyeCoord, halfFlashCapture)
+    fullFlashEyeStrip = getAnnotatedEyeStrip(leftReflectionBB, fullFlashLeftEyeCoord, rightReflectionBB, fullFlashRightEyeCoord, fullFlashCapture)
 
-    leftRightPoint -= [x, y]
-    leftLeftPoint -= [x, y]
+    saveStep.saveReferenceImageLinearBGR(halfFlashEyeStrip, 'eyeStrip_half')
+    saveStep.saveReferenceImageLinearBGR(fullFlashEyeStrip, 'eyeStrip_full')
 
-    rightRightPoint -= [x, y]
-    rightLeftPoint -= [x, y]
+    eyeWidth = getEyeWidth(fullFlashCapture)
 
-    halfFlashEyeStrip = halfFlashEyeStrip.astype('uint8').copy()
-    cv2.circle(halfFlashEyeStrip, (leftRightPoint[0], leftRightPoint[1]), 5, (0, 255, 0), -1)
-    cv2.circle(halfFlashEyeStrip, (leftLeftPoint[0], leftLeftPoint[1]), 5, (0, 255, 0), -1)
-    cv2.circle(halfFlashEyeStrip, (rightRightPoint[0], rightRightPoint[1]), 5, (0, 255, 0), -1)
-    cv2.circle(halfFlashEyeStrip, (rightLeftPoint[0], rightLeftPoint[1]), 5, (0, 255, 0), -1)
-    cv2.rectangle(halfFlashEyeStrip, leftReflectionP1, leftReflectionP2, (0, 0, 255), 1)
-    cv2.rectangle(halfFlashEyeStrip, rightReflectionP1, rightReflectionP2, (0, 0, 255), 1)
-    saveStep.saveReferenceImageBGR(halfFlashEyeStrip, 'eyeStrip_half')
+    averageHalfReflection = np.round((halfLeftReflectionPoint + halfRightReflectionPoint) / 2).astype('uint16')
+    averageFullReflection = np.round((fullLeftReflectionPoint + fullRightReflectionPoint) / 2).astype('uint16')
 
-    if leftClipRatio < .8:
-        print("TOO MUCH CLIPPING!")
-        raise NameError('Not enough clean non-clipped pixels in left eye reflections')
+    print('AVERAGE HALF REFLECTION :: ' + str(averageHalfReflection))
+    print('AVERAGE FULL REFLECTION :: ' + str(averageFullReflection))
 
-    if rightClipRatio < .8:
-        print("TOO MUCH CLIPPING!")
-        raise NameError('Not enough clean non-clipped pixels in right eye reflections')
+    leftHalfReflection = colorTools.whitebalanceBGRPoints(halfLeftReflectionPoint, averageHalfReflection)
+    rightHalfReflection = colorTools.whitebalanceBGRPoints(halfRightReflectionPoint, averageHalfReflection)
 
-    leftEyeWidth = leftRightPoint[0] - leftLeftPoint[0]
-    rightEyeWidth = rightRightPoint[0] - rightLeftPoint[0]
+    leftFullReflection = colorTools.whitebalanceBGRPoints(fullLeftReflectionPoint, averageFullReflection)
+    rightFullReflection = colorTools.whitebalanceBGRPoints(fullRightReflectionPoint, averageFullReflection)
 
-    #print('Left Eye Width :: ' + str(leftEyeWidth))
-    #print('Right Eye Width :: ' + str(rightEyeWidth))
+    leftHalfReflectionLuminance = colorTools.getRelativeLuminance([leftHalfReflection])[0]
+    rightHalfReflectionLuminance = colorTools.getRelativeLuminance([rightHalfReflection])[0]
 
+    leftFullReflectionLuminance = colorTools.getRelativeLuminance([leftFullReflection])[0]
+    rightFullReflectionLuminance = colorTools.getRelativeLuminance([rightFullReflection])[0]
 
-    averageEyeWidth = (leftEyeWidth + rightEyeWidth) / 2
+    print('left half reflection median :: ' + str(leftHalfReflection))
+    print('left half reflection luminance :: ' + str(leftHalfReflectionLuminance))
+    print('right half reflection median :: ' + str(rightHalfReflection))
+    print('right half reflection luminance :: ' + str(rightHalfReflectionLuminance))
 
-    #maxEyeWidth = max([rightEyeWidth, leftEyeWidth])
+    print('left full reflection median :: ' + str(leftFullReflection))
+    print('left full reflection luminance :: ' + str(leftFullReflectionLuminance))
+    print('right full reflection median :: ' + str(rightFullReflection))
+    print('right full reflection luminance :: ' + str(rightFullReflectionLuminance))
 
-    print('RIGHT EYE WIDTH :: ' + str(rightEyeWidth))
-    print('LEFT EYE WIDTH :: ' + str(leftEyeWidth))
-    print('AVERAGE EYE WIDTH :: ' + str(averageEyeWidth))
-    #print('MAX EYE WIDTH :: ' + str(maxEyeWidth))
+    #leftReflectionHLS = colorsys.rgb_to_hls(leftReflectionMedian[2] / 255, leftReflectionMedian[1] / 255, leftReflectionMedian[0] / 255)
+    #rightReflectionHLS = colorsys.rgb_to_hls(rightReflectionMedian[2] / 255, rightReflectionMedian[1] / 255, rightReflectionMedian[0] / 255)
 
-    #blur = 5
-    #leftEyeSlitDiff = cv2.GaussianBlur(leftEyeSlitDiff, (blur, blur), 0)
-    #rightEyeSlitDiff = cv2.GaussianBlur(rightEyeSlitDiff, (blur, blur), 0)
+    #hueDiff = np.abs(leftReflectionHLS[0] - rightReflectionHLS[0])
+    #satDiff = np.abs(leftReflectionHLS[2] - rightReflectionHLS[2])
 
-    #threshold = 64
-    #leftEyeSlitDiff = (leftEyeSlitDiff > threshold).astype('uint8') * 255
-    #rightEyeSlitDiff = (rightEyeSlitDiff > threshold).astype('uint8') * 255
+    #print('HUE and SAT diff :: ' + str(hueDiff) + ' | ' + str(satDiff)) 
 
-    #leftEyeSlitStack = np.vstack((leftEyeSlitL.astype('uint8'), leftEyeSlitS.astype('uint8'), leftEyeSlitDiff1, leftEyeSlitDiff2, leftEyeSlitDiff3))
-    #rightEyeSlitStack = np.vstack((rightEyeSlitL.astype('uint8'), rightEyeSlitS.astype('uint8'), rightEyeSlitDiff1, rightEyeSlitDiff2, rightEyeSlitDiff3))
+    leftReflectionWidth, leftReflectionHeight = leftReflectionBB[2:4] / eyeWidth
+    rightReflectionWidth, rightReflectionHeight = rightReflectionBB[2:4] / eyeWidth
 
-    #cv2.imshow('Eye Mask Comparison', np.hstack((rightEyeSlitStack, leftEyeSlitStack)))
-    #cv2.waitKey(0)
-
-    #valuesDiff = np.abs((rightReflectionMedian - leftReflectionMedian))
-    averageMedian = np.round((leftReflectionMedian + rightReflectionMedian) / 2).astype('uint16')
-    print('AVERAGE MEDIAN :: ' + str(averageMedian))
-
-    leftReflectionMedian = colorTools.whitebalanceBGRPoints(leftReflectionMedian, averageMedian)
-    rightReflectionMedian = colorTools.whitebalanceBGRPoints(rightReflectionMedian, averageMedian)
-
-    leftReflectionLuminance = colorTools.getRelativeLuminance([leftReflectionMedian])[0]
-    rightReflectionLuminance = colorTools.getRelativeLuminance([rightReflectionMedian])[0]
-
-    print('left reflection median :: ' + str(leftReflectionMedian))
-    print('left reflection luminance :: ' + str(leftReflectionLuminance))
-    print('right reflection median :: ' + str(rightReflectionMedian))
-    print('right reflection luminance :: ' + str(rightReflectionLuminance))
-    leftReflectionHLS = colorsys.rgb_to_hls(leftReflectionMedian[2] / 255, leftReflectionMedian[1] / 255, leftReflectionMedian[0] / 255)
-    rightReflectionHLS = colorsys.rgb_to_hls(rightReflectionMedian[2] / 255, rightReflectionMedian[1] / 255, rightReflectionMedian[0] / 255)
-
-    #print('rightReflectionMedian :: ' + str(rightReflectionMedian))
-    #print('right HLS :: ' + str(rightReflectionHLS))
-    #print('leftReflectionMedian :: ' + str(leftReflectionMedian))
-    #print('left HLS :: ' + str(leftReflectionHLS))
-
-    hueDiff = np.abs(leftReflectionHLS[0] - rightReflectionHLS[0])
-    satDiff = np.abs(leftReflectionHLS[2] - rightReflectionHLS[2])
-
-    print('HUE and SAT diff :: ' + str(hueDiff) + ' | ' + str(satDiff)) 
-
-
-
-    leftReflectionArea = (leftReflectionWidth / averageEyeWidth) * (leftReflectionHeight / averageEyeWidth)
-    rightReflectionArea = (rightReflectionWidth / averageEyeWidth) * (rightReflectionHeight / averageEyeWidth)
+    leftReflectionArea = leftReflectionWidth * leftReflectionHeight
+    rightReflectionArea = rightReflectionWidth * rightReflectionHeight
 
     reflectionWidthRatio = max(leftReflectionWidth, rightReflectionWidth) / min(leftReflectionWidth, rightReflectionWidth)
     reflectionHeightRatio = max(leftReflectionHeight, rightReflectionHeight) / min(leftReflectionHeight, rightReflectionHeight)
 
-    #if (max(leftReflectionArea, rightReflectionArea) / min(leftReflectionArea, rightReflectionArea)) > 1.25:
     if (reflectionWidthRatio > 1.25) or (reflectionHeightRatio > 1.25):
         raise NameError('Reflection Sizes are too different!')
 
-    #averageArea = (leftReflectionArea + rightReflectionArea) / 2
+    leftFluxish = leftReflectionArea * leftHalfReflectionLuminance * 2 #2x because we are using half
+    rightFluxish = rightReflectionArea * rightHalfReflectionLuminance * 2 #2x because we are using half
 
-    #averageValue = (leftReflectionValue + rightReflectionValue) / 2
-    #fluxish = averageArea * averageValue
+    print('LEFT FLUXISH :: ' + str(leftFluxish) + ' | AREA :: ' + str(leftReflectionArea) + ' | LUMINOSITY :: ' + str(leftHalfReflectionLuminance * 2))
+    print('RIGHT FLUXISH :: ' + str(rightFluxish) + ' | AREA :: ' + str(rightReflectionArea) + ' | LUMINOSITY :: ' + str(rightHalfReflectionLuminance * 2))
 
-    #leftReflectionLuminosity = leftReflectionHLS[1]
-    #rightReflectionLuminosity = rightReflectionHLS[1]
+    leftReflectionValues = [halfLeftReflectionPoint, fullLeftReflectionPoint]
+    rightReflectionValues = [halfRightReflectionPoint, fullRightReflectionPoint]
 
-    #leftFluxish = averageArea * leftReflectionLuminosity
-    #leftFluxish = leftReflectionArea * leftReflectionLuminosity
-    leftFluxish = leftReflectionArea * leftReflectionLuminance
-    print('LEFT FLUXISH :: ' + str(leftFluxish) + ' | AREA :: ' + str(leftReflectionArea) + ' | LUMINOSITY :: ' + str(leftReflectionLuminance))
-
-    #rightFluxish = averageArea * rightReflectionLuminosity
-    #rightFluxish = rightReflectionArea * rightReflectionLuminosity
-    rightFluxish = rightReflectionArea * rightReflectionLuminance
-    print('RIGHT FLUXISH :: ' + str(rightFluxish) + ' | AREA :: ' + str(rightReflectionArea) + ' | LUMINOSITY :: ' + str(rightReflectionLuminance))
-
-    return [averageMedian, leftReflectionLuminance, leftFluxish, rightReflectionLuminance, rightFluxish]
+    return [averageHalfReflection, leftHalfReflectionLuminance * 2, leftFluxish, rightHalfReflectionLuminance * 2, rightFluxish, leftReflectionValues, rightReflectionValues]
