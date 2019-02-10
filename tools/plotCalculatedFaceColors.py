@@ -36,6 +36,8 @@ fullForeheadStats = []
 
 faceColors = sorted(faceColors, key = sortBy) 
 
+reflectionPairs = []
+
 for faceColor in faceColors:
     imageName = faceColor[0]
     noError = faceColor[1]
@@ -44,11 +46,19 @@ for faceColor in faceColors:
         continue
 
 
+    for index, field in enumerate(faceColor):
+        print('{} :: {}'.format(index, field))
+
+    #print('FACE COLOR :: ' + str(faceColor))
     [leftCheekHalf, rightCheekHalf, chinHalf, foreheadHalf] = faceColor[2]
     [leftCheekFull, rightCheekFull, chinFull, foreheadFull] = faceColor[3]
     [leftCheekMedianLinearityError, rightCheekMedianLinearityError, chinMedianLinearityError, foreheadMedianLinearityError] = faceColor[4]
     [leftCheekClippingRatio, rightCheekClippingRatio, chinClippingRatio, foreheadClippingRatio] = faceColor[5]
-    [leftCheekNoFlashBGR, rightCheekNoFlashBGR, chinNoFlashBGR, foreheadNoFlashBGR] = faceColor[5]
+    [leftCheekNoFlashBGR, rightCheekNoFlashBGR, chinNoFlashBGR, foreheadNoFlashBGR] = faceColor[6]
+    print('Face Color 7 :: ' + str(faceColor[7]))
+    [leftReflectionValues, rightReflectionValues] = faceColor[7]
+    reflectionPairs += leftReflectionValues
+    reflectionPairs += rightReflectionValues
 
     leftCheekNoFlashLuminance = getRelativeLuminance(leftCheekNoFlashBGR)
     rightCheekNoFlashLuminance = getRelativeLuminance(rightCheekNoFlashBGR)
@@ -115,6 +125,8 @@ foreheadStats = halfForeheadStats + fullForeheadStats
 foreheadStats = np.array(foreheadStats)
 halfForeheadStats = np.array(halfForeheadStats)
 fullForeheadStats = np.array(fullForeheadStats)
+
+print('Reflection Pairs :: ' + str(reflectionPairs))
 
 #LUMINANCE VS FLUXISH
 

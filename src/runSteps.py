@@ -308,6 +308,52 @@ def plotBGR(axs, color, x, y):
     m, c = fitLine(x_sample, y_sample)
     axs.plot([start_x, end_x], [(m * start_x + c), (m * end_x + c)])
 
+def getRegionMapBGR(leftCheek, rightCheek, chin, forehead):
+    value = {}
+    print('Left Cheek BGR :: ' + str(leftCheek))
+    value['left'] = list(leftCheek)
+    value['right'] = list(rightCheek)
+    value['chin'] = list(chin)
+    value['forehead'] = list(forehead)
+
+    return value
+
+def getRegionMapValue(leftCheek, rightCheek, chin, forehead):
+    value = {}
+    print('Left Cheek Value :: ' + str(leftCheek))
+    value['left'] = leftCheek
+    value['right'] = rightCheek
+    value['chin'] = chin
+    value['forehead'] = forehead
+
+    return value
+
+def getReflectionMap(leftReflection, rightReflection):
+    value = {}
+    print('Left Reflection :: ' + str(leftReflection))
+    value['left'] = [list(reflection) for reflection in leftReflection]
+    value['right'] = [list(reflection) for reflection in rightReflection]
+
+    return value
+
+def getResponse(imageName, successful, noFlashValues=None, halfFlashValues=None, fullFlashValues=None, linearity=None, cleanRatio=None, reflectionValues=None, fluxishValues=None):
+    response = {}
+    response['name'] = imageName
+    response['successful'] = successful
+
+    if not successful:
+        return response
+
+    response['noFlashValues'] = getRegionMapBGR(*noFlashValues)
+    response['halfFlashValues'] = getRegionMapBGR(*halfFlashValues)
+    response['fullFlashValues'] = getRegionMapBGR(*fullFlashValues)
+    response['linearity'] = getRegionMapValue(*linearity)
+    response['cleanRatio'] = getRegionMapValue(*cleanRatio)
+    response['reflectionValues'] = getReflectionMap(*reflectionValues)
+    response['fluxishValues'] = getRegionMapValue(*fluxishValues)
+
+    return response
+
 def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #saveStep.resetLogFile(username, imageName)
     saveStep = Save(username, imageName)
@@ -339,7 +385,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
             raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
         else:
             print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
-            return [imageName, False]
+            return getResponse(imageName, False)
         
     print('Done Cropping and aligning')
 
@@ -436,7 +482,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
             raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
         else:
             print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
-            return [imageName, False]
+            return getResponse(imageName, False)
 
     averageFluxish = (leftFluxish + rightFluxish) / 2
     print("Reflection Value:: " + str(reflectionValue))
@@ -461,7 +507,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
             raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
         else:
             print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
-            return [imageName, False]
+            return getResponse(imageName, False)
     else:
         noFlashPointsLeftCheek, leftCheekLinearityError, leftCheekClippingRatio = noFlashPointsLeftCheek
         noFlashPointsRightCheek, rightCheekLinearityError, rightCheekClippingRatio = noFlashPointsRightCheek
@@ -682,16 +728,32 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         #foreheadValues = [scaledAverageFluxish, foreheadMedianLuminance_sBGR, list(foreheadMedianHSV_sBGR), list(foreheadLine_sBGR)]
 
         #PREP FULL RETURN
-        leftCheekValuesFull = [scaledLeftFluxish, leftCheekMedianFullLuminance, list(leftCheekMedianFullHSV), list(leftCheekMedianFullBGR), list(leftCheekLineFull)]
-        rightCheekValuesFull = [scaledRightFluxish, rightCheekMedianFullLuminance, list(rightCheekMedianFullHSV), list(rightCheekMedianFullBGR), list(rightCheekLineFull)]
-        chinValuesFull = [scaledAverageFluxish, chinMedianFullLuminance, list(chinMedianFullHSV), list(chinMedianFullBGR), list(chinLineFull)]
-        foreheadValuesFull = [scaledAverageFluxish, foreheadMedianFullLuminance, list(foreheadMedianFullHSV), list(foreheadMedianFullBGR), list(foreheadLineFull)]
+        #leftCheekValuesFull = [scaledLeftFluxish, leftCheekMedianFullLuminance, list(leftCheekMedianFullHSV), list(leftCheekMedianFullBGR), list(leftCheekLineFull)]
+        #rightCheekValuesFull = [scaledRightFluxish, rightCheekMedianFullLuminance, list(rightCheekMedianFullHSV), list(rightCheekMedianFullBGR), list(rightCheekLineFull)]
+        #chinValuesFull = [scaledAverageFluxish, chinMedianFullLuminance, list(chinMedianFullHSV), list(chinMedianFullBGR), list(chinLineFull)]
+        #foreheadValuesFull = [scaledAverageFluxish, foreheadMedianFullLuminance, list(foreheadMedianFullHSV), list(foreheadMedianFullBGR), list(foreheadLineFull)]
 
         #PREP HALF RETURN
-        leftCheekValuesHalf = [scaledLeftFluxish / 2, leftCheekMedianHalfLuminance, list(leftCheekMedianHalfHSV), list(leftCheekMedianHalfBGR), list(leftCheekLineHalf)]
-        rightCheekValuesHalf = [scaledRightFluxish / 2, rightCheekMedianHalfLuminance, list(rightCheekMedianHalfHSV), list(rightCheekMedianHalfBGR), list(rightCheekLineHalf)]
-        chinValuesHalf = [scaledAverageFluxish / 2, chinMedianHalfLuminance, list(chinMedianHalfHSV), list(chinMedianHalfBGR), list(chinLineHalf)]
-        foreheadValuesHalf = [scaledAverageFluxish / 2, foreheadMedianHalfLuminance, list(foreheadMedianHalfHSV), list(foreheadMedianHalfBGR), list(foreheadLineHalf)]
+        #leftCheekValuesHalf = [scaledLeftFluxish / 2, leftCheekMedianHalfLuminance, list(leftCheekMedianHalfHSV), list(leftCheekMedianHalfBGR), list(leftCheekLineHalf)]
+        #rightCheekValuesHalf = [scaledRightFluxish / 2, rightCheekMedianHalfLuminance, list(rightCheekMedianHalfHSV), list(rightCheekMedianHalfBGR), list(rightCheekLineHalf)]
+        #chinValuesHalf = [scaledAverageFluxish / 2, chinMedianHalfLuminance, list(chinMedianHalfHSV), list(chinMedianHalfBGR), list(chinLineHalf)]
+        #foreheadValuesHalf = [scaledAverageFluxish / 2, foreheadMedianHalfLuminance, list(foreheadMedianHalfHSV), list(foreheadMedianHalfBGR), list(foreheadLineHalf)]
 
-        return [imageName, True, [leftCheekValuesHalf, rightCheekValuesHalf, chinValuesHalf, foreheadValuesHalf], [leftCheekValuesFull, rightCheekValuesFull, chinValuesFull, foreheadValuesFull], [leftCheekLinearityError, rightCheekLinearityError, chinLinearityError, foreheadLinearityError], [leftCheekClippingRatio, rightCheekClippingRatio, chinClippingRatio, foreheadClippingRatio], [list(noFlashPointsLeftCheekMedian), list(noFlashPointsRightCheekMedian), list(noFlashPointsChinMedian), list(noFlashPointsForeheadMedian)], [list(leftReflectionValues), list(rightReflectionValues)]]
+        #return [imageName, True, [leftCheekValuesHalf, rightCheekValuesHalf, chinValuesHalf, foreheadValuesHalf], [leftCheekValuesFull, rightCheekValuesFull, chinValuesFull, foreheadValuesFull], [leftCheekLinearityError, rightCheekLinearityError, chinLinearityError, foreheadLinearityError], [leftCheekClippingRatio, rightCheekClippingRatio, chinClippingRatio, foreheadClippingRatio], [list(noFlashPointsLeftCheekMedian), list(noFlashPointsRightCheekMedian), list(noFlashPointsChinMedian), list(noFlashPointsForeheadMedian)], [list(leftReflectionValues), list(rightReflectionValues)]]
+
+        #NEW RULES: COLORS ARE RETURNED IN BGR
+        #           FIELDS are Left Cheek, Right Cheek, Chin Forehead
+        noFlashValues = [noFlashPointsLeftCheekMedian, noFlashPointsRightCheekMedian, noFlashPointsChinMedian, noFlashPointsForeheadMedian]
+        halfFlashValues = [leftCheekMedianHalfBGR, rightCheekMedianHalfBGR, chinMedianHalfBGR, foreheadMedianHalfBGR]
+        fullFlashValues = [leftCheekMedianFullBGR, rightCheekMedianFullBGR, chinMedianFullBGR, foreheadMedianFullBGR]
+        linearity = [leftCheekLinearityError, rightCheekLinearityError, chinLinearityError, foreheadLinearityError]
+        cleanRatio = [leftCheekClippingRatio, rightCheekClippingRatio, chinClippingRatio, foreheadClippingRatio]
+        reflectionValues = [leftReflectionValues, rightReflectionValues]
+        fluxishValues = [scaledLeftFluxish, scaledRightFluxish, scaledAverageFluxish, scaledAverageFluxish]
+
+
+        return getResponse(imageName, True, noFlashValues, halfFlashValues, fullFlashValues, linearity, cleanRatio, reflectionValues, fluxishValues)
+
+
+        #return [0, 1, 2, 3, 4, 5, 6, 7]
 

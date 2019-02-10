@@ -262,6 +262,10 @@ def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask):
     reflectionMask = eyeMask[y:y+h, x:x+w]
 
     reflectionPoints = reflectionCrop[np.logical_not(reflectionMask)]
+
+    if (reflectionMask.shape[0] == 0) or (reflectionMask.shape[1] == 0):
+        raise NameError('Zero width eye reflection')
+
     cleanPixelRatio = reflectionPoints.shape[0] / (reflectionMask.shape[0] * reflectionMask.shape[1])
 
     representativeReflectionPoint = calculateRepresentativeReflectionPoint(reflectionPoints)
@@ -355,11 +359,20 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
 
     #print('HUE and SAT diff :: ' + str(hueDiff) + ' | ' + str(satDiff)) 
 
+    if eyeWidth == 0:
+        raise NameError('Zero value Eye Width')
+
     leftReflectionWidth, leftReflectionHeight = leftReflectionBB[2:4] / eyeWidth
     rightReflectionWidth, rightReflectionHeight = rightReflectionBB[2:4] / eyeWidth
 
     leftReflectionArea = leftReflectionWidth * leftReflectionHeight
     rightReflectionArea = rightReflectionWidth * rightReflectionHeight
+
+    if min(leftReflectionWidth, rightReflectionWidth) == 0:
+        raise NameError('Zero value reflection Width')
+
+    if min(leftReflectionHeight, rightReflectionHeight) == 0:
+        raise NameError('Zero value reflection Height')
 
     reflectionWidthRatio = max(leftReflectionWidth, rightReflectionWidth) / min(leftReflectionWidth, rightReflectionWidth)
     reflectionHeightRatio = max(leftReflectionHeight, rightReflectionHeight) / min(leftReflectionHeight, rightReflectionHeight)
