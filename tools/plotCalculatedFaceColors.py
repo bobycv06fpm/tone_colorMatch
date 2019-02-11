@@ -3,130 +3,92 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import colorsys
+from copy import deepcopy
 
 bgrLuminanceConsts = np.array([0.0722, 0.7152, 0.2126])
 def getRelativeLuminance(bgr):
     return np.sum(bgr * bgrLuminanceConsts)
 
 def sortBy(elem):
-    #print(elem)
-    #print('elem[1][3] :: ', str(elem[1][3]))
     return elem[0][0]
+
+def mapResultsRegions(target, source):
+    target['cheek'].append(source['left'])
+    target['cheek'].append(source['right'])
+    target['chin'].append(source['chin'])
+    target['forehead'].append(source['forehead'])
+
+def mapResultsFlash(target, source):
+    target['half'].append(source['left'][0])
+    target['full'].append(source['left'][1])
+    target['half'].append(source['right'][0])
+    target['full'].append(source['right'][1])
 
 blacklist = ['doug205', 'doug206', 'doug246', 'doug258', 'doug257', 'doug247', 'doug250', 'doug255', 'doug294', 'doug274', 'doug286', 'doug272', 'doug282', 'doug197', 'doug293', 'doug277', 'doug273', 'doug275', 'doug358']
 
-#whitelist = ['doug196', 'doug198','doug200','doug201','doug210','doug211','doug212','doug213','doug216','doug217','doug219','doug220','doug221','doug223','doug229','doug236','doug237','doug240','doug248','doug251','doug253','doug263']
 
 with open('faceColors.json', 'r') as f:
-    faceColors = f.read()
-    faceColors = json.loads(faceColors)
+    facesData = f.read()
+    facesData = json.loads(facesData)
 
 size = 10
 
-#lightnessFluxish = []
-#correctedLightnessFluxish = []
+resultsRegionsTemplate = {'cheek': [], 'chin': [], 'forehead': []}
+resultsFlashTemplate = {'half': [], 'full': []}
 
-halfCheekStats = []
-halfChinStats = []
-halfForeheadStats = []
+noFlash = deepcopy(resultsRegionsTemplate)
+halfFlash = deepcopy(resultsRegionsTemplate)
+fullFlash = deepcopy(resultsRegionsTemplate)
+linearity = deepcopy(resultsRegionsTemplate)
+cleanRatio = deepcopy(resultsRegionsTemplate)
+fluxish = deepcopy(resultsRegionsTemplate)
 
-fullCheekStats = []
-fullChinStats = []
-fullForeheadStats = []
+reflections = deepcopy(resultsFlashTemplate)
 
-faceColors = sorted(faceColors, key = sortBy) 
+for faceData in facesData:
 
-reflectionPairs = []
-
-for faceColor in faceColors:
-    imageName = faceColor[0]
-    noError = faceColor[1]
-    if (imageName in blacklist) or not noError:
-    #if imageName not in whitelist:
+    if (faceData['name'] in blacklist) or not faceData['successful']:
         continue
 
+    if not isinstance(faceData['noFlashValues']['chin'], list):
+        print('NOT A LIST :: ' + faceData['name'])
+        break
 
-    for index, field in enumerate(faceColor):
-        print('{} :: {}'.format(index, field))
+    mapResultsRegions(noFlash, faceData['noFlashValues'])
+    mapResultsRegions(halfFlash, faceData['halfFlashValues'])
+    mapResultsRegions(fullFlash, faceData['fullFlashValues'])
+    mapResultsRegions(linearity, faceData['linearity'])
+    mapResultsRegions(cleanRatio, faceData['cleanRatio'])
+    mapResultsRegions(fluxish, faceData['fluxishValues'])
 
-    #print('FACE COLOR :: ' + str(faceColor))
-    [leftCheekHalf, rightCheekHalf, chinHalf, foreheadHalf] = faceColor[2]
-    [leftCheekFull, rightCheekFull, chinFull, foreheadFull] = faceColor[3]
-    [leftCheekMedianLinearityError, rightCheekMedianLinearityError, chinMedianLinearityError, foreheadMedianLinearityError] = faceColor[4]
-    [leftCheekClippingRatio, rightCheekClippingRatio, chinClippingRatio, foreheadClippingRatio] = faceColor[5]
-    [leftCheekNoFlashBGR, rightCheekNoFlashBGR, chinNoFlashBGR, foreheadNoFlashBGR] = faceColor[6]
-    print('Face Color 7 :: ' + str(faceColor[7]))
-    [leftReflectionValues, rightReflectionValues] = faceColor[7]
-    reflectionPairs += leftReflectionValues
-    reflectionPairs += rightReflectionValues
+    mapResultsFlash(reflections, faceData['reflectionValues'])
 
-    leftCheekNoFlashLuminance = getRelativeLuminance(leftCheekNoFlashBGR)
-    rightCheekNoFlashLuminance = getRelativeLuminance(rightCheekNoFlashBGR)
-    chinNoFlashLuminance = getRelativeLuminance(chinNoFlashBGR)
-    foreheadNoFlashLuminance = getRelativeLuminance(foreheadNoFlashBGR)
-
-    #HALF 
-    [leftFluxishHalf, leftLuminanceHalf, leftHSVHalf, leftBGRHalf, leftLineHalf] = leftCheekHalf
-    [rightFluxishHalf, rightLuminanceHalf, rightHSVHalf, rightBGRHalf, rightLineHalf] = rightCheekHalf
-    [chinFluxishHalf, chinLuminanceHalf, chinHSVHalf, chinBGRHalf, chinLineHalf] = chinHalf
-    [foreheadFluxishHalf, foreheadLuminanceHalf, foreheadHSVHalf, foreheadBGRHalf, foreheadLineHalf] = foreheadHalf
-
-    #FULL
-    [leftFluxishFull, leftLuminanceFull, leftHSVFull, leftBGRFull, leftLineFull] = leftCheekFull
-    [rightFluxishFull, rightLuminanceFull, rightHSVFull, rightBGRFull, rightLineFull] = rightCheekFull
-    [chinFluxishFull, chinLuminanceFull, chinHSVFull, chinBGRFull, chinLineFull] = chinFull
-    [foreheadFluxishFull, foreheadLuminanceFull, foreheadHSVFull, foreheadBGRFull, foreheadLineFull] = foreheadFull
-
-
-    template =  '{} - {} - :: {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {}'
-
-    leftHalf = template.format(imageName, 'HALF LEFT', leftFluxishHalf, leftLuminanceHalf, *leftHSVHalf, *leftBGRHalf, *leftLineHalf, leftCheekMedianLinearityError, leftCheekClippingRatio, leftCheekNoFlashLuminance)
-    rightHalf = template.format(imageName, 'HALF RIGHT', rightFluxishHalf, rightLuminanceHalf, *rightHSVHalf, *rightBGRHalf, *rightLineHalf, rightCheekMedianLinearityError, rightCheekClippingRatio, rightCheekNoFlashLuminance)
-    chinHalf = template.format(imageName, 'HALF CHIN', chinFluxishHalf, chinLuminanceHalf, *chinHSVHalf, *chinBGRHalf, *chinLineHalf, chinMedianLinearityError, chinClippingRatio, chinNoFlashLuminance)
-    foreheadHalf = template.format(imageName, 'HALF FOREHEAD', foreheadFluxishHalf, foreheadLuminanceHalf, *foreheadHSVHalf, *foreheadBGRHalf, *foreheadLineHalf, foreheadMedianLinearityError, foreheadClippingRatio, foreheadNoFlashLuminance)
-
-    leftFull = template.format(imageName, 'FULL LEFT', leftFluxishFull, leftLuminanceFull, *leftHSVFull, *leftBGRFull, *leftLineFull, leftCheekMedianLinearityError, leftCheekClippingRatio, leftCheekNoFlashLuminance)
-    rightFull = template.format(imageName, 'FULL RIGHT', rightFluxishFull, rightLuminanceFull, *rightHSVFull, *rightBGRFull, *rightLineFull, rightCheekMedianLinearityError, rightCheekClippingRatio, rightCheekNoFlashLuminance)
-    chinFull = template.format(imageName, 'FULL CHIN', chinFluxishFull, chinLuminanceFull, *chinHSVFull, *chinBGRFull, *chinLineFull, chinMedianLinearityError, chinClippingRatio, chinNoFlashLuminance)
-    foreheadFull = template.format(imageName, 'FULL FOREHEAD', foreheadFluxishFull, foreheadLuminanceFull, *foreheadHSVFull, *foreheadBGRFull, *foreheadLineFull, foreheadMedianLinearityError, foreheadClippingRatio, foreheadNoFlashLuminance)
+    keys = list(faceData.keys())
+    fields = keys[2:]
 
     print('~~~~~')
-    print(leftHalf)
-    print(rightHalf)
-    print(chinHalf)
-    print(foreheadHalf)
-    print(leftFull)
-    print(rightFull)
-    print(chinFull)
-    print(foreheadFull)
+    printTemplate = '{} - {} - {}'
+    for field in fields:
+        print(printTemplate.format(faceData['name'], field, faceData[field]))
 
-    halfCheekStats.append(np.array([leftLuminanceHalf, leftFluxishHalf, *leftHSVHalf, *leftBGRHalf, *leftLineHalf, leftCheekMedianLinearityError, leftCheekClippingRatio, leftCheekNoFlashLuminance, (leftLuminanceHalf / leftFluxishHalf)]))
-    halfCheekStats.append(np.array([rightLuminanceHalf, rightFluxishHalf, *rightHSVHalf, *rightBGRHalf, *rightLineHalf, rightCheekMedianLinearityError, rightCheekClippingRatio, rightCheekNoFlashLuminance, (rightLuminanceHalf / rightFluxishHalf)]))
-    fullCheekStats.append(np.array([leftLuminanceFull, leftFluxishFull, *leftHSVFull, *leftBGRFull, *leftLineFull, leftCheekMedianLinearityError, leftCheekClippingRatio, leftCheekNoFlashLuminance, (leftLuminanceFull / leftFluxishFull)]))
-    fullCheekStats.append(np.array([rightLuminanceFull, rightFluxishFull, *rightHSVFull, *rightBGRFull, *rightLineFull, rightCheekMedianLinearityError, rightCheekClippingRatio, rightCheekNoFlashLuminance, (rightLuminanceFull / rightFluxishFull)]))
+#Reflection Brightness vs Expected
+for index, half in enumerate(reflections['half']):
+    halfAverage = np.mean(half)
+    fullAverage = np.mean(reflections['full'][index])
+    plt.plot([halfAverage, halfAverage * 2], [halfAverage, fullAverage])
 
-    halfChinStats.append(np.array([chinLuminanceHalf, chinFluxishHalf, *chinHSVHalf, *chinBGRHalf, *chinLineHalf, chinMedianLinearityError, chinClippingRatio, chinNoFlashLuminance, (chinLuminanceHalf / chinFluxishHalf)]))
-    fullChinStats.append(np.array([chinLuminanceFull, chinFluxishFull, *chinHSVFull, *chinBGRFull, *chinLineFull, chinMedianLinearityError, chinClippingRatio, chinNoFlashLuminance, (chinLuminanceFull / chinFluxishFull)]))
+plt.xlabel('Expected')
+plt.ylabel('Actual')
+plt.plot([0, 255], [0, 255])
+plt.show()
 
-    halfForeheadStats.append(np.array([foreheadLuminanceHalf, foreheadFluxishHalf, *foreheadHSVHalf, *foreheadBGRHalf, *foreheadLineHalf, foreheadMedianLinearityError, foreheadClippingRatio, foreheadNoFlashLuminance, (foreheadLuminanceHalf / foreheadFluxishHalf)]))
-    fullForeheadStats.append(np.array([foreheadLuminanceFull, foreheadFluxishFull, *foreheadHSVFull, *foreheadBGRFull, *foreheadLineFull, foreheadMedianLinearityError, foreheadClippingRatio, foreheadNoFlashLuminance, (foreheadLuminanceFull/ foreheadFluxishFull)]))
+#Reflection halfBrightness vs fullBrightness
+plt.scatter(reflections['half'], reflections['full'])
+plt.plot([0, 150], [0, 300])
 
-cheekStats = halfCheekStats + fullCheekStats
-cheekStats = np.array(cheekStats)
-halfCheekStats = np.array(halfCheekStats)
-fullCheekStats = np.array(fullCheekStats)
-
-chinStats = halfChinStats + fullChinStats
-chinStats = np.array(chinStats)
-halfChinStats = np.array(halfChinStats)
-fullChinStats = np.array(fullChinStats)
-
-foreheadStats = halfForeheadStats + fullForeheadStats
-foreheadStats = np.array(foreheadStats)
-halfForeheadStats = np.array(halfForeheadStats)
-fullForeheadStats = np.array(fullForeheadStats)
-
-print('Reflection Pairs :: ' + str(reflectionPairs))
+plt.xlabel('Half')
+plt.ylabel('Full')
+plt.show()
 
 #LUMINANCE VS FLUXISH
 
