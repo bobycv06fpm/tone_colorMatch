@@ -71,10 +71,17 @@ for faceData in facesData:
     for field in fields:
         print(printTemplate.format(faceData['name'], field, faceData[field]))
 
+reflections['half'] = np.array(reflections['half'])
+reflections['full'] = np.array(reflections['full'])
+
 #Reflection Brightness vs Expected
+halfAverages = []
+fullAverages = []
 for index, half in enumerate(reflections['half']):
     halfAverage = np.mean(half)
+    halfAverages.append(halfAverage)
     fullAverage = np.mean(reflections['full'][index])
+    fullAverages.append(fullAverage)
     plt.plot([halfAverage, halfAverage * 2], [halfAverage, fullAverage])
 
 plt.xlabel('Expected')
@@ -83,12 +90,40 @@ plt.plot([0, 255], [0, 255])
 plt.show()
 
 #Reflection halfBrightness vs fullBrightness
-plt.scatter(reflections['half'], reflections['full'])
+plt.scatter(halfAverages, fullAverages)
 plt.plot([0, 150], [0, 300])
 
-plt.xlabel('Half')
-plt.ylabel('Full')
+plt.xlabel('Average Half')
+plt.ylabel('Average Full')
 plt.show()
+
+#Reflection halfBrightness vs fullBrightness
+plt.scatter(reflections['half'][:, 0], reflections['full'][:, 0])
+plt.plot([0, 150], [0, 300])
+
+plt.xlabel('Blue Half')
+plt.ylabel('Blue Full')
+plt.show()
+
+#Reflection halfBrightness vs fullBrightness
+plt.scatter(reflections['half'][:, 1], reflections['full'][:, 1])
+plt.plot([0, 150], [0, 300])
+plt.plot([0, 150], [0, 300])
+
+plt.xlabel('Green Half')
+plt.ylabel('Green Full')
+plt.show()
+
+#Reflection halfBrightness vs fullBrightness
+plt.scatter(reflections['half'][:, 2], reflections['full'][:, 2])
+plt.plot([0, 150], [0, 300])
+
+plt.xlabel('Red Half')
+plt.ylabel('Red Full')
+plt.show()
+
+
+
 
 #LUMINANCE VS FLUXISH
 
