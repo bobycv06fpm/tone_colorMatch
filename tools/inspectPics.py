@@ -3,146 +3,20 @@ import numpy as np
 import os
 import cv2
 
-# 0  ImageName
-# 1  noError
-# 2  Half Flash
-# - 0  Half Left Cheek
-# - - 0  Half Left Fluxish
-# - - 1  Half Left Luminance
-# - - 2  Half Left HSV
-# - - - 0  Hue
-# - - - 1  Saturation
-# - - - 2  Value
-# - - 3  Half Left BGR
-# - - - 0  Blue
-# - - - 1  Green
-# - - - 2  Red
-# - - 4  Half Left Line
-# - - - 0  Slope
-# - - - 1  Intercept
-# - 1  Half Right Cheek
-# - - 0  Half Right Fluxish
-# - - 1  Half Right Luminance
-# - - 2  Half Right HSV
-# - - - 0  Hue
-# - - - 1  Saturation
-# - - - 2  Value
-# - - 3  Half Right BGR
-# - - - 0  Blue
-# - - - 1  Green
-# - - - 2  Red
-# - - 4  Half Right Line
-# - - - 0  Slope
-# - - - 1  Intercept
-# - 2  Half Chin 
-# - - 0  Half Chin Fluxish
-# - - 1  Half Chin Luminance
-# - - 2  Half Chin HSV
-# - - - 0  Hue
-# - - - 1  Saturation
-# - - - 2  Value
-# - - 3  Half Chin BGR
-# - - - 0  Blue
-# - - - 1  Green
-# - - - 2  Red
-# - - 4  Half Chin Line
-# - - - 0  Slope
-# - - - 1  Intercept
-# - 3  Half Forehead 
-# - - 0  Half Forehead Fluxish
-# - - 1  Half Forehead Luminance
-# - - 2  Half Forehead HSV
-# - - - 0  Hue
-# - - - 1  Saturation
-# - - - 2  Value
-# - - 3  Half Forehead BGR
-# - - - 0  Blue
-# - - - 1  Green
-# - - - 2  Red
-# - - 4  Half Forehead Line
-# - - - 0  Slope
-# - - - 1  Intercept
-# 3  Full Flash
-# - 0  Full Left Cheek
-# - - 0  Full Left Fluxish
-# - - 1  Full Left Luminance
-# - - 2  Full Left HSV
-# - - - 0  Hue
-# - - - 1  Saturation
-# - - - 2  Value
-# - - 3  Full Left BGR
-# - - - 0  Blue
-# - - - 1  Green
-# - - - 2  Red
-# - - 4  Full Left Line
-# - - - 0  Slope
-# - - - 1  Intercept
-# - 1  Full Right Cheek
-# - - 0  Full Right Fluxish
-# - - 1  Full Right Luminance
-# - - 2  Full Right HSV
-# - - - 0  Hue
-# - - - 1  Saturation
-# - - - 2  Value
-# - - 3  Full Right BGR
-# - - - 0  Blue
-# - - - 1  Green
-# - - - 2  Red
-# - - 4  Full Right Line
-# - - - 0  Slope
-# - - - 1  Intercept
-# - 2  Full Chin 
-# - - 0  Full Chin Fluxish
-# - - 1  Full Chin Luminance
-# - - 2  Full Chin HSV
-# - - - 0  Hue
-# - - - 1  Saturation
-# - - - 2  Value
-# - - 3  Full Chin BGR
-# - - - 0  Blue
-# - - - 1  Green
-# - - - 2  Red
-# - - 4  Full Chin Line
-# - - - 0  Slope
-# - - - 1  Intercept
-# - 3  Full Forehead 
-# - - 0  Full Forehead Fluxish
-# - - 1  Full Forehead Luminance
-# - - 2  Full Forehead HSV
-# - - - 0  Hue
-# - - - 1  Saturation
-# - - - 2  Value
-# - - 3  Full Forehead BGR
-# - - - 0  Blue
-# - - - 1  Green
-# - - - 2  Red
-# - - 4  Full Forehead Line
-# - - - 0  Slope
-# - - - 1  Intercept
-# 4  Median Linearity Error
-# - 0 Left Cheek
-# - 1 Right Cheek
-# - 2 Chin
-# - 3 Forehead
-# 5  Clipping Ratio
-# - 0 Left Cheek
-# - 1 Right Cheek
-# - 2 Chin
-# - 3 Forehead
-# 6 No Flash BGR
-# - 0 Left Cheek
-# - 1 Right Cheek
-# - 2 Chin
-# - 3 Forehead
+bgrLuminanceConsts = np.array([0.0722, 0.7152, 0.2126])
+def getLuminance(bgr):
+    return np.sum(bgr * bgrLuminanceConsts)
 
 def getKeyValue(imageStats):
-    #return imageStats[4][0] #Left Cheek Linearity Error
-    return imageStats[3][1][1] #Full Flash Left Luminance
-    #return imageStats[3][0][0] #Full Flash Left Fluxish
+    return getLuminance(imageStats['fullFlashValues']['left'])
 
-bgrLuminanceConsts = np.array([0.0722, 0.7152, 0.2126])
 def getSecondaryStats(imageStats):
-    return [imageStats[3][1][1], imageStats[4][1], imageStats[5][1], np.sum(imageStats[6][1] * bgrLuminanceConsts)]
+    region = 'right'
+    fullFlashLuminance = getLuminance(imageStats['fullFlashValues'][region])
+    linearity = imageStats['linearity'][region]
+    cleanRatio = imageStats['cleanRatio'][region]
+    noFlashLuminance = getLuminance(imageStats['noFlashValues'][region])
+    return [fullFlashLuminance, linearity, cleanRatio, noFlashLuminance]
 
 save = True
 
@@ -156,7 +30,7 @@ with open('faceColors.json', 'r') as f:
     faceColors = json.loads(faceColors)
 
 
-faceColors = [faceColor for faceColor in faceColors if faceColor[1]]
+faceColors = [faceColor for faceColor in faceColors if faceColor['successful']]
 faceColors = sorted(faceColors, key = getKeyValue) 
 
 sampleSize = 7
@@ -168,13 +42,12 @@ imageComparison = None
 
 for index, image in enumerate(faceColors):
     if index % mod == 0:
-        imageName = image[0]
-        imagePathRoot = os.path.join(userPath, imageName)
-        imagePaths = [os.path.join(imagePathRoot, '{}-{}.PNG'.format(imageName, str(imageId))) for imageId in [1, 2, 3]]
+        imagePathRoot = os.path.join(userPath, image['name'])
+        imagePaths = [os.path.join(imagePathRoot, '{}-{}.PNG'.format(image['name'], str(imageId))) for imageId in [1, 2, 3]]
         referenceImagePaths = [os.path.join(imagePathRoot, 'reference', imageId + '.PNG') for imageId in ['half_WhitebalancedImage', 'Diff_masked']]
         imagePaths += referenceImagePaths
 
-        print('{} :: {} | {}'.format(imageName, getKeyValue(image), getSecondaryStats(image)))
+        print('{} :: {}\t| {}'.format(image['name'], getKeyValue(image), getSecondaryStats(image)))
 
         imageSet = None
         blankImage = None

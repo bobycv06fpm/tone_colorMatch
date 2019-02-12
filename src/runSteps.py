@@ -751,7 +751,6 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         reflectionValues = [leftReflectionValues, rightReflectionValues]
         fluxishValues = [scaledLeftFluxish, scaledRightFluxish, scaledAverageFluxish, scaledAverageFluxish]
 
-
         return getResponse(imageName, True, noFlashValues, halfFlashValues, fullFlashValues, linearity, cleanRatio, reflectionValues, fluxishValues)
 
 
