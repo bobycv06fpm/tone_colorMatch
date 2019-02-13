@@ -310,7 +310,6 @@ def plotBGR(axs, color, x, y):
 
 def getRegionMapBGR(leftCheek, rightCheek, chin, forehead):
     value = {}
-    print('Left Cheek BGR :: ' + str(leftCheek))
     value['left'] = list(leftCheek)
     value['right'] = list(rightCheek)
     value['chin'] = list(chin)
@@ -320,7 +319,6 @@ def getRegionMapBGR(leftCheek, rightCheek, chin, forehead):
 
 def getRegionMapValue(leftCheek, rightCheek, chin, forehead):
     value = {}
-    print('Left Cheek Value :: ' + str(leftCheek))
     value['left'] = leftCheek
     value['right'] = rightCheek
     value['chin'] = chin
@@ -330,7 +328,6 @@ def getRegionMapValue(leftCheek, rightCheek, chin, forehead):
 
 def getReflectionMap(leftReflection, rightReflection):
     value = {}
-    print('Left Reflection :: ' + str(leftReflection))
     value['left'] = [list(reflection) for reflection in leftReflection]
     value['right'] = [list(reflection) for reflection in rightReflection]
 
@@ -410,6 +407,33 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #halfFlashImageBlur = cv2.GaussianBlur(halfFlashCapture.getClippedImage(), (7, 7), 0)
     #fullFlashImageBlur = cv2.GaussianBlur(fullFlashCapture.getClippedImage(), (7, 7), 0)
     #END NOTE
+
+    blurSize = 3
+    noFlashBlur = cv2.GaussianBlur(noFlashCapture.image, (blurSize, blurSize), 0)
+    halfFlashBlur = cv2.GaussianBlur(halfFlashCapture.image, (blurSize, blurSize), 0)
+    fullFlashBlur = cv2.GaussianBlur(fullFlashCapture.image, (blurSize, blurSize), 0)
+
+    noFlashNoise = np.abs(noFlashCapture.image.astype('int32') - noFlashBlur.astype('int32')).astype('uint8') * 10
+    halfFlashNoise = np.abs(halfFlashCapture.image.astype('int32') - halfFlashBlur.astype('int32')).astype('uint8') * 10
+    fullFlashNoise = np.abs(fullFlashCapture.image.astype('int32') - fullFlashBlur.astype('int32')).astype('uint8') * 10
+
+   # blurSize2 = 21
+   # noFlashNoise = cv2.GaussianBlur(noFlashNoise, (blurSize2, blurSize2), 0)
+   # halfFlashNoise = cv2.GaussianBlur(halfFlashNoise, (blurSize2, blurSize2), 0)
+   # fullFlashNoise = cv2.GaussianBlur(fullFlashNoise, (blurSize2, blurSize2), 0)
+
+    saveStep.saveReferenceImageBGR(noFlashNoise, 'noFlashNoise')
+    saveStep.saveReferenceImageBGR(halfFlashNoise, 'halfFlashNoise')
+    saveStep.saveReferenceImageBGR(fullFlashNoise, 'fullFlashNoise')
+    #ratio = 2
+    #smallNoFlashNoise = cv2.resize(noFlashNoise, (0, 0), fx=1/ratio, fy=1/ratio)
+    #smallHalfFlashNoise = cv2.resize(halfFlashNoise, (0, 0), fx=1/ratio, fy=1/ratio)
+    #smallFullFlashNoise = cv2.resize(fullFlashNoise, (0, 0), fx=1/ratio, fy=1/ratio)
+
+    #cv2.imshow('noFlash', smallNoFlashNoise)
+    #cv2.imshow('halfFlash', smallHalfFlashNoise)
+    #cv2.imshow('fullFlash', smallFullFlashNoise)
+    #cv2.waitKey(0)
 
     print('Testing Linearity')
     #howLinear = np.abs((2 * halfFlashCapture.image) - (fullFlashCapture.image + noFlashCapture.image))

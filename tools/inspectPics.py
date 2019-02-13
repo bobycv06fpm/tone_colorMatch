@@ -8,7 +8,8 @@ def getLuminance(bgr):
     return np.sum(bgr * bgrLuminanceConsts)
 
 def getKeyValue(imageStats):
-    return getLuminance(imageStats['fullFlashValues']['left'])
+    #return getLuminance(imageStats['fullFlashValues']['left'])
+    return np.mean(imageStats['reflectionValues']['left'][0])
 
 def getSecondaryStats(imageStats):
     region = 'right'
