@@ -22,8 +22,8 @@ class Capture:
             self.mask = np.logical_or(self.mask, mask)
 
     def blurredImage(self):
-        #return cv2.GaussianBlur(self.image, (5, 5), 0)
-        return cv2.medianBlur(self.image.astype('uint16'), 5)
+        return cv2.GaussianBlur(self.image, (5, 5), 0)
+        #return cv2.medianBlur(self.image.astype('uint16'), 5)
 
     def whiteBalanceImageToD65(self):
         self.image = colorTools.whitebalance_from_asShot_to_d65(self.image.astype('uint16'), self.whiteBalance['x'], self.whiteBalance['y'])
@@ -44,6 +44,26 @@ class Capture:
         cv2.imshow(self.name, smallImage)
         if wait:
             cv2.waitKey(0)
+
+    def calculateNoise(self):
+        blurSize = 5
+        blurred = cv2.medianBlur(self.image.astype('uint16'), blurSize)
+        #blurred = cv2.blur(image.astype('uint16'), (blurSize, blurSize))
+        #blurred = cv2.GaussianBlur(image.astype('uint16'), (blurSize, blurSize), 0)
+
+        blurred[blurred == 0] = 1
+        #blurredLuminance[blurredLuminance == 0] = 1
+
+        #noise = (np.abs(image.astype('int32') - blurred.astype('int32')) * 50).astype('uint8')
+        noise = (np.abs(self.image.astype('int32') - blurred.astype('int32'))).astype('uint8')
+        #noise = (np.clip(capture.image.astype('int32') - blurred.astype('int32'), 0, 255) * 50).astype('uint8')
+        #noise = ((np.abs(capture.image.astype('int32') - blurred.astype('int32')) / capture.image) * 5000).astype('uint8')
+
+        #blurSize2 = 55
+        #noiseBlurred = cv2.GaussianBlur(noise, (blurSize2, blurSize2), 0)
+
+        return noise
+        #saveStep.saveReferenceImageBGR(noise, '{}Noise'.format(capture.name))
 
     def showMasked(self, wait=True):
         masked = np.copy(self.image)

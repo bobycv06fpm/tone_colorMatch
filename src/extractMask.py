@@ -52,17 +52,29 @@ def extractMask(capture, linearityError, saveStep):
     mask = mask.astype('bool')
     #region_mask_point = image[mask]
 
+    imageNoise = capture.calculateNoise()
     leftCheekMask = leftCheekMask.astype('bool')
     unmaskedLeftCheekPoints = image[leftCheekMask]
+    leftCheekNoise = imageNoise[leftCheekMask]
 
     rightCheekMask = rightCheekMask.astype('bool')
     unmaskedRightCheekPoints = image[rightCheekMask]
+    rightCheekNoise = imageNoise[rightCheekMask]
 
     chinMask = chinMask.astype('bool')
     unmaskedChinPoints = image[chinMask]
+    chinNoise = imageNoise[chinMask]
 
     foreheadMask = foreheadMask.astype('bool')
     unmaskedForeheadPoints = image[foreheadMask]
+    foreheadNoise = imageNoise[foreheadMask]
+
+    leftNoise = np.mean(leftCheekNoise)
+    rightNoise = np.mean(rightCheekNoise)
+    chinNoise = np.mean(chinNoise)
+    foreheadNoise = np.mean(foreheadNoise)
+
+    print('NOISE :: Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(leftNoise, rightNoise, chinNoise, foreheadNoise))
 
     if clippedMask is not None:
         mask = np.logical_and(mask, np.logical_not(clippedMask))

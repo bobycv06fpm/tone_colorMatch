@@ -351,48 +351,52 @@ def getResponse(imageName, successful, noFlashValues=None, halfFlashValues=None,
 
     return response
 
-def calculateNoise(capture, saveStep):
-    blurSize = 3
-    #noFlashBlur = cv2.GaussianBlur(noFlashCapture.image, (blurSize, blurSize), 0)
-    luminance = np.mean(capture.image, axis=2)
-    blurred = cv2.medianBlur(capture.image.astype('uint16'), blurSize)
-    blurredLuminance = cv2.medianBlur(luminance.astype('uint16'), blurSize)
-
-    blurred[blurred == 0] = 1
-    blurredLuminance[blurredLuminance == 0] = 1
-
-    noise = (np.abs(capture.image.astype('int32') - blurred.astype('int32')) * 50).astype('uint8')
-    #noise = ((np.abs(capture.image.astype('int32') - blurred.astype('int32')) / capture.image) * 5000).astype('uint8')
-    luminanceNoise = (np.abs(luminance.astype('int32') - blurredLuminance.astype('int32')) * 50).astype('uint8')
-    #luminanceNoise = ((np.abs(luminance.astype('int32') - blurredLuminance.astype('int32')) / luminance ) * 5000).astype('uint8')
-
-    #noiseMean = np.mean(noise, axis=2)
-    #noiseBlue = noise[:, :, 0]
-    #noiseGreen = noise[:, :, 1]
-    #noiseRed = noise[:, :, 2]
-
-    blurSize2 = 55
-    noiseBlurred = cv2.GaussianBlur(noise, (blurSize2, blurSize2), 0)
-    luminanceNoiseBlurred = cv2.GaussianBlur(luminanceNoise, (blurSize2, blurSize2), 0)
-
-    saveStep.saveReferenceImageBGR(noiseBlurred, '{}Noise'.format(capture.name))
-    saveStep.saveReferenceImageBGR(luminanceNoiseBlurred, '{}LuminanceNoise'.format(capture.name))
-    #weird = np.abs(capture.image.astype('int32') - noiseBlurred.astype('int32')).astype('uint8')
-    #saveStep.saveReferenceImageBGR(weird, '{}WeirdNoise'.format(capture.name))
-
-    #saveStep.saveReferenceImageBGR(noiseMean, '{}NoiseMean'.format(capture.name))
-    #saveStep.saveReferenceImageBGR(noiseBlue, '{}NoiseBlue'.format(capture.name))
-    #saveStep.saveReferenceImageBGR(noiseGreen, '{}NoiseGreen'.format(capture.name))
-    #saveStep.saveReferenceImageBGR(noiseRed, '{}NoiseRed'.format(capture.name))
-    #ratio = 2
-    #smallNoFlashNoise = cv2.resize(noFlashNoise, (0, 0), fx=1/ratio, fy=1/ratio)
-    #smallHalfFlashNoise = cv2.resize(halfFlashNoise, (0, 0), fx=1/ratio, fy=1/ratio)
-    #smallFullFlashNoise = cv2.resize(fullFlashNoise, (0, 0), fx=1/ratio, fy=1/ratio)
-
-    #cv2.imshow('noFlash', smallNoFlashNoise)
-    #cv2.imshow('halfFlash', smallHalfFlashNoise)
-    #cv2.imshow('fullFlash', smallFullFlashNoise)
-    #cv2.waitKey(0)
+#def calculateNoise(capture, saveStep):
+#    blurSize = 3
+#    #noFlashBlur = cv2.GaussianBlur(noFlashCapture.image, (blurSize, blurSize), 0)
+#    luminance = np.mean(capture.image, axis=2)
+#    #blurred = cv2.medianBlur(capture.image.astype('uint16'), blurSize)
+#    blurred = cv2.blur(capture.image.astype('uint16'), (blurSize, blurSize))
+#    #blurredLuminance = cv2.medianBlur(luminance.astype('uint16'), blurSize)
+#    blurredLuminance = cv2.blur(luminance.astype('uint16'), (blurSize, blurSize))
+#
+#    blurred[blurred == 0] = 1
+#    blurredLuminance[blurredLuminance == 0] = 1
+#
+#    noise = (np.abs(capture.image.astype('int32') - blurred.astype('int32')) * 50).astype('uint8')
+#    #noise = (np.clip(capture.image.astype('int32') - blurred.astype('int32'), 0, 255) * 50).astype('uint8')
+#    #noise = ((np.abs(capture.image.astype('int32') - blurred.astype('int32')) / capture.image) * 5000).astype('uint8')
+#    luminanceNoise = (np.abs(luminance.astype('int32') - blurredLuminance.astype('int32')) * 50).astype('uint8')
+#    #luminanceNoise = (np.clip(luminance.astype('int32') - blurredLuminance.astype('int32'), 0, 255) * 50).astype('uint8')
+#    #luminanceNoise = ((np.abs(luminance.astype('int32') - blurredLuminance.astype('int32')) / luminance ) * 5000).astype('uint8')
+#
+#    #noiseMean = np.mean(noise, axis=2)
+#    #noiseBlue = noise[:, :, 0]
+#    #noiseGreen = noise[:, :, 1]
+#    #noiseRed = noise[:, :, 2]
+#
+#    #blurSize2 = 55
+#    #noiseBlurred = cv2.GaussianBlur(noise, (blurSize2, blurSize2), 0)
+#    #luminanceNoiseBlurred = cv2.GaussianBlur(luminanceNoise, (blurSize2, blurSize2), 0)
+#
+#    saveStep.saveReferenceImageBGR(noise, '{}Noise'.format(capture.name))
+#    saveStep.saveReferenceImageBGR(luminanceNoise, '{}LuminanceNoise'.format(capture.name))
+#    #weird = np.abs(capture.image.astype('int32') - noiseBlurred.astype('int32')).astype('uint8')
+#    #saveStep.saveReferenceImageBGR(weird, '{}WeirdNoise'.format(capture.name))
+#
+#    #saveStep.saveReferenceImageBGR(noiseMean, '{}NoiseMean'.format(capture.name))
+#    #saveStep.saveReferenceImageBGR(noiseBlue, '{}NoiseBlue'.format(capture.name))
+#    #saveStep.saveReferenceImageBGR(noiseGreen, '{}NoiseGreen'.format(capture.name))
+#    #saveStep.saveReferenceImageBGR(noiseRed, '{}NoiseRed'.format(capture.name))
+#    #ratio = 2
+#    #smallNoFlashNoise = cv2.resize(noFlashNoise, (0, 0), fx=1/ratio, fy=1/ratio)
+#    #smallHalfFlashNoise = cv2.resize(halfFlashNoise, (0, 0), fx=1/ratio, fy=1/ratio)
+#    #smallFullFlashNoise = cv2.resize(fullFlashNoise, (0, 0), fx=1/ratio, fy=1/ratio)
+#
+#    #cv2.imshow('noFlash', smallNoFlashNoise)
+#    #cv2.imshow('halfFlash', smallHalfFlashNoise)
+#    #cv2.imshow('fullFlash', smallFullFlashNoise)
+#    #cv2.waitKey(0)
 
 
 def run(username, imageName, fast=False, saveStats=False, failOnError=False):
@@ -409,9 +413,9 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     halfFlashCapture = Capture('Half Flash', halfFlashImage, halfFlashMetadata)
     fullFlashCapture = Capture('Full Flash', fullFlashImage, fullFlashMetadata)
 
-    calculateNoise(noFlashCapture, saveStep)
-    calculateNoise(halfFlashCapture, saveStep)
-    calculateNoise(fullFlashCapture, saveStep)
+    #saveStep.saveReferenceImageBGR(noFlashCapture.noise, '{}Noise'.format(noFlashCapture.name))
+    #saveStep.saveReferenceImageBGR(halfFlashCapture.noise, '{}Noise'.format(halfFlashCapture.name))
+    #saveStep.saveReferenceImageBGR(fullFlashCapture.noise, '{}Noise'.format(fullFlashCapture.name))
 
     noFlashCapture.whiteBalanceImageToD65()
     halfFlashCapture.whiteBalanceImageToD65()
@@ -459,8 +463,8 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #howLinear = np.abs((2 * halfFlashCapture.image) - (fullFlashCapture.image + noFlashCapture.image))
     print('Subtracting Base from Flash')
     #halfDiffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
-    #halfDiffImage = halfFlashCapture.blurredImage().astype('int32') - noFlashCapture.blurredImage().astype('int32')
-    halfDiffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.blurredImage().astype('int32')
+    halfDiffImage = halfFlashCapture.blurredImage().astype('int32') - noFlashCapture.blurredImage().astype('int32')
+    #halfDiffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.blurredImage().astype('int32')
 
     #halfDiffImageBlur = cv2.GaussianBlur(halfDiffImage, (11, 11), 0)
     #halfDiffImageBlur = cv2.medianBlur(halfDiffImage, 9)
@@ -503,6 +507,9 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     halfDiffCapture = Capture('HalfDiff', halfDiffImage, halfFlashCapture.metadata, allPointsMask)
     #calculateNoise(fullDiffCapture, saveStep)
     #calculateNoise(halfDiffCapture, saveStep)
+
+    saveStep.saveReferenceImageBGR(halfDiffCapture.calculateNoise(), '{}Noise'.format(halfDiffCapture.name))
+    saveStep.saveReferenceImageBGR(fullDiffCapture.calculateNoise(), '{}Noise'.format(fullDiffCapture.name))
 
     noFlashCapture.mask = allPointsMask
 
