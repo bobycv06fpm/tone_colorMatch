@@ -468,6 +468,8 @@ def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
     halfFlashGrey = np.sum(halfFlashCapture.image, axis=2) / 3#.astype('uint8')
     fullFlashGrey = np.sum(fullFlashCapture.image, axis=2) / 3#.astype('uint8')
 
+    #cv2.imshow('noFlashGrey', noFlashGrey.astype('uint8'))
+    #cv2.imshow('halfFlashGrey', halfFlashGrey.astype('uint8'))
     #cv2.imshow('fullFlashGrey', fullFlashGrey.astype('uint8'))
     #cv2.waitKey(0)
 
@@ -499,6 +501,17 @@ def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
     #noFlashGreyScaled = noFlashGreyStretched
     #fullFlashGreyScaled = fullFlashGreyStretched
     print('seven')
+
+    #cv2.imshow("Scaled", np.hstack([cv2.resize(noFlashGreyScaled.astype('uint8'), (0, 0), fx=.5, fy=.5), cv2.resize(halfFlashGreyStretched.astype('uint8'), (0, 0), fx=.5, fy=.5), cv2.resize(fullFlashGreyScaled.astype('uint8'), (0, 0), fx=.5, fy=.5)]))
+    #cv2.waitKey(0)
+
+    blur = 11
+    noFlashGreyScaledBlurred = cv2.GaussianBlur(noFlashGreyScaled, (blur, blur), 0)
+    halfFlashGreyStretchedBlurred = cv2.GaussianBlur(halfFlashGreyStretched, (blur, blur), 0)
+    fullFlashGreyScaledBlurred = cv2.GaussianBlur(fullFlashGreyScaled, (blur, blur), 0)
+
+    #cv2.imshow("Blurred", np.hstack([cv2.resize(noFlashGreyScaledBlurred.astype('uint8'), (0, 0), fx=.5, fy=.5), cv2.resize(halfFlashGreyStretchedBlurred.astype('uint8'), (0, 0), fx=.5, fy=.5), cv2.resize(fullFlashGreyScaledBlurred.astype('uint8'), (0, 0), fx=.5, fy=.5)]))
+    #cv2.waitKey(0)
 
 
     #noFlashResized = cv2.resize(noFlashGrey, (0, 0), fx=1/2, fy=1/2)
@@ -548,7 +561,7 @@ def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
     preparedFullFlashImage = getPrepared(fullFlashGreyScaled, fullFlashMask)#fullFlashCapture.landmarks.getInteriorPoints())
     print("Done Preparing Images")
 
-    #cv2.imshow("Prepared", np.hstack([cv2.resize(preparedNoFlashImage, (0, 0), fx=.5, fy=.5), cv2.resize(preparedFullFlashImage, (0, 0), fx=.5, fy=.5), cv2.resize(preparedBottomFlashImage, (0, 0), fx=.5, fy=.5), cv2.resize(preparedHalfFlashImage, (0, 0), fx=.5, fy=.5)]))
+    #cv2.imshow("Prepared", np.hstack([cv2.resize(preparedNoFlashImage, (0, 0), fx=.5, fy=.5), cv2.resize(preparedHalfFlashImage, (0, 0), fx=.5, fy=.5), cv2.resize(preparedFullFlashImage, (0, 0), fx=.5, fy=.5)]))
     #cv2.waitKey(0)
 
     print("Calculating Offset")
