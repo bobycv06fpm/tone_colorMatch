@@ -462,16 +462,16 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     print('Testing Linearity')
     #howLinear = np.abs((2 * halfFlashCapture.image) - (fullFlashCapture.image + noFlashCapture.image))
     print('Subtracting Base from Flash')
-    #halfDiffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
-    halfDiffImage = halfFlashCapture.blurredImage().astype('int32') - noFlashCapture.blurredImage().astype('int32')
+    halfDiffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
+    #halfDiffImage = halfFlashCapture.blurredImage().astype('int32') - noFlashCapture.blurredImage().astype('int32')
     #halfDiffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.blurredImage().astype('int32')
 
     #halfDiffImageBlur = cv2.GaussianBlur(halfDiffImage, (11, 11), 0)
     #halfDiffImageBlur = cv2.medianBlur(halfDiffImage, 9)
 
-    #fullDiffImage = fullFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
+    fullDiffImage = fullFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
     #fullDiffImage = fullFlashCapture.blurredImage().astype('int32') - noFlashCapture.blurredImage().astype('int32')
-    fullDiffImage = fullFlashCapture.image.astype('int32') - noFlashCapture.blurredImage().astype('int32')
+    #fullDiffImage = fullFlashCapture.image.astype('int32') - noFlashCapture.blurredImage().astype('int32')
 
     #fullDiffImageBlur = cv2.GaussianBlur(fullDiffImage, (25, 25), 0)
     #fullDiffImageBlur = cv2.medianBlur(fullDiffImage, 9)
@@ -483,7 +483,27 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #perSubPixelMaxError = np.max(percentError, axis=2)
     #nonLinearMask = perSubPixelMaxError > .10
     #perChannelNonLinearMask = perSubPixelMaxError > .02
-    nonLinearMask = perSubPixelMaxError > .05
+
+    meanFullDiffImage = np.mean(fullDiffImage, axis=2)
+    lowValueMask = meanFullDiffImage < 10
+    medLowValueMask = meanFullDiffImage < 25
+    medHighValueMask = meanFullDiffImage < 100
+    medHigherValueMask = meanFullDiffImage < 180
+
+    nonLinearMaskHigh = perSubPixelMaxError > .03 #All Values less than 255
+    nonLinearMaskMedHigher = perSubPixelMaxError > .05 #All Values less than 180
+    nonLinearMaskMedHigh = perSubPixelMaxError > .08 #All Values less than 100
+    nonLinearMaskMedLow = perSubPixelMaxError > .35 #All Values less than 25
+    nonLinearMaskLow = perSubPixelMaxError > .5 #All Values less than 10
+    
+    nonLinearMask = nonLinearMaskHigh
+    nonLinearMask[medHigherValueMask] = nonLinearMaskMedHigher[medHigherValueMask]
+    nonLinearMask[medHighValueMask] = nonLinearMaskMedHigh[medHighValueMask]
+    nonLinearMask[medLowValueMask] = nonLinearMaskMedLow[medLowValueMask]
+    nonLinearMask[lowValueMask] = nonLinearMaskLow[lowValueMask]
+
+    #nonLinearMask = np.zeros(nonLinearMask.shape, dtype='Bool')
+
 
     #cv2.imshow('All Points mask', allPointsMask.astype('uint8') * 255)
     #cv2.imshow('Non Linear Mask', nonLinearMask.astype('uint8') * 255)
