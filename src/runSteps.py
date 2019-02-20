@@ -296,11 +296,12 @@ def plotBGR(axs, color, x, y):
         x_sample = np.take(x, sample, axis=0)
         y_sample = np.take(y, sample, axis=0)
     else:
+        print('ELSE')
         x_sample = x
         y_sample = y
 
-    size = 1
-    start_x = min(x_sample)
+    size = 50
+    start_x = 0#min(x_sample)
     end_x = max(x_sample)
 
     axs.scatter(x_sample, y_sample, size, color)
@@ -461,6 +462,15 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
 
     print('Testing Linearity')
     #howLinear = np.abs((2 * halfFlashCapture.image) - (fullFlashCapture.image + noFlashCapture.image))
+
+    maxFullFlash = np.max(fullFlashCapture.image)
+    print('FULL MAX VALUE :: ' + str(maxFullFlash))
+
+    fullFlashCapture.scaleToValue(maxFullFlash)
+    halfFlashCapture.scaleToValue(maxFullFlash)
+    noFlashCapture.scaleToValue(maxFullFlash)
+
+
     print('Subtracting Base from Flash')
     halfDiffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
     #halfDiffImage = halfFlashCapture.blurredImage().astype('int32') - noFlashCapture.blurredImage().astype('int32')
@@ -493,7 +503,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     nonLinearMaskHigh = perSubPixelMaxError > .03 #All Values less than 255
     nonLinearMaskMedHigher = perSubPixelMaxError > .05 #All Values less than 180
     nonLinearMaskMedHigh = perSubPixelMaxError > .08 #All Values less than 100
-    nonLinearMaskMedLow = perSubPixelMaxError > .35 #All Values less than 25
+    nonLinearMaskMedLow = perSubPixelMaxError > .25 #All Values less than 25
     nonLinearMaskLow = perSubPixelMaxError > .5 #All Values less than 10
     
     nonLinearMask = nonLinearMaskHigh
@@ -503,6 +513,16 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     nonLinearMask[lowValueMask] = nonLinearMaskLow[lowValueMask]
 
     #nonLinearMask = np.zeros(nonLinearMask.shape, dtype='Bool')
+
+    lowDiffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
+    highDiffImage = fullFlashCapture.image.astype('int32') - halfFlashCapture.image.astype('int32')
+
+    diffs = np.abs(highDiffImage - lowDiffImage).astype('uint8')
+    ratio = 2
+    smallDiffs = cv2.resize(diffs, (0, 0), fx=1/ratio, fy=1/ratio)
+    #cv2.imshow('diffs', smallDiffs)
+    #cv2.waitKey(0)
+    saveStep.saveReferenceImageBGR(diffs, 'Diff')
 
 
     #cv2.imshow('All Points mask', allPointsMask.astype('uint8') * 255)
@@ -550,32 +570,34 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     noFlashCapture.landmarks = halfFlashCapture.landmarks
     fullFlashCapture.landmarks = halfFlashCapture.landmarks
 
+    #try:
+    #    [reflectionValue, leftLuminance, leftFluxish, rightLuminance, rightFluxish, leftReflectionValues, rightReflectionValues] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep)
+    #except Exception as err:
+    #    if failOnError:
+    #        raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
+    #    else:
+    #        print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
+    #        return getResponse(imageName, False)
+
+    #averageFluxish = (leftFluxish + rightFluxish) / 2
+    #print("Reflection Value:: " + str(reflectionValue))
+    #print("Fluxish :: " + str(averageFluxish))
+    ##diffCapture.show()
+
+    #saveStep.saveReferenceImageBGR(fullDiffCapture.getClippedImage(), 'full_noWhitebalancedImage')
+    #saveStep.saveReferenceImageBGR(halfDiffCapture.getClippedImage(), 'half_noWhitebalancedImage')
+
+    #colorTools.whitebalanceBGR(fullDiffCapture, reflectionValue)
+    #colorTools.whitebalanceBGR(halfDiffCapture, reflectionValue)
+
+    #saveStep.saveReferenceImageBGR(fullDiffCapture.getClippedImage(), 'full_WhitebalancedImage')
+    #saveStep.saveReferenceImageBGR(halfDiffCapture.getClippedImage(), 'half_WhitebalancedImage')
+
     try:
-        [reflectionValue, leftLuminance, leftFluxish, rightLuminance, rightFluxish, leftReflectionValues, rightReflectionValues] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep)
-    except Exception as err:
-        if failOnError:
-            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
-        else:
-            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
-            return getResponse(imageName, False)
-
-    averageFluxish = (leftFluxish + rightFluxish) / 2
-    print("Reflection Value:: " + str(reflectionValue))
-    print("Fluxish :: " + str(averageFluxish))
-    #diffCapture.show()
-
-    saveStep.saveReferenceImageBGR(fullDiffCapture.getClippedImage(), 'full_noWhitebalancedImage')
-    saveStep.saveReferenceImageBGR(halfDiffCapture.getClippedImage(), 'half_noWhitebalancedImage')
-
-    colorTools.whitebalanceBGR(fullDiffCapture, reflectionValue)
-    colorTools.whitebalanceBGR(halfDiffCapture, reflectionValue)
-
-    saveStep.saveReferenceImageBGR(fullDiffCapture.getClippedImage(), 'full_WhitebalancedImage')
-    saveStep.saveReferenceImageBGR(halfDiffCapture.getClippedImage(), 'half_WhitebalancedImage')
-
-    try:
-        [fullPoints, fullPointsLeftCheek, fullPointsRightCheek, fullPointsChin, fullPointsForehead] = extractMask(fullDiffCapture, percentError, saveStep)
-        [halfPoints, halfPointsLeftCheek, halfPointsRightCheek, halfPointsChin, halfPointsForehead] = extractMask(halfDiffCapture, percentError, saveStep)
+        #[fullPoints, fullPointsLeftCheek, fullPointsRightCheek, fullPointsChin, fullPointsForehead] = extractMask(fullDiffCapture, percentError, saveStep)
+        [fullPoints, fullPointsLeftCheek, fullPointsRightCheek, fullPointsChin, fullPointsForehead] = extractMask(fullFlashCapture, percentError, saveStep)
+        #[halfPoints, halfPointsLeftCheek, halfPointsRightCheek, halfPointsChin, halfPointsForehead] = extractMask(halfDiffCapture, percentError, saveStep)
+        [halfPoints, halfPointsLeftCheek, halfPointsRightCheek, halfPointsChin, halfPointsForehead] = extractMask(halfFlashCapture, percentError, saveStep)
         [noFlashPoints, noFlashPointsLeftCheek, noFlashPointsRightCheek, noFlashPointsChin, noFlashPointsForehead] = extractMask(noFlashCapture, percentError, saveStep)
     except Exception as err:
         if failOnError:
@@ -599,10 +621,31 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         fullPointsChin, chinLinearityError, chinClippingRatio = fullPointsChin
         fullPointsForehead, foreheadLinearityError, foreheadClippingRatio = fullPointsForehead
 
+        fullFlashPointsLeftCheekMedian = np.median(fullPointsLeftCheek, axis=0)
+        fullFlashPointsRightCheekMedian = np.median(fullPointsRightCheek, axis=0)
+        fullFlashPointsChinMedian = np.median(fullPointsChin, axis=0)
+        fullFlashPointsForeheadMedian = np.median(fullPointsForehead, axis=0)
+
         halfPointsLeftCheek, leftCheekLinearityError, leftCheekClippingRatio = halfPointsLeftCheek
         halfPointsRightCheek, rightCheekLinearityError, rightCheekClippingRatio = halfPointsRightCheek
         halfPointsChin, chinLinearityError, chinClippingRatio = halfPointsChin
         halfPointsForehead, foreheadLinearityError, foreheadClippingRatio = halfPointsForehead
+
+        halfFlashPointsLeftCheekMedian = np.median(halfPointsLeftCheek, axis=0)
+        halfFlashPointsRightCheekMedian = np.median(halfPointsRightCheek, axis=0)
+        halfFlashPointsChinMedian = np.median(halfPointsChin, axis=0)
+        halfFlashPointsForeheadMedian = np.median(halfPointsForehead, axis=0)
+
+        size=1
+        # Start Linearity Plot
+        plotBGR(plt, (1, 0, 0), [(1/3), (2/3), 1.0], [noFlashPointsLeftCheekMedian[2], halfFlashPointsLeftCheekMedian[2], fullFlashPointsLeftCheekMedian[2]])
+        plotBGR(plt, (1, 1, 0), [(1/3), (2/3), 1.0], [noFlashPointsRightCheekMedian[2], halfFlashPointsRightCheekMedian[2], fullFlashPointsRightCheekMedian[2]])
+        plotBGR(plt, (0, 1, 0), [(1/3), (2/3), 1.0], [noFlashPointsChinMedian[2], halfFlashPointsChinMedian[2], fullFlashPointsChinMedian[2]])
+        plotBGR(plt, (0, 0, 1), [(1/3), (2/3), 1.0], [noFlashPointsForeheadMedian[2], halfFlashPointsForeheadMedian[2], fullFlashPointsForeheadMedian[2]])
+
+        plt.show()
+
+        # End Linearity Plot
 
         largestValue = np.max(fullPoints)
         print('LARGEST VALUE :: ' + str(largestValue))

@@ -25,6 +25,9 @@ class Capture:
         return cv2.GaussianBlur(self.image, (5, 5), 0)
         #return cv2.medianBlur(self.image.astype('uint16'), 5)
 
+    def scaleToValue(self, value):
+        self.image = self.image * (255 / value)
+
     def whiteBalanceImageToD65(self):
         self.image = colorTools.whitebalance_from_asShot_to_d65(self.image.astype('uint16'), self.whiteBalance['x'], self.whiteBalance['y'])
 
