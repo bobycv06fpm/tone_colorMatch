@@ -9,6 +9,9 @@ SHAPE_Y = 0
 def getSecond(arr):
     return arr[1]
 
+def getThird(arr):
+    return arr[2]
+
 def cropToAxis(captures, offsets, axis):
     print('Cropping to Axis')
     #imageSets = np.dstack((images, offset, np.arange(len(offset))))
@@ -79,16 +82,20 @@ def cropImagesToAxis(images, offsets, axis):
             end = image.shape[SHAPE_X] - (maxOffset - offset)
             image = image[:, start:end]
 
-        cropped.append([image, order])
+        cropped.append([image, offset, order])
 
-    croppedImages = np.array(sorted(cropped, key=getSecond))
-    return croppedImages[:, 0]
+    croppedImages = np.array(sorted(cropped, key=getThird))
+    return croppedImages[:, 0], croppedImages[:, 1]
 
 def cropImagesToOffsets(images, offsets):
-    print('OFFSETS :: ' + str(offsets))
-    images = cropImagesToAxis(images, offsets[:, X], X)
-    images = cropImagesToAxis(images, offsets[:, Y], Y)
-    return images
+    updatedOffsets = np.copy(offsets)
+    images, xOffsets = cropImagesToAxis(images, offsets[:, X], X)
+    images, yOffsets = cropImagesToAxis(images, offsets[:, Y], Y)
+
+    updatedOffsets[:, X] = xOffsets
+    updatedOffsets[:, Y] = yOffsets
+
+    return images, updatedOffsets
 
 #TODO: ARE LANDMARKS LABLED BACKWARKS?!?! YEESH
 def cropCapturesToLandmark(captures, landmarkIndex):

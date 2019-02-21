@@ -410,7 +410,7 @@ def cropAndAlignEyes(noFlashEye, halfFlashEye, fullFlashEye):
     preparedHalfFlashImage = getPreparedEye(halfFlashGreyStretched)
     preparedFullFlashImage = getPreparedEye(fullFlashGreyStretched)
 
-    noFlashOffset = np.array([0, 0])
+    noFlashOffset = calculateOffset(preparedNoFlashImage, preparedHalfFlashImage)
     halfFlashOffset = np.array([0, 0])
     fullFlashOffset = calculateOffset(preparedFullFlashImage, preparedHalfFlashImage)
 
@@ -421,9 +421,55 @@ def cropAndAlignEyes(noFlashEye, halfFlashEye, fullFlashEye):
     eyes = np.array([noFlashEye, halfFlashEye, fullFlashEye])
     offsets = np.array([noFlashOffset, halfFlashOffset, fullFlashOffset])
 
-    croppedEyes = cropTools.cropImagesToOffsets(eyes, offsets)
+    croppedEyes, realOffsets = cropTools.cropImagesToOffsets(eyes, offsets)
+    print('Offsets vs Real Offsets :: {} | {}'.format(offsets, realOffsets))
 
-    return [offsets, croppedEyes]
+    return [realOffsets, croppedEyes]
+
+#def cropAndAlignEyes2(noFlashEye, halfFlashEye, fullFlashEye):
+#
+#    noFlashGrey = np.mean(noFlashEye, axis=2)
+#    halfFlashGrey = np.mean(halfFlashEye, axis=2)
+#    fullFlashGrey = np.mean(fullFlashEye, axis=2)
+#
+#    noFlashGreyStretched = stretchHistogram(noFlashGrey).astype('uint8')
+#    halfFlashGreyStretched = stretchHistogram(halfFlashGrey).astype('uint8')
+#    fullFlashGreyStretched = stretchHistogram(fullFlashGrey).astype('uint8')
+#
+##    stretched = np.hstack([noFlashGreyStretched, halfFlashGreyStretched, fullFlashGreyStretched])
+#
+#    kernel = np.ones((3, 3), np.uint16)
+#    noFlashGradient = cv2.morphologyEx(noFlashGreyStretched, cv2.MORPH_GRADIENT, kernel)
+#    halfFlashGradient = cv2.morphologyEx(halfFlashGreyStretched, cv2.MORPH_GRADIENT, kernel)
+#    fullFlashGradient = cv2.morphologyEx(fullFlashGreyStretched, cv2.MORPH_GRADIENT, kernel)
+#
+##    combinedGradient = np.hstack([noFlashGradient, halfFlashGradient, fullFlashGradient])
+#
+#    preparedNoFlashImage = getPreparedEye(noFlashGradient)
+#    preparedHalfFlashImage = getPreparedEye(halfFlashGradient)
+#    preparedFullFlashImage = getPreparedEye(fullFlashGradient)
+#
+##    combinedPrepared = np.hstack([preparedNoFlashImage, preparedHalfFlashImage, preparedFullFlashImage])
+#
+##    combined = np.vstack([stretched, combinedGradient, combinedPrepared]).astype('uint8')
+#
+##    cv2.imshow('Prepped', combined)
+##    cv2.waitKey(0)
+#
+#    noFlashOffset = calculateOffset(preparedNoFlashImage, preparedHalfFlashImage)
+#    halfFlashOffset = np.array([0, 0])
+#    fullFlashOffset = calculateOffset(preparedFullFlashImage, preparedHalfFlashImage)
+#
+#    print('no flash offset :: ' + str(noFlashOffset))
+#    print('half flash offset :: ' + str(halfFlashOffset))
+#    print('full flash offset :: ' + str(fullFlashOffset))
+#
+#    eyes = np.array([noFlashEye, halfFlashEye, fullFlashEye])
+#    offsets = np.array([noFlashOffset, halfFlashOffset, fullFlashOffset])
+#
+#    croppedEyes = cropTools.cropImagesToOffsets(eyes, offsets)
+#
+#    return [offsets, croppedEyes]
 
 def getOffsetMagnitude(offsets, imageShape):
     offsets = np.array(offsets)

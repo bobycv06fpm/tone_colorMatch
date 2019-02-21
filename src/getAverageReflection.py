@@ -6,6 +6,8 @@ import colorTools
 import alignImages
 import cropTools
 import colorsys
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 def getEyeCrops(capture):
     (lx, ly, w, h) = capture.landmarks.getLeftEyeBB()
@@ -13,6 +15,17 @@ def getEyeCrops(capture):
     leftEyeMask = capture.mask[ly:ly+h, lx:lx+w]
 
     (rx, ry, w, h) = capture.landmarks.getRightEyeBB()
+    rightEye = capture.image[ry:ry+h, rx:rx+w]
+    rightEyeMask = capture.mask[ry:ry+h, rx:rx+w]
+
+    return np.array([[leftEye, leftEyeMask, [lx, ly]], [rightEye, rightEyeMask, [rx, ry]]])
+
+def getEyeCropsInner(capture):
+    (lx, ly, w, h) = capture.landmarks.getLeftEyeInnerBB()
+    leftEye = capture.image[ly:ly+h, lx:lx+w]
+    leftEyeMask = capture.mask[ly:ly+h, lx:lx+w]
+
+    (rx, ry, w, h) = capture.landmarks.getRightEyeInnerBB()
     rightEye = capture.image[ry:ry+h, rx:rx+w]
     rightEyeMask = capture.mask[ry:ry+h, rx:rx+w]
 
@@ -51,40 +64,80 @@ def getReflectionBB(mask):
 
     return cv2.boundingRect(contour)
 
-def maskReflectionBB2(noFlash, halfFlash, fullFlash):
+def maskTopValues(img):
+    median = np.median(img)
+    std = np.std(img)
+    threshold = median + (3 * std)
+    img[img < threshold] = 0
+    return img
+
+def extractBBMask(img, BB):
+    x, y, w, h = BB
+    mask = np.ones(img.shape).astype('bool')
+    mask[y:y+h, x:x+w] = False
+    img[mask] = 0
+    return img
+
+def maskReflectionBB(noFlash, halfFlash, fullFlash):
     noFlashGrey = np.mean(noFlash, axis=2)
     halfFlashGrey = np.mean(halfFlash, axis=2)
     fullFlashGrey = np.mean(fullFlash, axis=2)
 
     #combined = np.hstack([noFlashGrey, halfFlashGrey, fullFlashGrey])
 
-    #fullFlashGrey - halfFlashGrey - noFlashGrey
+    kernel = np.ones((3, 3), np.uint16)
+    noFlashEroded = cv2.morphologyEx(noFlashGrey, cv2.MORPH_CROSS, kernel)
+    halfFlashEroded = cv2.morphologyEx(halfFlashGrey, cv2.MORPH_CROSS, kernel)
+    #fullFlashEroded = cv2.morphologyEx(fullFlashGrey, cv2.MORPH_CROSS, kernel)
 
-    #highDiff = np.abs(fullFlashGrey - halfFlashGrey)
-    lowDiff = np.abs(2 * noFlashGrey - halfFlashGrey)
+    #combinedEroded = np.hstack([noFlashEroded, halfFlashEroded, fullFlashEroded])
 
+    lowDiff = np.abs(2 * noFlashEroded - halfFlashEroded)
     #cv2.imshow('Low Diff', lowDiff.astype('uint8'))
 
-    noFlashGreyClean = noFlashGrey - lowDiff
-    halfFlashGreyClean = halfFlashGrey - lowDiff
-    fullFlashGreyClean = fullFlashGrey - lowDiff
+    #noFlashGreyClean = noFlashGrey - lowDiff
+    #noFlashClean = noFlashGrey - lowDiff
+    #halfFlashGreyClean = halfFlashGrey - lowDiff
+    #halfFlashClean = halfFlashGrey - lowDiff
+    #fullFlashGreyClean = fullFlashGrey - lowDiff
+    fullFlashClean = fullFlashGrey - lowDiff
 
-    #combinedClean = np.hstack([noFlashGreyClean, halfFlashGreyClean, fullFlashGreyClean])
+    #combinedClean = np.hstack([noFlashClean, halfFlashClean, fullFlashClean])
 
-    #beforeAndAfter = np.vstack([combined, combinedClean])
+    #noFlashTop = maskTopValues(noFlashClean)
+    #halfFlashTop = maskTopValues(halfFlashClean)
+    fullFlashTop = maskTopValues(fullFlashClean)
+
+    #topValues = np.hstack([noFlashTop, halfFlashTop, fullFlashTop])
+
+    #noFlashBB = getReflectionBB(noFlashTop)
+    #halfFlashBB = getReflectionBB(halfFlashTop)
+    fullFlashBB = getReflectionBB(fullFlashTop)
+
+    #print('No Flash BB ({}, {}, {}, {})'.format(*noFlashBB))
+    #print('Half Flash BB ({}, {}, {}, {})'.format(*halfFlashBB))
+    #print('Full Flash BB ({}, {}, {}, {})'.format(*fullFlashBB))
+
+    #noFlashMasked = extractBBMask(noFlashTop, noFlashBB)
+    #halfFlashMasked = extractBBMask(halfFlashTop, halfFlashBB)
+    fullFlashMasked = extractBBMask(fullFlashTop, fullFlashBB)
+
+    #cv2.imshow('fullFlashMasked', fullFlashMasked.astype('uint8'))
+    #cv2.waitKey(0)
+
+    #maskedValues = np.hstack([noFlashMasked, halfFlashMasked, fullFlashMasked])
+
+    #beforeAndAfter = np.vstack([combined, combinedClean, topValues, maskedValues])
+    #beforeAndAfter = np.vstack([combined, combinedEroded, combinedClean, topValues, maskedValues])
     #cv2.imshow('before and after', np.clip(beforeAndAfter, 0, 255).astype('uint8'))
-
-    firstIncrease = np.clip(halfFlashGrey - noFlashGrey, 0, 255)
-    secondIncrease = np.clip(fullFlashGrey - halfFlashGrey, 0, 255)
-
-    cv2.imshow('first', firstIncrease.astype('uint8'))
-    cv2.imshow('second', secondIncrease.astype('uint8'))
+    #cv2.imshow('Increase', combinedIncrease.astype('uint8'))
 
 
-    cv2.waitKey(0)
+    #cv2.waitKey(0)
+    return fullFlashBB
 
 
-def maskReflectionBB(noFlash, halfFlash, fullFlash):
+def maskReflectionBB2(noFlash, halfFlash, fullFlash):
     #noFlash = colorTools.whitebalance_from_asShot_to_d65(noFlash.astype('int32'), x, y)
     #halfFlash = colorTools.whitebalance_from_asShot_to_d65(halfFlash.astype('int32'), x, y)
     #fullFlash = colorTools.whitebalance_from_asShot_to_d65(fullFlash.astype('int32'), x, y)
@@ -329,15 +382,15 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     [leftEyeOffsets, [noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop]] = alignImages.cropAndAlignEyes(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop)
     [rightEyeOffsets, [noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop]] = alignImages.cropAndAlignEyes(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop)
 
-    [noFlashLeftEyeMask, halfFlashLeftEyeMask, fullFlashLeftEyeMask] = cropTools.cropImagesToOffsets([noFlashLeftEyeMask, halfFlashLeftEyeMask, fullFlashLeftEyeMask], np.array(leftEyeOffsets))
-    [noFlashRightEyeMask, halfFlashRightEyeMask, fullFlashRightEyeMask] = cropTools.cropImagesToOffsets([noFlashRightEyeMask, halfFlashRightEyeMask, fullFlashRightEyeMask], np.array(rightEyeOffsets))
+    [[noFlashLeftEyeMask, halfFlashLeftEyeMask, fullFlashLeftEyeMask], offsets] = cropTools.cropImagesToOffsets([noFlashLeftEyeMask, halfFlashLeftEyeMask, fullFlashLeftEyeMask], np.array(leftEyeOffsets))
+    [[noFlashRightEyeMask, halfFlashRightEyeMask, fullFlashRightEyeMask], offsets] = cropTools.cropImagesToOffsets([noFlashRightEyeMask, halfFlashRightEyeMask, fullFlashRightEyeMask], np.array(rightEyeOffsets))
     
 
-    #leftEye = np.hstack([noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop])
-    #rightEye = np.hstack([noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop])
-    ##cv2.imshow('left', leftEye.astype('uint8'))
-    ##cv2.imshow('right', rightEye.astype('uint8'))
-    ##cv2.waitKey(0)
+    leftEye = np.hstack([noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop])
+    rightEye = np.hstack([noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop])
+    cv2.imshow('left', leftEye.astype('uint8'))
+    cv2.imshow('right', rightEye.astype('uint8'))
+    cv2.waitKey(0)
 
     ##leftDiff = np.abs(fullFlashLeftEyeCrop - halfFlashLeftEyeCrop - noFlashLeftEyeCrop)
     #leftDiff = np.clip((-1) * (halfFlashLeftEyeCrop - (2 * noFlashLeftEyeCrop)), 0, 255)
@@ -359,18 +412,22 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
 
 
 
-    leftReflectionBB = maskReflectionBB2(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop)
-    rightReflectionBB = maskReflectionBB2(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop)
+    leftReflectionBB = maskReflectionBB(noFlashLeftEyeCrop, halfFlashLeftEyeCrop, fullFlashLeftEyeCrop)
+    rightReflectionBB = maskReflectionBB(noFlashRightEyeCrop, halfFlashRightEyeCrop, fullFlashRightEyeCrop)
 
+    noFlashLeftEyeCoord += leftEyeOffsets[0]
     halfFlashLeftEyeCoord += leftEyeOffsets[1]
     fullFlashLeftEyeCoord += leftEyeOffsets[2]
 
+    noFlashRightEyeCoord += rightEyeOffsets[0]
     halfFlashRightEyeCoord += rightEyeOffsets[1]
     fullFlashRightEyeCoord += rightEyeOffsets[2]
 
+    noFlashEyeStrip = getAnnotatedEyeStrip(leftReflectionBB, noFlashLeftEyeCoord, rightReflectionBB, noFlashRightEyeCoord, noFlashCapture)
     halfFlashEyeStrip = getAnnotatedEyeStrip(leftReflectionBB, halfFlashLeftEyeCoord, rightReflectionBB, halfFlashRightEyeCoord, halfFlashCapture)
     fullFlashEyeStrip = getAnnotatedEyeStrip(leftReflectionBB, fullFlashLeftEyeCoord, rightReflectionBB, fullFlashRightEyeCoord, fullFlashCapture)
 
+    saveStep.saveReferenceImageLinearBGR(noFlashEyeStrip, 'eyeStrip_no')
     saveStep.saveReferenceImageLinearBGR(halfFlashEyeStrip, 'eyeStrip_half')
     saveStep.saveReferenceImageLinearBGR(fullFlashEyeStrip, 'eyeStrip_full')
 
