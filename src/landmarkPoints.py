@@ -219,7 +219,7 @@ class Landmarks:
         #return cv2.boundingRect(np.array(eyes))
 
     def getEyeStrip(self):
-        eyeRegion = np.array(list(self.landmarkPoints[9:19]) + list(self.landmarkPoints[0:2]))
+        eyeRegion = np.array(self.landmarkPoints[11:33])
         return eyeRegion
 
     def getEyeStripBB(self):
