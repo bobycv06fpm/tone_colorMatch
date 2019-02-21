@@ -290,24 +290,22 @@ def adjustSatToHue(chinHSV, foreheadHSV):
 
     return [chinHSV, foreheadHSV]
 
-def plotBGR(axs, color, x, y):
+def plotBGR(axs, color, size, x, y):
     if len(x) > chartSampleSize:
         sample = np.random.choice(len(x), chartSampleSize)
         x_sample = np.take(x, sample, axis=0)
         y_sample = np.take(y, sample, axis=0)
     else:
-        print('ELSE')
         x_sample = x
         y_sample = y
 
-    size = 50
     start_x = 0#min(x_sample)
     end_x = max(x_sample)
 
-    axs.scatter(x_sample, y_sample, size, color)
+    axs.scatter(x_sample, y_sample, size, [list(color)])
 
     m, c = fitLine(x_sample, y_sample)
-    axs.plot([start_x, end_x], [(m * start_x + c), (m * end_x + c)])
+    axs.plot([start_x, end_x], [(m * start_x + c), (m * end_x + c)], color=color)
 
 def getRegionMapBGR(leftCheek, rightCheek, chin, forehead):
     value = {}
@@ -615,8 +613,6 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #saveStep.saveReferenceImageBGR(fullDiffCapture.getClippedImage(), 'full_WhitebalancedImage')
     #saveStep.saveReferenceImageBGR(halfDiffCapture.getClippedImage(), 'half_WhitebalancedImage')
 
-    return
-
     try:
         #[fullPoints, fullPointsLeftCheek, fullPointsRightCheek, fullPointsChin, fullPointsForehead] = extractMask(fullDiffCapture, percentError, saveStep)
         [fullPoints, fullPointsLeftCheek, fullPointsRightCheek, fullPointsChin, fullPointsForehead] = extractMask(fullFlashCapture, percentError, saveStep)
@@ -630,25 +626,15 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
             print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
             return getResponse(imageName, False)
     else:
-        noFlashPointsLeftCheek, leftCheekLinearityError, leftCheekClippingRatio = noFlashPointsLeftCheek
-        noFlashPointsRightCheek, rightCheekLinearityError, rightCheekClippingRatio = noFlashPointsRightCheek
-        noFlashPointsChin, chinLinearityError, chinClippingRatio = noFlashPointsChin
-        noFlashPointsForehead, foreheadLinearityError, foreheadClippingRatio = noFlashPointsForehead
+        noPointsLeftCheek, leftCheekLinearityError, leftCheekClippingRatio = noFlashPointsLeftCheek
+        noPointsRightCheek, rightCheekLinearityError, rightCheekClippingRatio = noFlashPointsRightCheek
+        noPointsChin, chinLinearityError, chinClippingRatio = noFlashPointsChin
+        noPointsForehead, foreheadLinearityError, foreheadClippingRatio = noFlashPointsForehead
 
-        noFlashPointsLeftCheekMedian = np.median(noFlashPointsLeftCheek, axis=0)
-        noFlashPointsRightCheekMedian = np.median(noFlashPointsRightCheek, axis=0)
-        noFlashPointsChinMedian = np.median(noFlashPointsChin, axis=0)
-        noFlashPointsForeheadMedian = np.median(noFlashPointsForehead, axis=0)
-
-        fullPointsLeftCheek, leftCheekLinearityError, leftCheekClippingRatio = fullPointsLeftCheek
-        fullPointsRightCheek, rightCheekLinearityError, rightCheekClippingRatio = fullPointsRightCheek
-        fullPointsChin, chinLinearityError, chinClippingRatio = fullPointsChin
-        fullPointsForehead, foreheadLinearityError, foreheadClippingRatio = fullPointsForehead
-
-        fullFlashPointsLeftCheekMedian = np.median(fullPointsLeftCheek, axis=0)
-        fullFlashPointsRightCheekMedian = np.median(fullPointsRightCheek, axis=0)
-        fullFlashPointsChinMedian = np.median(fullPointsChin, axis=0)
-        fullFlashPointsForeheadMedian = np.median(fullPointsForehead, axis=0)
+        noFlashPointsLeftCheekMedian = np.median(noPointsLeftCheek, axis=0)
+        noFlashPointsRightCheekMedian = np.median(noPointsRightCheek, axis=0)
+        noFlashPointsChinMedian = np.median(noPointsChin, axis=0)
+        noFlashPointsForeheadMedian = np.median(noPointsForehead, axis=0)
 
         halfPointsLeftCheek, leftCheekLinearityError, leftCheekClippingRatio = halfPointsLeftCheek
         halfPointsRightCheek, rightCheekLinearityError, rightCheekClippingRatio = halfPointsRightCheek
@@ -660,14 +646,25 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         halfFlashPointsChinMedian = np.median(halfPointsChin, axis=0)
         halfFlashPointsForeheadMedian = np.median(halfPointsForehead, axis=0)
 
+        fullPointsLeftCheek, leftCheekLinearityError, leftCheekClippingRatio = fullPointsLeftCheek
+        fullPointsRightCheek, rightCheekLinearityError, rightCheekClippingRatio = fullPointsRightCheek
+        fullPointsChin, chinLinearityError, chinClippingRatio = fullPointsChin
+        fullPointsForehead, foreheadLinearityError, foreheadClippingRatio = fullPointsForehead
+
+        fullFlashPointsLeftCheekMedian = np.median(fullPointsLeftCheek, axis=0)
+        fullFlashPointsRightCheekMedian = np.median(fullPointsRightCheek, axis=0)
+        fullFlashPointsChinMedian = np.median(fullPointsChin, axis=0)
+        fullFlashPointsForeheadMedian = np.median(fullPointsForehead, axis=0)
+
         size=1
         # Start Linearity Plot
-        plotBGR(plt, (1, 0, 0), [(1/3), (2/3), 1.0], [noFlashPointsLeftCheekMedian[2], halfFlashPointsLeftCheekMedian[2], fullFlashPointsLeftCheekMedian[2]])
-        plotBGR(plt, (1, 1, 0), [(1/3), (2/3), 1.0], [noFlashPointsRightCheekMedian[2], halfFlashPointsRightCheekMedian[2], fullFlashPointsRightCheekMedian[2]])
-        plotBGR(plt, (0, 1, 0), [(1/3), (2/3), 1.0], [noFlashPointsChinMedian[2], halfFlashPointsChinMedian[2], fullFlashPointsChinMedian[2]])
-        plotBGR(plt, (0, 0, 1), [(1/3), (2/3), 1.0], [noFlashPointsForeheadMedian[2], halfFlashPointsForeheadMedian[2], fullFlashPointsForeheadMedian[2]])
+        plotBGR(plt, (1, 0, 0), 50, [(1/3), (2/3), 1.0], [noFlashPointsLeftCheekMedian[2], halfFlashPointsLeftCheekMedian[2], fullFlashPointsLeftCheekMedian[2]])
+        plotBGR(plt, (1, 1, 0), 50, [(1/3), (2/3), 1.0], [noFlashPointsRightCheekMedian[2], halfFlashPointsRightCheekMedian[2], fullFlashPointsRightCheekMedian[2]])
+        plotBGR(plt, (0, 1, 0), 50, [(1/3), (2/3), 1.0], [noFlashPointsChinMedian[2], halfFlashPointsChinMedian[2], fullFlashPointsChinMedian[2]])
+        plotBGR(plt, (0, 0, 1), 50, [(1/3), (2/3), 1.0], [noFlashPointsForeheadMedian[2], halfFlashPointsForeheadMedian[2], fullFlashPointsForeheadMedian[2]])
 
-        plt.show()
+        #plt.show()
+        saveStep.savePlot('Zone Linearity', plt)
 
         # End Linearity Plot
 
@@ -689,6 +686,11 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         scaledHalfPointsChin = halfPointsChin / scaleDivisor
         scaledHalfPointsForehead = halfPointsForehead / scaleDivisor
 
+        scaledNoPointsLeftCheek = noPointsLeftCheek / scaleDivisor
+        scaledNoPointsRightCheek = noPointsRightCheek / scaleDivisor
+        scaledNoPointsChin = noPointsChin / scaleDivisor
+        scaledNoPointsForehead = noPointsForehead / scaleDivisor
+
         print('Unscaled :: ' + str(fullPointsChin))
         print('Scaled Full :: ' + str(scaledFullPointsChin))
         print('Scaled Half :: ' + str(scaledHalfPointsChin))
@@ -707,68 +709,78 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         #BGR PLOT
         size=1
         fig, axs = plt.subplots(3, 3, sharex=False, sharey=False, tight_layout=True)
+        scaledNoPointsCheek = np.array(list(scaledNoPointsLeftCheek) + list(scaledNoPointsRightCheek))
         scaledHalfPointsCheek = np.array(list(scaledHalfPointsLeftCheek) + list(scaledHalfPointsRightCheek))
         scaledFullPointsCheek = np.array(list(scaledFullPointsLeftCheek) + list(scaledFullPointsRightCheek))
 
         # --- (0, 0) ---
-        plotBGR(axs[0, 0], (1, 0, 0), scaledHalfPointsCheek[:, 2], scaledHalfPointsCheek[:, 1])
-        plotBGR(axs[0, 0], (0, 1, 0), scaledFullPointsCheek[:, 2], scaledFullPointsCheek[:, 1])
+        plotBGR(axs[0, 0], (1, 0, 0), size, scaledNoPointsCheek[:, 2], scaledNoPointsCheek[:, 1])
+        plotBGR(axs[0, 0], (0, 1, 0), size, scaledHalfPointsCheek[:, 2], scaledHalfPointsCheek[:, 1])
+        plotBGR(axs[0, 0], (0, 0, 1), size, scaledFullPointsCheek[:, 2], scaledFullPointsCheek[:, 1])
 
         axs[0, 0].set_xlabel('Red')
         axs[0, 0].set_ylabel('Green')
 
         # --- (0, 1) ---
-        plotBGR(axs[0, 1], (1, 0, 0), scaledHalfPointsChin[:, 2], scaledHalfPointsChin[:, 1])
-        plotBGR(axs[0, 1], (0, 1, 0), scaledFullPointsChin[:, 2], scaledFullPointsChin[:, 1])
+        plotBGR(axs[0, 1], (1, 0, 0), size, scaledNoPointsChin[:, 2], scaledNoPointsChin[:, 1])
+        plotBGR(axs[0, 1], (0, 1, 0), size, scaledHalfPointsChin[:, 2], scaledHalfPointsChin[:, 1])
+        plotBGR(axs[0, 1], (0, 0, 1), size, scaledFullPointsChin[:, 2], scaledFullPointsChin[:, 1])
 
         axs[0, 1].set_xlabel('Red')
         axs[0, 1].set_ylabel('Green')
 
         # --- (0, 2) ---
-        plotBGR(axs[0, 2], (1, 0, 0), scaledHalfPointsForehead[:, 2], scaledHalfPointsForehead[:, 1])
-        plotBGR(axs[0, 2], (0, 1, 0), scaledFullPointsForehead[:, 2], scaledFullPointsForehead[:, 1])
+        plotBGR(axs[0, 2], (1, 0, 0), size, scaledNoPointsForehead[:, 2], scaledNoPointsForehead[:, 1])
+        plotBGR(axs[0, 2], (0, 1, 0), size, scaledHalfPointsForehead[:, 2], scaledHalfPointsForehead[:, 1])
+        plotBGR(axs[0, 2], (0, 0, 1), size, scaledFullPointsForehead[:, 2], scaledFullPointsForehead[:, 1])
 
         axs[0, 2].set_xlabel('Red')
         axs[0, 2].set_ylabel('Green')
 
         # --- (1, 0) ---
-        plotBGR(axs[1, 0], (1, 0, 0), scaledHalfPointsCheek[:, 2], scaledHalfPointsCheek[:, 0])
-        plotBGR(axs[1, 0], (0, 1, 0), scaledFullPointsCheek[:, 2], scaledFullPointsCheek[:, 0])
+        plotBGR(axs[1, 0], (1, 0, 0), size, scaledNoPointsCheek[:, 2], scaledNoPointsCheek[:, 0])
+        plotBGR(axs[1, 0], (0, 1, 0), size, scaledHalfPointsCheek[:, 2], scaledHalfPointsCheek[:, 0])
+        plotBGR(axs[1, 0], (0, 0, 1), size, scaledFullPointsCheek[:, 2], scaledFullPointsCheek[:, 0])
 
         axs[1, 0].set_xlabel('Red')
         axs[1, 0].set_ylabel('Blue')
 
         # --- (1, 1) ---
-        plotBGR(axs[1, 1], (1, 0, 0), scaledHalfPointsChin[:, 2], scaledHalfPointsChin[:, 0])
-        plotBGR(axs[1, 1], (0, 1, 0), scaledFullPointsChin[:, 2], scaledFullPointsChin[:, 0])
+        plotBGR(axs[1, 1], (1, 0, 0), size, scaledNoPointsChin[:, 2], scaledNoPointsChin[:, 0])
+        plotBGR(axs[1, 1], (0, 1, 0), size, scaledHalfPointsChin[:, 2], scaledHalfPointsChin[:, 0])
+        plotBGR(axs[1, 1], (0, 0, 1), size, scaledFullPointsChin[:, 2], scaledFullPointsChin[:, 0])
 
         axs[1, 1].set_xlabel('Red')
         axs[1, 1].set_ylabel('Blue')
 
         # --- (1, 2) ---
-        plotBGR(axs[1, 2], (1, 0, 0), scaledHalfPointsForehead[:, 2], scaledHalfPointsForehead[:, 0])
-        plotBGR(axs[1, 2], (0, 1, 0), scaledFullPointsForehead[:, 2], scaledFullPointsForehead[:, 0])
+        plotBGR(axs[1, 2], (1, 0, 0), size, scaledNoPointsForehead[:, 2], scaledNoPointsForehead[:, 0])
+        plotBGR(axs[1, 2], (0, 1, 0), size, scaledHalfPointsForehead[:, 2], scaledHalfPointsForehead[:, 0])
+        plotBGR(axs[1, 2], (0, 0, 1), size, scaledFullPointsForehead[:, 2], scaledFullPointsForehead[:, 0])
 
         axs[1, 2].set_xlabel('Red')
         axs[1, 2].set_ylabel('Blue')
 
         # --- (2, 0) ---
-        plotBGR(axs[2, 0], (1, 0, 0), scaledHalfPointsCheek[:, 1], scaledHalfPointsCheek[:, 0])
-        plotBGR(axs[2, 0], (0, 1, 0), scaledFullPointsCheek[:, 1], scaledFullPointsCheek[:, 0])
+        plotBGR(axs[2, 0], (1, 0, 0), size, scaledNoPointsCheek[:, 1], scaledNoPointsCheek[:, 0])
+        plotBGR(axs[2, 0], (0, 1, 0), size, scaledHalfPointsCheek[:, 1], scaledHalfPointsCheek[:, 0])
+        plotBGR(axs[2, 0], (0, 0, 1), size, scaledFullPointsCheek[:, 1], scaledFullPointsCheek[:, 0])
 
         axs[2, 0].set_xlabel('Green')
         axs[2, 0].set_ylabel('Blue')
 
         # --- (2, 1) ---
-        plotBGR(axs[2, 1], (1, 0, 0), scaledHalfPointsChin[:, 1], scaledHalfPointsChin[:, 0])
-        plotBGR(axs[2, 1], (0, 1, 0), scaledFullPointsChin[:, 1], scaledFullPointsChin[:, 0])
+        plotBGR(axs[2, 1], (1, 0, 0), size, scaledNoPointsChin[:, 1], scaledNoPointsChin[:, 0])
+        plotBGR(axs[2, 1], (0, 1, 0), size, scaledHalfPointsChin[:, 1], scaledHalfPointsChin[:, 0])
+        plotBGR(axs[2, 1], (0, 0, 1), size, scaledFullPointsChin[:, 1], scaledFullPointsChin[:, 0])
 
         axs[2, 1].set_xlabel('Green')
         axs[2, 1].set_ylabel('Blue')
 
         # --- (2, 2) ---
-        plotBGR(axs[2, 2], (1, 0, 0), scaledHalfPointsForehead[:, 1], scaledHalfPointsForehead[:, 0])
-        plotBGR(axs[2, 2], (0, 1, 0), scaledFullPointsForehead[:, 1], scaledFullPointsForehead[:, 0])
+        plotBGR(axs[2, 2], (1, 0, 0), size, scaledNoPointsForehead[:, 1], scaledNoPointsForehead[:, 0])
+        plotBGR(axs[2, 2], (0, 1, 0), size, scaledHalfPointsForehead[:, 1], scaledHalfPointsForehead[:, 0])
+        plotBGR(axs[2, 2], (0, 0, 1), size, scaledFullPointsForehead[:, 1], scaledFullPointsForehead[:, 0])
 
         axs[2, 2].set_xlabel('Green')
         axs[2, 2].set_ylabel('Blue')
@@ -777,49 +789,52 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         saveStep.savePlot('BGR', plt)
 
         #CALCULATE IN LINEAR
-
-        [leftCheekFullHSV, leftCheekMedianFullHSV, leftCheekMedianFullBGR, leftCheekFullLuminance, leftCheekMedianFullLuminance] = convertPoints(scaledFullPointsLeftCheek)
-        [rightCheekFullHSV, rightCheekMedianFullHSV, rightCheekMedianFullBGR, rightCheekFullLuminance, rightCheekMedianFullLuminance] = convertPoints(scaledFullPointsRightCheek)
-        [chinFullHSV, chinMedianFullHSV, chinMedianFullBGR, chinFullLuminance, chinMedianFullLuminance] = convertPoints(scaledFullPointsChin)
-        [foreheadFullHSV, foreheadMedianFullHSV, foreheadMedianFullBGR, foreheadFullLuminance, foreheadMedianFullLuminance] = convertPoints(scaledFullPointsForehead)
+        [leftCheekNoHSV, leftCheekMedianNoHSV, leftCheekMedianNoBGR, leftCheekNoLuminance, leftCheekMedianNoLuminance] = convertPoints(scaledNoPointsLeftCheek)
+        [rightCheekNoHSV, rightCheekMedianNoHSV, rightCheekMedianNoBGR, rightCheekNoLuminance, rightCheekMedianNoLuminance] = convertPoints(scaledNoPointsRightCheek)
+        [chinNoHSV, chinMedianNoHSV, chinMedianNoBGR, chinNoLuminance, chinMedianNoLuminance] = convertPoints(scaledNoPointsChin)
+        [foreheadNoHSV, foreheadMedianNoHSV, foreheadMedianNoBGR, foreheadNoLuminance, foreheadMedianNoLuminance] = convertPoints(scaledNoPointsForehead)
 
         [leftCheekHalfHSV, leftCheekMedianHalfHSV, leftCheekMedianHalfBGR, leftCheekHalfLuminance, leftCheekMedianHalfLuminance] = convertPoints(scaledHalfPointsLeftCheek)
         [rightCheekHalfHSV, rightCheekMedianHalfHSV, rightCheekMedianHalfBGR, rightCheekHalfLuminance, rightCheekMedianHalfLuminance] = convertPoints(scaledHalfPointsRightCheek)
         [chinHalfHSV, chinMedianHalfHSV, chinMedianHalfBGR, chinHalfLuminance, chinMedianHalfLuminance] = convertPoints(scaledHalfPointsChin)
         [foreheadHalfHSV, foreheadMedianHalfHSV, foreheadMedianHalfBGR, foreheadHalfLuminance, foreheadMedianHalfLuminance] = convertPoints(scaledHalfPointsForehead)
 
+        [leftCheekFullHSV, leftCheekMedianFullHSV, leftCheekMedianFullBGR, leftCheekFullLuminance, leftCheekMedianFullLuminance] = convertPoints(scaledFullPointsLeftCheek)
+        [rightCheekFullHSV, rightCheekMedianFullHSV, rightCheekMedianFullBGR, rightCheekFullLuminance, rightCheekMedianFullLuminance] = convertPoints(scaledFullPointsRightCheek)
+        [chinFullHSV, chinMedianFullHSV, chinMedianFullBGR, chinFullLuminance, chinMedianFullLuminance] = convertPoints(scaledFullPointsChin)
+        [foreheadFullHSV, foreheadMedianFullHSV, foreheadMedianFullBGR, foreheadFullLuminance, foreheadMedianFullLuminance] = convertPoints(scaledFullPointsForehead)
+
         #leftCheekRatio = (leftCheekMedianFullLuminance - leftCheekMedianHalfLuminance) / (0.5 * scaledLeftFluxish)
         #rightCheekRatio = (rightCheekMedianFullLuminance - rightCheekMedianHalfLuminance) / (0.5 * scaledRightFluxish)
         #chinRatio = (chinMedianFullLuminance - chinMedianHalfLuminance) / (0.5 * scaledAverageFluxish)
         #foreheadRatio = (foreheadMedianFullLuminance - foreheadMedianHalfLuminance) / (0.5 * scaledAverageFluxish)
 
-        print('---------------------')
-        print('LEFT FLUXISH :: ' + str(scaledLeftFluxish))
-        print('MEDIAN HSV LEFT Full Points :: ' + str(leftCheekMedianFullHSV))
-        print('MEDIAN LEFT FULL LUMINANCE :: ' + str(leftCheekMedianFullLuminance))
-        print('~~~')
-        print('RIGHT FLUXISH :: ' + str(scaledRightFluxish))
-        print('MEDIAN FullHSV RIGHT Full Points :: ' + str(rightCheekMedianFullHSV))
-        print('MEDIAN RIGHT FULL LUMINANCE :: ' + str(rightCheekMedianFullLuminance))
-        print('~~~')
-        print('MEDIAN FullHSV CHIN Full Points :: ' + str(chinMedianFullHSV))
-        print('MEDIAN CHIN FULLLUMINANCE :: ' + str(chinMedianFullLuminance))
-        print('~~~')
-        print('MEDIAN FullHSV RIGHT Full Points :: ' + str(foreheadMedianFullHSV))
-        print('MEDIAN FOREHEAD FULLLUMINANCE :: ' + str(foreheadMedianFullLuminance))
-        print('---------------------')
+        #print('---------------------')
+        #print('LEFT FLUXISH :: ' + str(scaledLeftFluxish))
+        #print('MEDIAN HSV LEFT Full Points :: ' + str(leftCheekMedianFullHSV))
+        #print('MEDIAN LEFT FULL LUMINANCE :: ' + str(leftCheekMedianFullLuminance))
+        #print('~~~')
+        #print('RIGHT FLUXISH :: ' + str(scaledRightFluxish))
+        #print('MEDIAN FullHSV RIGHT Full Points :: ' + str(rightCheekMedianFullHSV))
+        #print('MEDIAN RIGHT FULL LUMINANCE :: ' + str(rightCheekMedianFullLuminance))
+        #print('~~~')
+        #print('MEDIAN FullHSV CHIN Full Points :: ' + str(chinMedianFullHSV))
+        #print('MEDIAN CHIN FULLLUMINANCE :: ' + str(chinMedianFullLuminance))
+        #print('~~~')
+        #print('MEDIAN FullHSV RIGHT Full Points :: ' + str(foreheadMedianFullHSV))
+        #print('MEDIAN FOREHEAD FULLLUMINANCE :: ' + str(foreheadMedianFullLuminance))
+        #print('---------------------')
 
-        #chinFullHSV[:, 1] = applyLinearAdjustment(chinFullHSV[:, 1], chinFullHSV[:, 0])
-        #chinFullHSV[:, 1] = adjustSatToHue(chinFullHSV[:, 1], chinFullHSV[:, 0])
-        #FULL FLASH
-        #[chinFullHSV, foreheadFullHSV] = adjustSatToHue(chinFullHSV, foreheadFullHSV)
 
-        leftCheekFull = [leftCheekFullHSV, leftCheekFullLuminance]
-        rightCheekFull = [rightCheekFullHSV, rightCheekFullLuminance]
-        chinFull = [chinFullHSV, chinFullLuminance]
-        foreheadFull = [foreheadFullHSV, foreheadFullLuminance]
+        #NO FLASH
+        #[chinNoHSV, foreheadNoHSV] = adjustSatToHue(chinNoHSV, foreheadNoHSV)
 
-        [leftCheekLineFull, rightCheekLineFull, chinLineFull, foreheadLineFull] = plotZones(leftCheekFull, rightCheekFull, chinFull, foreheadFull, saveStep, '_full_linear')
+        leftCheekNo = [leftCheekNoHSV, leftCheekNoLuminance]
+        rightCheekNo = [rightCheekNoHSV, rightCheekNoLuminance]
+        chinNo = [chinNoHSV, chinNoLuminance]
+        foreheadNo = [foreheadNoHSV, foreheadNoLuminance]
+
+        [leftCheekLineNo, rightCheekLineNo, chinLineNo, foreheadLineNo] = plotZones(leftCheekNo, rightCheekNo, chinNo, foreheadNo, saveStep, '_no_linear')
 
         #HALF FLASH
         #[chinHalfHSV, foreheadHalfHSV] = adjustSatToHue(chinHalfHSV, foreheadHalfHSV)
@@ -831,14 +846,24 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
 
         [leftCheekLineHalf, rightCheekLineHalf, chinLineHalf, foreheadLineHalf] = plotZones(leftCheekHalf, rightCheekHalf, chinHalf, foreheadHalf, saveStep, '_half_linear')
 
+        #FULL FLASH
+        #[chinFullHSV, foreheadFullHSV] = adjustSatToHue(chinFullHSV, foreheadFullHSV)
+
+        leftCheekFull = [leftCheekFullHSV, leftCheekFullLuminance]
+        rightCheekFull = [rightCheekFullHSV, rightCheekFullLuminance]
+        chinFull = [chinFullHSV, chinFullLuminance]
+        foreheadFull = [foreheadFullHSV, foreheadFullLuminance]
+
+        [leftCheekLineFull, rightCheekLineFull, chinLineFull, foreheadLineFull] = plotZones(leftCheekFull, rightCheekFull, chinFull, foreheadFull, saveStep, '_full_linear')
+
         #TEST ALL POINTS
 
-        leftCheekHalf = [np.append(leftCheekHalfHSV, leftCheekFullHSV, axis=0), np.append(leftCheekHalfLuminance, leftCheekFullLuminance, axis=0)]
-        rightCheekHalf = [np.append(rightCheekHalfHSV, rightCheekFullHSV, axis=0), np.append(rightCheekHalfLuminance, rightCheekFullLuminance, axis=0)]
-        chinHalf = [np.append(chinHalfHSV, chinFullHSV, axis=0), np.append(chinHalfLuminance, chinFullLuminance, axis=0)]
-        foreheadHalf = [np.append(foreheadHalfHSV, foreheadFullHSV, axis=0), np.append(foreheadHalfLuminance, foreheadFullLuminance, axis=0)]
+        leftCheekAll = [np.concatenate([leftCheekNoHSV, leftCheekHalfHSV, leftCheekFullHSV], axis=0), np.concatenate([leftCheekNoLuminance, leftCheekHalfLuminance, leftCheekFullLuminance], axis=0)]
+        rightCheekAll = [np.concatenate([rightCheekNoHSV, rightCheekHalfHSV, rightCheekFullHSV], axis=0), np.concatenate([rightCheekNoLuminance, rightCheekHalfLuminance, rightCheekFullLuminance], axis=0)]
+        chinAll = [np.concatenate([chinNoHSV, chinHalfHSV, chinFullHSV], axis=0), np.concatenate([chinNoLuminance, chinHalfLuminance, chinFullLuminance], axis=0)]
+        foreheadAll = [np.concatenate([foreheadNoHSV, foreheadHalfHSV, foreheadFullHSV], axis=0), np.concatenate([foreheadNoLuminance, foreheadHalfLuminance, foreheadFullLuminance], axis=0)]
 
-        [leftCheekLineHalf, rightCheekLineHalf, chinLineHalf, foreheadLineHalf] = plotZones(leftCheekHalf, rightCheekHalf, chinHalf, foreheadHalf, saveStep, '_all_linear')
+        [leftCheekLineAll, rightCheekLineAll, chinLineAll, foreheadLineAll] = plotZones(leftCheekAll, rightCheekAll, chinAll, foreheadAll, saveStep, '_all_linear')
 
         #RECALCULATE IN FULL in sBGR
 
