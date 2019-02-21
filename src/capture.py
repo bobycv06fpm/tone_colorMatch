@@ -26,6 +26,9 @@ class Capture:
         #return cv2.medianBlur(self.image.astype('uint16'), 5)
 
     def scaleToValue(self, value):
+        if value < 255:
+            return
+
         self.image = self.image * (255 / value)
 
     def whiteBalanceImageToD65(self):

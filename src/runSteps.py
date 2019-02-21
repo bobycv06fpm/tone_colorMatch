@@ -436,6 +436,10 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
             print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
             return getResponse(imageName, False)
         
+
+    noFlashCapture.landmarks = halfFlashCapture.landmarks
+    fullFlashCapture.landmarks = halfFlashCapture.landmarks
+
     print('Done Cropping and aligning')
 
     partialMask = np.logical_or(noFlashCapture.mask, halfFlashCapture.mask)
@@ -497,6 +501,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     highDiffImage = fullFlashCapture.image.astype('int32') - halfFlashCapture.image.astype('int32')
 
     diffs = highDiffImage - lowDiffImage
+    #IMPORTANT TO BLUR TO HELP COUNTER ACT NOISE
     blurrDiffs = np.abs(cv2.blur(diffs, (5, 5)))#.astype('uint8')
 
     fullDiffImage[fullDiffImage == 0] = 1
@@ -535,8 +540,8 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #smallDiffs = cv2.resize(diffs, (0, 0), fx=1/ratio, fy=1/ratio)
     #cv2.imshow('diffs', smallDiffs)
     #cv2.waitKey(0)
-    saveStep.saveReferenceImageBGR(np.abs(diffs).astype('uint8'), 'Diff')
-    saveStep.saveReferenceImageBGR(blurrDiffs.astype('uint8'), 'BlurDiff')
+    #saveStep.saveReferenceImageBGR(np.abs(diffs).astype('uint8'), 'Diff')
+    #saveStep.saveReferenceImageBGR(blurrDiffs.astype('uint8'), 'BlurDiff')
 
 
     #cv2.imshow('All Points mask', allPointsMask.astype('uint8') * 255)
@@ -556,16 +561,18 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #noMask = np.zeros(allPointsMask.shape).astype('bool')
     #fullDiffCapture = Capture('Diff', fullDiffImage, fullFlashCapture.metadata, noMask)
 
-    fullDiffCapture = Capture('FullDiff', fullDiffImage, fullFlashCapture.metadata, allPointsMask)
+    #fullDiffCapture = Capture('FullDiff', fullDiffImage, fullFlashCapture.metadata, allPointsMask)
     #halfDiffCapture = Capture('Diff', halfDiffImage, halfFlashCapture.metadata, noMask)
-    halfDiffCapture = Capture('HalfDiff', halfDiffImage, halfFlashCapture.metadata, allPointsMask)
+    #halfDiffCapture = Capture('HalfDiff', halfDiffImage, halfFlashCapture.metadata, allPointsMask)
     #calculateNoise(fullDiffCapture, saveStep)
     #calculateNoise(halfDiffCapture, saveStep)
 
-    saveStep.saveReferenceImageBGR(halfDiffCapture.calculateNoise(), '{}Noise'.format(halfDiffCapture.name))
-    saveStep.saveReferenceImageBGR(fullDiffCapture.calculateNoise(), '{}Noise'.format(fullDiffCapture.name))
+    #saveStep.saveReferenceImageBGR(halfDiffCapture.calculateNoise(), '{}Noise'.format(halfDiffCapture.name))
+    #saveStep.saveReferenceImageBGR(fullDiffCapture.calculateNoise(), '{}Noise'.format(fullDiffCapture.name))
 
     noFlashCapture.mask = allPointsMask
+    halfFlashCapture.mask = allPointsMask
+    fullFlashCapture.mask = allPointsMask
 
     #print('Getting Polygons')
     #polygons = fullDiffCapture.landmarks.getFacePolygons()
@@ -574,38 +581,41 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     if not fast:
         print('Saving Step 1')
         #saveStep.saveShapeStep(username, imageName, imageShape, 1)
-        saveStep.saveImageStep(fullDiffCapture.getClippedImage(), 1)
+        saveStep.saveImageStep(np.clip(fullFlashCapture.image - noFlashCapture.image, 0, 255).astype('uint8'), 1)
         saveStep.saveMaskStep(allPointsMask, 1, 'clippedMask')
 
     #alignImages.alignEyes(noFlashCapture, halfFlashCapture, fullFlashCapture)
     #whiteBalance_CIE1931_coord_asShot = saveStep.getAsShotWhiteBalance()
     #print('White Balance As Shot :: ' + str(whiteBalance_CIE1931_coord_asShot))
 
-    noFlashCapture.landmarks = halfFlashCapture.landmarks
-    fullFlashCapture.landmarks = halfFlashCapture.landmarks
+    try:
+        [reflectionValue, leftLuminance, leftFluxish, rightLuminance, rightFluxish, leftReflectionValues, rightReflectionValues] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep)
+    except Exception as err:
+        if failOnError:
+            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
+        else:
+            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
+            return getResponse(imageName, False)
 
-    #try:
-    #    [reflectionValue, leftLuminance, leftFluxish, rightLuminance, rightFluxish, leftReflectionValues, rightReflectionValues] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep)
-    #except Exception as err:
-    #    if failOnError:
-    #        raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
-    #    else:
-    #        print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
-    #        return getResponse(imageName, False)
-
-    #averageFluxish = (leftFluxish + rightFluxish) / 2
-    #print("Reflection Value:: " + str(reflectionValue))
-    #print("Fluxish :: " + str(averageFluxish))
-    ##diffCapture.show()
+    averageFluxish = (leftFluxish + rightFluxish) / 2
+    print("Reflection Value:: " + str(reflectionValue))
+    print("Fluxish :: " + str(averageFluxish))
+    #diffCapture.show()
 
     #saveStep.saveReferenceImageBGR(fullDiffCapture.getClippedImage(), 'full_noWhitebalancedImage')
     #saveStep.saveReferenceImageBGR(halfDiffCapture.getClippedImage(), 'half_noWhitebalancedImage')
 
-    #colorTools.whitebalanceBGR(fullDiffCapture, reflectionValue)
-    #colorTools.whitebalanceBGR(halfDiffCapture, reflectionValue)
+    colorTools.whitebalanceBGR(fullFlashCapture, reflectionValue)
+    colorTools.whitebalanceBGR(halfFlashCapture, reflectionValue)
+    colorTools.whitebalanceBGR(noFlashCapture, reflectionValue)
+
+    #SCALE WBed IMAGES NOW?
+
 
     #saveStep.saveReferenceImageBGR(fullDiffCapture.getClippedImage(), 'full_WhitebalancedImage')
     #saveStep.saveReferenceImageBGR(halfDiffCapture.getClippedImage(), 'half_WhitebalancedImage')
+
+    return
 
     try:
         #[fullPoints, fullPointsLeftCheek, fullPointsRightCheek, fullPointsChin, fullPointsForehead] = extractMask(fullDiffCapture, percentError, saveStep)
