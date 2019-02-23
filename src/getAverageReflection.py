@@ -79,6 +79,15 @@ def extractBBMask(img, BB):
     return img
 
 def maskReflectionBB(noFlash, halfFlash, fullFlash):
+    if (noFlash.shape[0] * noFlash.shape[1]) == 0:
+        raise NameError('Cannot Find No Flash Eye')
+
+    if (halfFlash.shape[0] * halfFlash.shape[1]) == 0:
+        raise NameError('Cannot Find Half Flash Eye')
+
+    if (fullFlash.shape[0] * fullFlash.shape[1]) == 0:
+        raise NameError('Cannot Find Full Flash Eye')
+
     noFlashGrey = np.mean(noFlash, axis=2)
     halfFlashGrey = np.mean(halfFlash, axis=2)
     fullFlashGrey = np.mean(fullFlash, axis=2)

@@ -69,10 +69,10 @@ def extractMask(capture, linearityError, saveStep):
     unmaskedForeheadPoints = image[foreheadMask]
     foreheadNoise = imageNoise[foreheadMask]
 
-    leftNoise = np.mean(leftCheekNoise)
-    rightNoise = np.mean(rightCheekNoise)
-    chinNoise = np.mean(chinNoise)
-    foreheadNoise = np.mean(foreheadNoise)
+    leftNoise = leftCheekNoise if (len(leftCheekNoise) == 0) else np.mean(leftCheekNoise)
+    rightNoise = rightCheekNoise if (len(rightCheekNoise) == 0) else np.mean(rightCheekNoise)
+    chinNoise = chinNoise if (len(chinNoise) == 0) else np.mean(chinNoise)
+    foreheadNoise = foreheadNoise if (len(foreheadNoise) == 0) else np.mean(foreheadNoise)
 
     print('NOISE :: Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(leftNoise, rightNoise, chinNoise, foreheadNoise))
 

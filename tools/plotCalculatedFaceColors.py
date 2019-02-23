@@ -19,17 +19,32 @@ def mapResultsRegions(target, source):
     target['chin'].append(source['chin'])
     target['forehead'].append(source['forehead'])
 
-def mapResultsFlash(target, source):
+def mapResultsFlash(leftTarget, rightTarget, sidesTarget, meanTarget, source):
+
+    #print("{}, {}, {}".format(averageNo, averageHalf, averageFull))
+    leftTarget['no'].append(np.array(source['left'][0]))
+    leftTarget['half'].append(np.array(source['left'][1]))
+    leftTarget['full'].append(np.array(source['left'][2]))
+
+    rightTarget['no'].append(np.array(source['right'][0]))
+    rightTarget['half'].append(np.array(source['right'][1]))
+    rightTarget['full'].append(np.array(source['right'][2]))
+
+    sidesTarget['no'].append(np.array(source['left'][0]))
+    sidesTarget['half'].append(np.array(source['left'][1]))
+    sidesTarget['full'].append(np.array(source['left'][2]))
+
+    sidesTarget['no'].append(np.array(source['right'][0]))
+    sidesTarget['half'].append(np.array(source['right'][1]))
+    sidesTarget['full'].append(np.array(source['right'][2]))
 
     averageNo = (np.array(source['left'][0]) + np.array(source['right'][0])) / 2
     averageHalf = (np.array(source['left'][1]) + np.array(source['right'][1])) / 2
     averageFull = (np.array(source['left'][2]) + np.array(source['right'][2])) / 2
 
-    print("{}, {}, {}".format(averageNo, averageHalf, averageFull))
-
-    target['no'].append(averageNo)
-    target['half'].append(averageHalf)
-    target['full'].append(averageFull)
+    meanTarget['no'].append(averageNo)
+    meanTarget['half'].append(averageHalf)
+    meanTarget['full'].append(averageFull)
 
     #target['no'].append(source['left'][0])
     #target['half'].append(source['left'][1])
@@ -58,7 +73,10 @@ linearity = deepcopy(resultsRegionsTemplate)
 cleanRatio = deepcopy(resultsRegionsTemplate)
 fluxish = deepcopy(resultsRegionsTemplate)
 
-reflections = deepcopy(resultsFlashTemplate)
+meanReflections = deepcopy(resultsFlashTemplate)
+sidesReflections = deepcopy(resultsFlashTemplate)
+leftReflections = deepcopy(resultsFlashTemplate)
+rightReflections = deepcopy(resultsFlashTemplate)
 
 for faceData in facesData:
 
@@ -76,7 +94,7 @@ for faceData in facesData:
     mapResultsRegions(cleanRatio, faceData['cleanRatio'])
     mapResultsRegions(fluxish, faceData['fluxishValues'])
 
-    mapResultsFlash(reflections, faceData['reflectionValues'])
+    mapResultsFlash(leftReflections, rightReflections, sidesReflections, meanReflections, faceData['reflectionValues'])
 
     keys = list(faceData.keys())
     fields = keys[2:]
@@ -86,34 +104,41 @@ for faceData in facesData:
     for field in fields:
         print(printTemplate.format(faceData['name'], field, faceData[field]))
 
-reflections['no'] = np.array(reflections['no'])
-reflections['half'] = np.array(reflections['half'])
-reflections['full'] = np.array(reflections['full'])
+#reflections['no'] = np.array(reflections['no'])
+#reflections['half'] = np.array(reflections['half'])
+#reflections['full'] = np.array(reflections['full'])
 
 #Reflection Brightness vs Expected
-noAverages = []
-halfAverages = []
-fullAverages = []
+#noAverages = []
+#halfAverages = []
+#fullAverages = []
 
-for index, half in enumerate(reflections['half']):
+for index, half in enumerate(meanReflections['half']):
     print('INDEX :: ' + str(index))
-    noAverage = np.max(reflections['no'][index])
-    noAverages.append(noAverage)
+    #noAverageMean = np.max(meanReflections['no'][index])
+    noAverageLeft = np.max(leftReflections['no'][index])
+    noAverageRight = np.max(rightReflections['no'][index])
+    #noAverages.append(noAverage)
 
-    halfAverage = np.max(half)
-    halfAverages.append(halfAverage)
+    #halfAverageMean = np.max(half)
+    halfAverageLeft = np.max(leftReflections['half'][index])
+    halfAverageRight = np.max(rightReflections['half'][index])
+    #halfAverages.append(halfAverage)
 
-    fullAverage = np.max(reflections['full'][index])
-    fullAverages.append(fullAverage)
+    #fullAverageMean = np.max(meanReflections['full'][index])
+    fullAverageLeft = np.max(leftReflections['full'][index])
+    fullAverageRight = np.max(rightReflections['full'][index])
+    #fullAverages.append(fullAverage)
 
-    plt.plot([noAverage, noAverage * 2, noAverage * 3], [noAverage, halfAverage, fullAverage])
+    #plt.plot([noAverageMean, noAverageMean * 2, noAverageMean * 3], [noAverageMean, halfAverageMean, fullAverageMean])
+    plt.plot([noAverageLeft, noAverageLeft * 2, noAverageLeft * 3], [noAverageLeft, halfAverageLeft, fullAverageLeft])
+    plt.plot([noAverageRight, noAverageRight * 2, noAverageRight * 3], [noAverageRight, halfAverageRight, fullAverageRight])
 
+plt.title('Expected Eye Reflection Brightness vs Measured Eye Reflection Brightness')
 plt.xlabel('Expected')
 plt.ylabel('Actual')
 plt.plot([0, 255], [0, 255])
 plt.show()
-
-
 
 noCheekBGR = noFlash['cheek']
 halfCheekBGR = halfFlash['cheek']
@@ -130,16 +155,32 @@ halfForeheadBGR = halfFlash['forehead']
 fullForeheadBGR = fullFlash['forehead']
 foreheadBGR = np.stack([noForeheadBGR, halfForeheadBGR, fullForeheadBGR], axis=1)
 
-noReflectionBGR = reflections['no']
-halfReflectionBGR = reflections['half']
-fullReflectionBGR = reflections['full']
-reflectionBGR = np.stack([noReflectionBGR, halfReflectionBGR, fullReflectionBGR], axis=1)
+leftNoReflectionBGR = leftReflections['no']
+leftHalfReflectionBGR = leftReflections['half']
+leftFullReflectionBGR = leftReflections['full']
+leftReflectionBGR = np.stack([leftNoReflectionBGR, leftHalfReflectionBGR, leftFullReflectionBGR], axis=1)
+
+rightNoReflectionBGR = rightReflections['no']
+rightHalfReflectionBGR = rightReflections['half']
+rightFullReflectionBGR = rightReflections['full']
+rightReflectionBGR = np.stack([rightNoReflectionBGR, rightHalfReflectionBGR, rightFullReflectionBGR], axis=1)
+
+sidesNoReflectionBGR = sidesReflections['no']
+sidesHalfReflectionBGR = sidesReflections['half']
+sidesFullReflectionBGR = sidesReflections['full']
+sidesReflectionBGR = np.stack([sidesNoReflectionBGR, sidesHalfReflectionBGR, sidesFullReflectionBGR], axis=1)
+
+meanNoReflectionBGR = meanReflections['no']
+meanHalfReflectionBGR = meanReflections['half']
+meanFullReflectionBGR = meanReflections['full']
+meanReflectionBGR = np.stack([meanNoReflectionBGR, meanHalfReflectionBGR, meanFullReflectionBGR], axis=1)
 
 
 fig, axs = plt.subplots(3, 4, tight_layout=True)
 #Cheek Mean
 for index, cheek in enumerate(cheekBGR):
-    reflection = reflectionBGR[math.floor(index / 2)]
+
+    reflection = sidesReflectionBGR[index]
     reflection = np.mean(reflection, axis=1)
 
     axs[0, 0].plot(reflection, cheek[:, 0])
@@ -147,9 +188,15 @@ for index, cheek in enumerate(cheekBGR):
     axs[0, 2].plot(reflection, cheek[:, 2])
     axs[0, 3].plot(reflection, np.mean(cheek, axis=1))
 
+axs[0, 0].set_ylabel("Cheek Brightness")
+axs[0, 0].set_title("Blue")
+axs[0, 1].set_title("Green")
+axs[0, 2].set_title("Red")
+axs[0, 3].set_title("Mean")
+
 #Chin Mean
 for index, chin in enumerate(chinBGR):
-    reflection = reflectionBGR[index]
+    reflection = meanReflectionBGR[index]
     reflection = np.mean(reflection, axis=1)
 
     axs[1, 0].plot(reflection, chin[:, 0])
@@ -157,9 +204,11 @@ for index, chin in enumerate(chinBGR):
     axs[1, 2].plot(reflection, chin[:, 2])
     axs[1, 3].plot(reflection, np.mean(chin, axis=1))
 
+axs[1, 0].set_ylabel("Chin Brightness")
+
 #Forehead Mean
 for index, forehead in enumerate(foreheadBGR):
-    reflection = reflectionBGR[index]
+    reflection = meanReflectionBGR[index]
     reflection = np.mean(reflection, axis=1)
 
     axs[2, 0].plot(reflection, forehead[:, 0])
@@ -167,9 +216,11 @@ for index, forehead in enumerate(foreheadBGR):
     axs[2, 2].plot(reflection, forehead[:, 2])
     axs[2, 3].plot(reflection, np.mean(forehead, axis=1))
 
+axs[2, 0].set_ylabel("Forehead Brightness")
+
 plt.show()
 
-fig, axs = plt.subplots(3, 4, tight_layout=True)
+fig, axs = plt.subplots(4, 4, tight_layout=True)
 reflection = [(1/3), (2/3), 1]
 #Cheek Mean
 for index, cheek in enumerate(cheekBGR):
@@ -178,6 +229,12 @@ for index, cheek in enumerate(cheekBGR):
     axs[0, 2].plot(reflection, cheek[:, 2])
     axs[0, 3].plot(reflection, np.mean(cheek, axis=1))
 
+axs[0, 0].set_ylabel("Cheek Brightness")
+axs[0, 0].set_title("Blue")
+axs[0, 1].set_title("Green")
+axs[0, 2].set_title("Red")
+axs[0, 3].set_title("Mean")
+
 #Chin Mean
 for index, chin in enumerate(chinBGR):
     axs[1, 0].plot(reflection, chin[:, 0])
@@ -185,12 +242,25 @@ for index, chin in enumerate(chinBGR):
     axs[1, 2].plot(reflection, chin[:, 2])
     axs[1, 3].plot(reflection, np.mean(chin, axis=1))
 
+axs[1, 0].set_ylabel("Chin Brightness")
+
 #Forehead Mean
 for index, forehead in enumerate(foreheadBGR):
     axs[2, 0].plot(reflection, forehead[:, 0])
     axs[2, 1].plot(reflection, forehead[:, 1])
     axs[2, 2].plot(reflection, forehead[:, 2])
     axs[2, 3].plot(reflection, np.mean(forehead, axis=1))
+
+axs[2, 0].set_ylabel("Forehead Brightness")
+
+#Eye Reflections
+for index, sideReflection in enumerate(sidesReflectionBGR):
+    axs[3, 0].plot(reflection, sideReflection[:, 0])
+    axs[3, 1].plot(reflection, sideReflection[:, 1])
+    axs[3, 2].plot(reflection, sideReflection[:, 2])
+    axs[3, 3].plot(reflection, np.mean(sideReflection, axis=1))
+
+axs[3, 0].set_ylabel("Eye Reflections Brightness")
 
 plt.show()
 

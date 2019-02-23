@@ -502,6 +502,9 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #IMPORTANT TO BLUR TO HELP COUNTER ACT NOISE
     blurrDiffs = np.abs(cv2.blur(diffs, (5, 5)))#.astype('uint8')
 
+    if len(blurrDiffs) == 0:
+        raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Empty Image', err))
+
     fullDiffImage[fullDiffImage == 0] = 1
 
     percentError = blurrDiffs / fullDiffImage
