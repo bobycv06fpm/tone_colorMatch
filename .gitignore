@@ -138,3 +138,5 @@ pip-selfcheck.json
 
 trainedModel
 tools/compare.PNG
+tools/*.PNG
+tools/*.png

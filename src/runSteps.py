@@ -416,9 +416,9 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #saveStep.saveReferenceImageBGR(halfFlashCapture.noise, '{}Noise'.format(halfFlashCapture.name))
     #saveStep.saveReferenceImageBGR(fullFlashCapture.noise, '{}Noise'.format(fullFlashCapture.name))
 
-    noFlashCapture.whiteBalanceImageToD65()
-    halfFlashCapture.whiteBalanceImageToD65()
-    fullFlashCapture.whiteBalanceImageToD65()
+#    noFlashCapture.whiteBalanceImageToD65()
+#    halfFlashCapture.whiteBalanceImageToD65()
+#    fullFlashCapture.whiteBalanceImageToD65()
 
     #noFlashCapture.showImageWithLandmarks()
     #halfFlashCapture.showImageWithLandmarks()
@@ -568,9 +568,6 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #saveStep.saveReferenceImageBGR(halfDiffCapture.calculateNoise(), '{}Noise'.format(halfDiffCapture.name))
     #saveStep.saveReferenceImageBGR(fullDiffCapture.calculateNoise(), '{}Noise'.format(fullDiffCapture.name))
 
-    noFlashCapture.mask = allPointsMask
-    halfFlashCapture.mask = allPointsMask
-    fullFlashCapture.mask = allPointsMask
 
     #print('Getting Polygons')
     #polygons = fullDiffCapture.landmarks.getFacePolygons()
@@ -603,9 +600,14 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #saveStep.saveReferenceImageBGR(fullDiffCapture.getClippedImage(), 'full_noWhitebalancedImage')
     #saveStep.saveReferenceImageBGR(halfDiffCapture.getClippedImage(), 'half_noWhitebalancedImage')
 
-    colorTools.whitebalanceBGR(fullFlashCapture, reflectionValue)
-    colorTools.whitebalanceBGR(halfFlashCapture, reflectionValue)
-    colorTools.whitebalanceBGR(noFlashCapture, reflectionValue)
+#    colorTools.whitebalanceBGR(fullFlashCapture, reflectionValue)
+#    colorTools.whitebalanceBGR(halfFlashCapture, reflectionValue)
+#    colorTools.whitebalanceBGR(noFlashCapture, reflectionValue)
+
+    #Want to reassign mask after getting screen reflection color. Masks get used in that step
+    noFlashCapture.mask = allPointsMask
+    halfFlashCapture.mask = allPointsMask
+    fullFlashCapture.mask = allPointsMask
 
     #SCALE WBed IMAGES NOW?
 

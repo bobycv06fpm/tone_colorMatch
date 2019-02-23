@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import colorsys
 from copy import deepcopy
+import math
 
 bgrLuminanceConsts = np.array([0.0722, 0.7152, 0.2126])
 def getRelativeLuminance(bgr):
@@ -19,10 +20,24 @@ def mapResultsRegions(target, source):
     target['forehead'].append(source['forehead'])
 
 def mapResultsFlash(target, source):
-    target['half'].append(source['left'][0])
-    target['full'].append(source['left'][1])
-    target['half'].append(source['right'][0])
-    target['full'].append(source['right'][1])
+
+    averageNo = (np.array(source['left'][0]) + np.array(source['right'][0])) / 2
+    averageHalf = (np.array(source['left'][1]) + np.array(source['right'][1])) / 2
+    averageFull = (np.array(source['left'][2]) + np.array(source['right'][2])) / 2
+
+    print("{}, {}, {}".format(averageNo, averageHalf, averageFull))
+
+    target['no'].append(averageNo)
+    target['half'].append(averageHalf)
+    target['full'].append(averageFull)
+
+    #target['no'].append(source['left'][0])
+    #target['half'].append(source['left'][1])
+    #target['full'].append(source['left'][2])
+
+    #target['no'].append(source['right'][0])
+    #target['half'].append(source['right'][1])
+    #target['full'].append(source['right'][2])
 
 blacklist = ['doug205', 'doug206', 'doug246', 'doug258', 'doug257', 'doug247', 'doug250', 'doug255', 'doug294', 'doug274', 'doug286', 'doug272', 'doug282', 'doug197', 'doug293', 'doug277', 'doug273', 'doug275', 'doug358']
 
@@ -34,7 +49,7 @@ with open('faceColors.json', 'r') as f:
 size = 10
 
 resultsRegionsTemplate = {'cheek': [], 'chin': [], 'forehead': []}
-resultsFlashTemplate = {'half': [], 'full': []}
+resultsFlashTemplate = {'no': [], 'half': [], 'full': []}
 
 noFlash = deepcopy(resultsRegionsTemplate)
 halfFlash = deepcopy(resultsRegionsTemplate)
@@ -71,56 +86,156 @@ for faceData in facesData:
     for field in fields:
         print(printTemplate.format(faceData['name'], field, faceData[field]))
 
+reflections['no'] = np.array(reflections['no'])
 reflections['half'] = np.array(reflections['half'])
 reflections['full'] = np.array(reflections['full'])
 
 #Reflection Brightness vs Expected
+noAverages = []
 halfAverages = []
 fullAverages = []
+
 for index, half in enumerate(reflections['half']):
-    halfAverage = np.mean(half)
+    print('INDEX :: ' + str(index))
+    noAverage = np.max(reflections['no'][index])
+    noAverages.append(noAverage)
+
+    halfAverage = np.max(half)
     halfAverages.append(halfAverage)
-    fullAverage = np.mean(reflections['full'][index])
+
+    fullAverage = np.max(reflections['full'][index])
     fullAverages.append(fullAverage)
-    plt.plot([halfAverage, halfAverage * 2], [halfAverage, fullAverage])
+
+    plt.plot([noAverage, noAverage * 2, noAverage * 3], [noAverage, halfAverage, fullAverage])
 
 plt.xlabel('Expected')
 plt.ylabel('Actual')
 plt.plot([0, 255], [0, 255])
 plt.show()
 
-#Reflection halfBrightness vs fullBrightness
-plt.scatter(halfAverages, fullAverages)
-plt.plot([0, 150], [0, 300])
 
-plt.xlabel('Average Half')
-plt.ylabel('Average Full')
+
+noCheekBGR = noFlash['cheek']
+halfCheekBGR = halfFlash['cheek']
+fullCheekBGR = fullFlash['cheek']
+cheekBGR = np.stack([noCheekBGR, halfCheekBGR, fullCheekBGR], axis=1)
+
+noChinBGR = noFlash['chin']
+halfChinBGR = halfFlash['chin']
+fullChinBGR = fullFlash['chin']
+chinBGR = np.stack([noChinBGR, halfChinBGR, fullChinBGR], axis=1)
+
+noForeheadBGR = noFlash['forehead']
+halfForeheadBGR = halfFlash['forehead']
+fullForeheadBGR = fullFlash['forehead']
+foreheadBGR = np.stack([noForeheadBGR, halfForeheadBGR, fullForeheadBGR], axis=1)
+
+noReflectionBGR = reflections['no']
+halfReflectionBGR = reflections['half']
+fullReflectionBGR = reflections['full']
+reflectionBGR = np.stack([noReflectionBGR, halfReflectionBGR, fullReflectionBGR], axis=1)
+
+
+fig, axs = plt.subplots(3, 4, tight_layout=True)
+#Cheek Mean
+for index, cheek in enumerate(cheekBGR):
+    reflection = reflectionBGR[math.floor(index / 2)]
+    reflection = np.mean(reflection, axis=1)
+
+    axs[0, 0].plot(reflection, cheek[:, 0])
+    axs[0, 1].plot(reflection, cheek[:, 1])
+    axs[0, 2].plot(reflection, cheek[:, 2])
+    axs[0, 3].plot(reflection, np.mean(cheek, axis=1))
+
+#Chin Mean
+for index, chin in enumerate(chinBGR):
+    reflection = reflectionBGR[index]
+    reflection = np.mean(reflection, axis=1)
+
+    axs[1, 0].plot(reflection, chin[:, 0])
+    axs[1, 1].plot(reflection, chin[:, 1])
+    axs[1, 2].plot(reflection, chin[:, 2])
+    axs[1, 3].plot(reflection, np.mean(chin, axis=1))
+
+#Forehead Mean
+for index, forehead in enumerate(foreheadBGR):
+    reflection = reflectionBGR[index]
+    reflection = np.mean(reflection, axis=1)
+
+    axs[2, 0].plot(reflection, forehead[:, 0])
+    axs[2, 1].plot(reflection, forehead[:, 1])
+    axs[2, 2].plot(reflection, forehead[:, 2])
+    axs[2, 3].plot(reflection, np.mean(forehead, axis=1))
+
 plt.show()
 
-#Reflection halfBrightness vs fullBrightness
-plt.scatter(reflections['half'][:, 0], reflections['full'][:, 0])
-plt.plot([0, 150], [0, 300])
+fig, axs = plt.subplots(3, 4, tight_layout=True)
+reflection = [(1/3), (2/3), 1]
+#Cheek Mean
+for index, cheek in enumerate(cheekBGR):
+    axs[0, 0].plot(reflection, cheek[:, 0])
+    axs[0, 1].plot(reflection, cheek[:, 1])
+    axs[0, 2].plot(reflection, cheek[:, 2])
+    axs[0, 3].plot(reflection, np.mean(cheek, axis=1))
 
-plt.xlabel('Blue Half')
-plt.ylabel('Blue Full')
+#Chin Mean
+for index, chin in enumerate(chinBGR):
+    axs[1, 0].plot(reflection, chin[:, 0])
+    axs[1, 1].plot(reflection, chin[:, 1])
+    axs[1, 2].plot(reflection, chin[:, 2])
+    axs[1, 3].plot(reflection, np.mean(chin, axis=1))
+
+#Forehead Mean
+for index, forehead in enumerate(foreheadBGR):
+    axs[2, 0].plot(reflection, forehead[:, 0])
+    axs[2, 1].plot(reflection, forehead[:, 1])
+    axs[2, 2].plot(reflection, forehead[:, 2])
+    axs[2, 3].plot(reflection, np.mean(forehead, axis=1))
+
 plt.show()
 
-#Reflection halfBrightness vs fullBrightness
-plt.scatter(reflections['half'][:, 1], reflections['full'][:, 1])
-plt.plot([0, 150], [0, 300])
-plt.plot([0, 150], [0, 300])
+#Cheek Blue
+#axs[0, 1].plot(
 
-plt.xlabel('Green Half')
-plt.ylabel('Green Full')
-plt.show()
+#Cheek Green
+#axs[0, 2].plot(
 
-#Reflection halfBrightness vs fullBrightness
-plt.scatter(reflections['half'][:, 2], reflections['full'][:, 2])
-plt.plot([0, 150], [0, 300])
+#Cheek Red
+#axs[0, 3].plot(
 
-plt.xlabel('Red Half')
-plt.ylabel('Red Full')
-plt.show()
+
+##Reflection halfBrightness vs fullBrightness
+#plt.scatter(halfAverages, fullAverages)
+#plt.plot([0, 150], [0, 300])
+#
+#plt.xlabel('Average Half')
+#plt.ylabel('Average Full')
+#plt.show()
+#
+##Reflection halfBrightness vs fullBrightness
+#plt.scatter(reflections['half'][:, 0], reflections['full'][:, 0])
+#plt.plot([0, 150], [0, 300])
+#
+#plt.xlabel('Blue Half')
+#plt.ylabel('Blue Full')
+#plt.show()
+#
+##Reflection halfBrightness vs fullBrightness
+#plt.scatter(reflections['half'][:, 1], reflections['full'][:, 1])
+#plt.plot([0, 150], [0, 300])
+#plt.plot([0, 150], [0, 300])
+#
+#plt.xlabel('Green Half')
+#plt.ylabel('Green Full')
+#plt.show()
+#
+##Reflection halfBrightness vs fullBrightness
+#plt.scatter(reflections['half'][:, 2], reflections['full'][:, 2])
+#plt.plot([0, 150], [0, 300])
+#
+#plt.xlabel('Red Half')
+#plt.ylabel('Red Full')
+#plt.show()
 
 
 

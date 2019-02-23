@@ -343,12 +343,16 @@ def calculateRelativeOffset(parentOffset, childOffset):
 def calculateRepresentativeReflectionPoint(reflectionPoints):
     return np.median(reflectionPoints, axis=0) # Maybe change to only take median of top 10% of brightnesses?
 
-def extractReflectionPoints(reflectionBB, eyeCrop):#, eyeMask):
+def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask):
     [x, y, w, h] = reflectionBB
     reflectionCrop = eyeCrop[y:y+h, x:x+w]
-    eyeMaskHigh = np.max(eyeCrop, axis=2) >= 254
-    eyeMaskLow = np.min(eyeCrop, axis=2) <= 10
-    eyeMask = np.logical_or(eyeMaskHigh, eyeMaskLow)
+    #eyeMaskHigh = np.max(eyeCrop, axis=2) >= 254
+    #eyeMaskLow = np.min(eyeCrop, axis=2) <= 10
+    #eyeMask = np.logical_or(eyeMaskHigh, eyeMaskLow)
+
+    #cv2.imshow('eyeMask', eyeMask.astype('uint8') * 255)
+    #cv2.imshow('eyeCrop', eyeCrop.astype('uint8'))
+    #cv2.waitKey(0)
 
     reflectionMask = eyeMask[y:y+h, x:x+w]
 
@@ -434,13 +438,13 @@ def getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashC
     annotatedEyeStrips = np.vstack([noFlashEyeStrip, halfFlashEyeStrip, fullFlashEyeStrip])
     saveStep.saveReferenceImageLinearBGR(annotatedEyeStrips, 'eyeStrips')
 
-    noLeftReflectionPoint, noLeftCleanRatio = extractReflectionPoints(leftReflectionBB, noFlashLeftEyeCrop)#, noFlashLeftEyeMask)
-    halfLeftReflectionPoint, halfLeftCleanRatio = extractReflectionPoints(leftReflectionBB, halfFlashLeftEyeCrop)#, halfFlashLeftEyeMask)
-    fullLeftReflectionPoint, fullLeftCleanRatio = extractReflectionPoints(leftReflectionBB, fullFlashLeftEyeCrop)#, fullFlashLeftEyeMask)
+    noLeftReflectionPoint, noLeftCleanRatio = extractReflectionPoints(leftReflectionBB, noFlashLeftEyeCrop, noFlashLeftEyeMask)
+    halfLeftReflectionPoint, halfLeftCleanRatio = extractReflectionPoints(leftReflectionBB, halfFlashLeftEyeCrop, halfFlashLeftEyeMask)
+    fullLeftReflectionPoint, fullLeftCleanRatio = extractReflectionPoints(leftReflectionBB, fullFlashLeftEyeCrop, fullFlashLeftEyeMask)
 
-    noRightReflectionPoint, noRightCleanRatio = extractReflectionPoints(rightReflectionBB, noFlashRightEyeCrop)#, noFlashRightEyeMask)
-    halfRightReflectionPoint, halfRightCleanRatio = extractReflectionPoints(rightReflectionBB, halfFlashRightEyeCrop)#, halfFlashRightEyeMask)
-    fullRightReflectionPoint, fullRightCleanRatio = extractReflectionPoints(rightReflectionBB, fullFlashRightEyeCrop)#, fullFlashRightEyeMask)
+    noRightReflectionPoint, noRightCleanRatio = extractReflectionPoints(rightReflectionBB, noFlashRightEyeCrop, noFlashRightEyeMask)
+    halfRightReflectionPoint, halfRightCleanRatio = extractReflectionPoints(rightReflectionBB, halfFlashRightEyeCrop, halfFlashRightEyeMask)
+    fullRightReflectionPoint, fullRightCleanRatio = extractReflectionPoints(rightReflectionBB, fullFlashRightEyeCrop, fullFlashRightEyeMask)
 
     print('LEFT CLEAN RATIO NO VS HALF VS FULL :: {} | {} | {} '.format(noLeftCleanRatio, halfLeftCleanRatio, fullLeftCleanRatio))
     print('RIGHT CLEAN RATIO NO VS HALF VS FULL :: {} | {} | {} '.format(noRightCleanRatio, halfRightCleanRatio, fullRightCleanRatio))
