@@ -399,34 +399,25 @@ def getResponse(imageName, successful, noFlashValues=None, halfFlashValues=None,
 
 
 def run(username, imageName, fast=False, saveStats=False, failOnError=False):
-    #saveStep.resetLogFile(username, imageName)
     saveStep = Save(username, imageName)
     saveStep.resetLogFile()
     saveStep.deleteReference()
     images = loadImages(username, imageName)
 
-    [noFlashImage, halfFlashImage, fullFlashImage] = images
-    [noFlashMetadata, halfFlashMetadata, fullFlashMetadata] = saveStep.getMetadata()
+    metadata = saveStep.getMetadata()
 
-    noFlashCapture = Capture('No Flash', noFlashImage, noFlashMetadata)
-    halfFlashCapture = Capture('Half Flash', halfFlashImage, halfFlashMetadata)
-    fullFlashCapture = Capture('Full Flash', fullFlashImage, fullFlashMetadata)
+    numImages = len(images)
+    captures = [Capture('{}_{}_Flash'.format(index, numImages), image, metadata[index]) for index, image in enumerate(images)]
 
-    #saveStep.saveReferenceImageBGR(noFlashCapture.noise, '{}Noise'.format(noFlashCapture.name))
-    #saveStep.saveReferenceImageBGR(halfFlashCapture.noise, '{}Noise'.format(halfFlashCapture.name))
-    #saveStep.saveReferenceImageBGR(fullFlashCapture.noise, '{}Noise'.format(fullFlashCapture.name))
 
-#    noFlashCapture.whiteBalanceImageToD65()
-#    halfFlashCapture.whiteBalanceImageToD65()
-#    fullFlashCapture.whiteBalanceImageToD65()
+    for capture in captures:
+        capture.whiteBalanceImageToD65()
 
-    #noFlashCapture.showImageWithLandmarks()
-    #halfFlashCapture.showImageWithLandmarks()
-    #fullFlashCapture.showImageWithLandmarks()
 
     print('Cropping and Aligning')
     try:
-        alignImages.cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture)
+        alignImages.cropAndAlignCaptures(captures)
+        #alignImages.cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture)
     except Exception as err:
         if failOnError:
             raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
