@@ -13,6 +13,10 @@ def getRelativeLuminance(bgr):
 def sortBy(elem):
     return elem[0][0]
 
+def fitLine(x, y):
+    x_prepped = np.vstack([x, np.ones(len(x))]).T
+    return np.linalg.lstsq(x_prepped, y, rcond=None)[0]
+
 def mapResultsRegions(target, source):
     target['cheek'].append(source['left'])
     target['cheek'].append(source['right'])
@@ -177,6 +181,9 @@ meanReflectionBGR = np.stack([meanNoReflectionBGR, meanHalfReflectionBGR, meanFu
 
 
 fig, axs = plt.subplots(3, 4, tight_layout=True)
+cheekSlopes = []
+chinSlopes = []
+foreheadSlopes = []
 #Cheek Mean
 for index, cheek in enumerate(cheekBGR):
 
@@ -188,6 +195,13 @@ for index, cheek in enumerate(cheekBGR):
     axs[0, 2].plot(reflection, cheek[:, 2])
     axs[0, 3].plot(reflection, np.mean(cheek, axis=1))
 
+    bSlope = fitLine(reflection, cheek[:, 0])[0]
+    gSlope = fitLine(reflection, cheek[:, 1])[0]
+    rSlope = fitLine(reflection, cheek[:, 2])[0]
+    mSlope = fitLine(reflection, np.mean(cheek, axis=1))[0]
+    cheekSlopes.append([bSlope, gSlope, rSlope, mSlope])
+
+
 axs[0, 0].set_ylabel("Cheek Brightness")
 axs[0, 0].set_title("Blue")
 axs[0, 1].set_title("Green")
@@ -204,6 +218,12 @@ for index, chin in enumerate(chinBGR):
     axs[1, 2].plot(reflection, chin[:, 2])
     axs[1, 3].plot(reflection, np.mean(chin, axis=1))
 
+    bSlope = fitLine(reflection, chin[:, 0])[0]
+    gSlope = fitLine(reflection, chin[:, 1])[0]
+    rSlope = fitLine(reflection, chin[:, 2])[0]
+    mSlope = fitLine(reflection, np.mean(chin, axis=1))[0]
+    chinSlopes.append([bSlope, gSlope, rSlope, mSlope])
+
 axs[1, 0].set_ylabel("Chin Brightness")
 
 #Forehead Mean
@@ -216,12 +236,73 @@ for index, forehead in enumerate(foreheadBGR):
     axs[2, 2].plot(reflection, forehead[:, 2])
     axs[2, 3].plot(reflection, np.mean(forehead, axis=1))
 
+    bSlope = fitLine(reflection, forehead[:, 0])[0]
+    gSlope = fitLine(reflection, forehead[:, 1])[0]
+    rSlope = fitLine(reflection, forehead[:, 2])[0]
+    mSlope = fitLine(reflection, np.mean(forehead, axis=1))[0]
+    foreheadSlopes.append([bSlope, gSlope, rSlope, mSlope])
+
 axs[2, 0].set_ylabel("Forehead Brightness")
 
 plt.show()
 
+cheekSlopes = np.array(cheekSlopes)
+chinSlopes = np.array(chinSlopes)
+foreheadSlopes = np.array(foreheadSlopes)
+
+print('\nMeasured Reflection Brightness vs Measured Face Brightness')
+print('\tCHEEK')
+print('\t\tBLUE  SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(cheekSlopes[:, 0]), np.std(cheekSlopes[:, 0])))
+print('\t\tGREEN SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(cheekSlopes[:, 1]), np.std(cheekSlopes[:, 1])))
+print('\t\tRED   SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(cheekSlopes[:, 2]), np.std(cheekSlopes[:, 2])))
+print('\t\tMEAN  SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(cheekSlopes[:, 3]), np.std(cheekSlopes[:, 3])))
+
+print('\tCHIN')
+print('\t\tBLUE  SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(chinSlopes[:, 0]), np.std(chinSlopes[:, 0])))
+print('\t\tGREEN SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(chinSlopes[:, 1]), np.std(chinSlopes[:, 1])))
+print('\t\tRED   SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(chinSlopes[:, 2]), np.std(chinSlopes[:, 2])))
+print('\t\tMEAN  SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(chinSlopes[:, 3]), np.std(chinSlopes[:, 3])))
+
+print('\tFOREHEAD')
+print('\t\tBLUE  SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(foreheadSlopes[:, 0]), np.std(foreheadSlopes[:, 0])))
+print('\t\tGREEN SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(foreheadSlopes[:, 1]), np.std(foreheadSlopes[:, 1])))
+print('\t\tRED   SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(foreheadSlopes[:, 2]), np.std(foreheadSlopes[:, 2])))
+print('\t\tMEAN  SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(foreheadSlopes[:, 3]), np.std(foreheadSlopes[:, 3])))
+
+fig, axs = plt.subplots(3, 4, tight_layout=True)
+bins = 5
+axs[0, 0].hist(cheekSlopes[:, 0], bins)
+axs[0, 1].hist(cheekSlopes[:, 1], bins)
+axs[0, 2].hist(cheekSlopes[:, 2], bins)
+axs[0, 3].hist(cheekSlopes[:, 3], bins)
+axs[0, 0].set_ylabel("Cheek Slope Distribution")
+
+axs[0, 0].set_xlabel("Blue")
+axs[0, 1].set_xlabel("Green")
+axs[0, 2].set_xlabel("Red")
+axs[0, 3].set_xlabel("Mean")
+
+axs[1, 0].hist(chinSlopes[:, 0], bins)
+axs[1, 1].hist(chinSlopes[:, 1], bins)
+axs[1, 2].hist(chinSlopes[:, 2], bins)
+axs[1, 3].hist(chinSlopes[:, 3], bins)
+axs[1, 0].set_ylabel("Chin Slope Distribution")
+
+axs[2, 0].hist(foreheadSlopes[:, 0], bins)
+axs[2, 1].hist(foreheadSlopes[:, 1], bins)
+axs[2, 2].hist(foreheadSlopes[:, 2], bins)
+axs[2, 3].hist(foreheadSlopes[:, 3], bins)
+axs[2, 0].set_ylabel("Forehead Slope Distribution")
+
+plt.show()
+
+
 fig, axs = plt.subplots(4, 4, tight_layout=True)
-reflection = [(1/3), (2/3), 1]
+reflection = [(1/3) * 255, (2/3) * 255, 255]
+cheekSlopes = []
+chinSlopes = []
+foreheadSlopes = []
+reflectionSlopes = []
 #Cheek Mean
 for index, cheek in enumerate(cheekBGR):
     axs[0, 0].plot(reflection, cheek[:, 0])
@@ -229,6 +310,12 @@ for index, cheek in enumerate(cheekBGR):
     axs[0, 2].plot(reflection, cheek[:, 2])
     axs[0, 3].plot(reflection, np.mean(cheek, axis=1))
 
+    bSlope = fitLine(reflection, cheek[:, 0])[0]
+    gSlope = fitLine(reflection, cheek[:, 1])[0]
+    rSlope = fitLine(reflection, cheek[:, 2])[0]
+    mSlope = fitLine(reflection, np.mean(cheek, axis=1))[0]
+    cheekSlopes.append([bSlope, gSlope, rSlope, mSlope])
+
 axs[0, 0].set_ylabel("Cheek Brightness")
 axs[0, 0].set_title("Blue")
 axs[0, 1].set_title("Green")
@@ -242,6 +329,12 @@ for index, chin in enumerate(chinBGR):
     axs[1, 2].plot(reflection, chin[:, 2])
     axs[1, 3].plot(reflection, np.mean(chin, axis=1))
 
+    bSlope = fitLine(reflection, chin[:, 0])[0]
+    gSlope = fitLine(reflection, chin[:, 1])[0]
+    rSlope = fitLine(reflection, chin[:, 2])[0]
+    mSlope = fitLine(reflection, np.mean(chin, axis=1))[0]
+    chinSlopes.append([bSlope, gSlope, rSlope, mSlope])
+
 axs[1, 0].set_ylabel("Chin Brightness")
 
 #Forehead Mean
@@ -250,6 +343,12 @@ for index, forehead in enumerate(foreheadBGR):
     axs[2, 1].plot(reflection, forehead[:, 1])
     axs[2, 2].plot(reflection, forehead[:, 2])
     axs[2, 3].plot(reflection, np.mean(forehead, axis=1))
+
+    bSlope = fitLine(reflection, forehead[:, 0])[0]
+    gSlope = fitLine(reflection, forehead[:, 1])[0]
+    rSlope = fitLine(reflection, forehead[:, 2])[0]
+    mSlope = fitLine(reflection, np.mean(forehead, axis=1))[0]
+    foreheadSlopes.append([bSlope, gSlope, rSlope, mSlope])
 
 axs[2, 0].set_ylabel("Forehead Brightness")
 
@@ -260,7 +359,77 @@ for index, sideReflection in enumerate(sidesReflectionBGR):
     axs[3, 2].plot(reflection, sideReflection[:, 2])
     axs[3, 3].plot(reflection, np.mean(sideReflection, axis=1))
 
+    bSlope = fitLine(reflection, sideReflection[:, 0])[0]
+    gSlope = fitLine(reflection, sideReflection[:, 1])[0]
+    rSlope = fitLine(reflection, sideReflection[:, 2])[0]
+    mSlope = fitLine(reflection, np.mean(sideReflection, axis=1))[0]
+    reflectionSlopes.append([bSlope, gSlope, rSlope, mSlope])
+
 axs[3, 0].set_ylabel("Eye Reflections Brightness")
+
+plt.show()
+
+cheekSlopes = np.array(cheekSlopes)
+chinSlopes = np.array(chinSlopes)
+foreheadSlopes = np.array(foreheadSlopes)
+reflectionSlopes = np.array(reflectionSlopes)
+
+
+print('\nExpected Reflection Brightness vs Measured Brightness')
+print('\tCHEEK')
+print('\t\tBLUE  SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(cheekSlopes[:, 0]), np.std(cheekSlopes[:, 0])))
+print('\t\tGREEN SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(cheekSlopes[:, 1]), np.std(cheekSlopes[:, 1])))
+print('\t\tRED   SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(cheekSlopes[:, 2]), np.std(cheekSlopes[:, 2])))
+print('\t\tMEAN  SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(cheekSlopes[:, 3]), np.std(cheekSlopes[:, 3])))
+
+print('\tCHIN')
+print('\t\tBLUE  SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(chinSlopes[:, 0]), np.std(chinSlopes[:, 0])))
+print('\t\tGREEN SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(chinSlopes[:, 1]), np.std(chinSlopes[:, 1])))
+print('\t\tRED   SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(chinSlopes[:, 2]), np.std(chinSlopes[:, 2])))
+print('\t\tMEAN  SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(chinSlopes[:, 3]), np.std(chinSlopes[:, 3])))
+
+print('\tFOREHEAD')
+print('\t\tBLUE  SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(foreheadSlopes[:, 0]), np.std(foreheadSlopes[:, 0])))
+print('\t\tGREEN SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(foreheadSlopes[:, 1]), np.std(foreheadSlopes[:, 1])))
+print('\t\tRED   SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(foreheadSlopes[:, 2]), np.std(foreheadSlopes[:, 2])))
+print('\t\tMEAN  SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(foreheadSlopes[:, 3]), np.std(foreheadSlopes[:, 3])))
+
+print('\tREFLECTION')
+print('\t\tBLUE  SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(reflectionSlopes[:, 0]), np.std(reflectionSlopes[:, 0])))
+print('\t\tGREEN SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(reflectionSlopes[:, 1]), np.std(reflectionSlopes[:, 1])))
+print('\t\tRED   SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(reflectionSlopes[:, 2]), np.std(reflectionSlopes[:, 2])))
+print('\t\tMEAN  SLOPE \t| Median :: {:.3} \t| SD :: {:.3}'.format(np.median(reflectionSlopes[:, 3]), np.std(reflectionSlopes[:, 3])))
+
+fig, axs = plt.subplots(4, 4, tight_layout=True)
+bins = 5
+axs[0, 0].hist(cheekSlopes[:, 0], bins)
+axs[0, 1].hist(cheekSlopes[:, 1], bins)
+axs[0, 2].hist(cheekSlopes[:, 2], bins)
+axs[0, 3].hist(cheekSlopes[:, 3], bins)
+axs[0, 0].set_ylabel("Cheek Slope Distribution")
+
+axs[0, 0].set_xlabel("Blue")
+axs[0, 1].set_xlabel("Green")
+axs[0, 2].set_xlabel("Red")
+axs[0, 3].set_xlabel("Mean")
+
+axs[1, 0].hist(chinSlopes[:, 0], bins)
+axs[1, 1].hist(chinSlopes[:, 1], bins)
+axs[1, 2].hist(chinSlopes[:, 2], bins)
+axs[1, 3].hist(chinSlopes[:, 3], bins)
+axs[1, 0].set_ylabel("Chin Slope Distribution")
+
+axs[2, 0].hist(foreheadSlopes[:, 0], bins)
+axs[2, 1].hist(foreheadSlopes[:, 1], bins)
+axs[2, 2].hist(foreheadSlopes[:, 2], bins)
+axs[2, 3].hist(foreheadSlopes[:, 3], bins)
+axs[2, 0].set_ylabel("Forehead Slope Distribution")
+
+axs[3, 0].hist(reflectionSlopes[:, 0], bins)
+axs[3, 1].hist(reflectionSlopes[:, 1], bins)
+axs[3, 2].hist(reflectionSlopes[:, 2], bins)
+axs[3, 3].hist(reflectionSlopes[:, 3], bins)
+axs[3, 0].set_ylabel("Reflection Slope Distribution")
 
 plt.show()
 
