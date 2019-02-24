@@ -20,18 +20,7 @@ def loadImages(username, fileName, extension='PNG'):
     pathRoot = os.path.join(root, "images/", username, fileName)
 
     files = os.listdir(pathRoot)
-    imagePaths = [os.path.join(pathRoot, imageFile) for imageFile in files if (imageFile[-1 * len(extension):] == extension)]
+    imagePaths = sorted([os.path.join(pathRoot, imageFile) for imageFile in files if (imageFile[-1 * len(extension):] == extension)])
 
     images = [loadImage(imagePath) for imagePath in imagePaths]
     return images
-
-    #noFlashPath = pathRoot + '-3.' + extension
-    #noFlash = loadImage(noFlashPath)
-
-    #halfFlashPath = pathRoot + '-2.' + extension
-    #halfFlash = loadImage(halfFlashPath)
-
-    #fullFlashPath = pathRoot + '-1.' + extension
-    #fullFlash = loadImage(fullFlashPath)
-
-    #return [noFlash, halfFlash, fullFlash]

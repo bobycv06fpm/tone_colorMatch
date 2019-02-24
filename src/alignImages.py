@@ -484,7 +484,6 @@ def getLandmarkOffsetMagnitude(captures, landmarkIndex):
     return getOffsetMagnitude(offsets, captures[0].image.shape)
 
 def cropAndAlignCaptures(captures):
-
     landmarkOffsetMagnitude = getLandmarkOffsetMagnitude(captures, 25)#Users right Eye Outside Point
 
     print('one')
@@ -494,60 +493,35 @@ def cropAndAlignCaptures(captures):
     interiorPoints = [capture.landmarks.getInteriorPoints() for capture in captures]
     masks = [getMask(greyImage, interiorPoints) for greyImage, interiorPoints in zip(greyImages, interiorPoints)]
 
-
     print('three')
     stretchedImages = [stretchHistogram(image, mask) for image, mask in zip(greyImages, masks)]
 
-    #for i, img in enumerate(stretchedImages):
-    #    cv2.imshow(str(i), img.astype('uint8'))
-
-    #cv2.waitKey(0)
-
-
     print('four')
     #REMOVE ONCE PARTIAL ILLUMINATION ON NO FLASH IS ADDED?
-
     imageLuminosities = [getLuminosity(image) for image in stretchedImages]
-    #luminosityNoFlash = getLuminosity(noFlashGreyStretched)
-    #luminosityHalfFlash = getLuminosity(halfFlashGreyStretched)
-    #luminosityFullFlash = getLuminosity(fullFlashGreyStretched)
 
     print('five')
-    middleImage = math.floor(len(imageLuminosities) / 2)
     #Scale images to the luminosity of the middle image
-    flashMultiplers = [imageLuminosity / imageLuminosities[middleImage] for imageLuminosity in imageLuminosities]
-    #noFlashMultiplier = luminosityHalfFlash / luminosityNoFlash
-    #fullFlashMultiplier = luminosityHalfFlash / luminosityFullFlash
+    middleImageIndex = math.floor(len(imageLuminosities) / 2)
+    flashMultipliers = [imageLuminosity / imageLuminosities[middleImageIndex] for imageLuminosity in imageLuminosities]
 
     print('six')
-    noFlashGreyScaled = np.clip(np.floor(noFlashGreyStretched * noFlashMultiplier), 0, 255)#.astype('uint8')
-    fullFlashGreyScaled = np.clip(np.floor(fullFlashGreyStretched * fullFlashMultiplier), 0, 255)#.astype('uint8')
-    #noFlashGreyScaled = noFlashGreyStretched
-    #fullFlashGreyScaled = fullFlashGreyStretched
+    scaledStretchedImages = [np.clip(np.floor(stretchedImage * flashMultiplier), 0, 255) for stretchedImage, flashMultiplier in zip(stretchedImages, flashMultipliers)]
+
     print('seven')
-
-    blur = 11
-    noFlashGreyScaledBlurred = cv2.GaussianBlur(noFlashGreyScaled, (blur, blur), 0)
-    halfFlashGreyStretchedBlurred = cv2.GaussianBlur(halfFlashGreyStretched, (blur, blur), 0)
-    fullFlashGreyScaledBlurred = cv2.GaussianBlur(fullFlashGreyScaled, (blur, blur), 0)
-
+    blur = 5
+    blurredScaledStretchedImages = [cv2.GaussianBlur(scaledStretchedImage, (blur, blur), 0) for scaledStretchedImage in scaledStretchedImages]
 
     print("Preparing Images")
-    preparedNoFlashImage = getPrepared(noFlashGreyScaled, noFlashMask)#noFlashCapture.landmarks.getInteriorPoints())
-    preparedHalfFlashImage = getPrepared(halfFlashGreyStretched, halfFlashMask)#halfFlashCapture.landmarks.getInteriorPoints())
-    preparedFullFlashImage = getPrepared(fullFlashGreyScaled, fullFlashMask)#fullFlashCapture.landmarks.getInteriorPoints())
+    preparedImages = [getPrepared(blurredScaledStretchedImage, mask) for blurredScaledStretchedImage, mask in zip(blurredScaledStretchedImages, masks)]
+    #preparedImages = [getPrepared(scaledStretchedImage, mask) for scaledStretchedImage, mask in zip(scaledStretchedImages, masks)]
     print("Done Preparing Images")
 
-
     print("Calculating Offset")
-    noFlashOffset = calculateOffset(preparedNoFlashImage, preparedHalfFlashImage)#[0, 0] #All offsets are relative to noFlashImage
-    #noFlashOffset = calculateOffset(preparedNoFlashImage, preparedHalfFlashImage)#[0, 0] #All offsets are relative to noFlashImage
-    #halfFlashOffset = calculateOffset(preparedFullFlashImage, preparedHalfFlashImage)
-    halfFlashOffset = [0, 0]#calculateOffset(preparedHalfFlashImage, preparedFullFlashImage)
-    fullFlashOffset = calculateOffset(preparedFullFlashImage, preparedHalfFlashImage)
+    imageOffsets = [calculateOffset(preparedImage, preparedImages[middleImageIndex]) for preparedImage in preparedImages]
     print("Done Calculating Offset")
 
-    alignedOffsetMagnitude = getOffsetMagnitude([noFlashOffset, halfFlashOffset, fullFlashOffset], preparedFullFlashImage.shape)
+    alignedOffsetMagnitude = getOffsetMagnitude(imageOffsets, captures[0].image.shape)
 
     print('Landmark, Aligned values :: ' + str(landmarkOffsetMagnitude) + ' | ' + str(alignedOffsetMagnitude))
 
@@ -555,75 +529,75 @@ def cropAndAlignCaptures(captures):
         raise NameError('Probable Error Stacking. Alignment of Landmark Offset Mag is too large. Landmark Mag :: ' + str(landmarkOffsetMagnitude) + ', Alignment Mag :: ' + str(alignedOffsetMagnitude))
 
     print('Cropping to offsets!')
-    cropTools.cropToOffsets([noFlashCapture, halfFlashCapture, fullFlashCapture], np.array([noFlashOffset, halfFlashOffset, fullFlashOffset]))
+    cropTools.cropToOffsets(captures, np.array(imageOffsets))
     print('Done Cropping to offsets!')
 
-def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
-
-    landmarkOffsetMagnitude = getLandmarkOffsetMagnitude([noFlashCapture, halfFlashCapture, fullFlashCapture], 25)#Users right Eye Outside Point
-
-    print('one')
-    noFlashGrey = np.sum(noFlashCapture.image, axis=2) / 3#.astype('uint8')
-    halfFlashGrey = np.sum(halfFlashCapture.image, axis=2) / 3#.astype('uint8')
-    fullFlashGrey = np.sum(fullFlashCapture.image, axis=2) / 3#.astype('uint8')
-
-
-    print('two')
-    noFlashMask = getMask(noFlashGrey, noFlashCapture.landmarks.getInteriorPoints())
-    halfFlashMask = getMask(halfFlashGrey, halfFlashCapture.landmarks.getInteriorPoints())
-    fullFlashMask = getMask(fullFlashGrey, fullFlashCapture.landmarks.getInteriorPoints())
-
-
-    print('three')
-    noFlashGreyStretched = stretchHistogram(noFlashGrey, noFlashMask)
-    halfFlashGreyStretched = stretchHistogram(halfFlashGrey, halfFlashMask)
-    fullFlashGreyStretched = stretchHistogram(fullFlashGrey, fullFlashMask)
-
-    print('four')
-    #REMOVE ONCE PARTIAL ILLUMINATION ON NO FLASH IS ADDED?
-    luminosityNoFlash = getLuminosity(noFlashGreyStretched)
-    luminosityHalfFlash = getLuminosity(halfFlashGreyStretched)
-    luminosityFullFlash = getLuminosity(fullFlashGreyStretched)
-
-    print('five')
-    noFlashMultiplier = luminosityHalfFlash / luminosityNoFlash
-    fullFlashMultiplier = luminosityHalfFlash / luminosityFullFlash
-
-    print('six')
-    noFlashGreyScaled = np.clip(np.floor(noFlashGreyStretched * noFlashMultiplier), 0, 255)#.astype('uint8')
-    fullFlashGreyScaled = np.clip(np.floor(fullFlashGreyStretched * fullFlashMultiplier), 0, 255)#.astype('uint8')
-    #noFlashGreyScaled = noFlashGreyStretched
-    #fullFlashGreyScaled = fullFlashGreyStretched
-    print('seven')
-
-    blur = 11
-    noFlashGreyScaledBlurred = cv2.GaussianBlur(noFlashGreyScaled, (blur, blur), 0)
-    halfFlashGreyStretchedBlurred = cv2.GaussianBlur(halfFlashGreyStretched, (blur, blur), 0)
-    fullFlashGreyScaledBlurred = cv2.GaussianBlur(fullFlashGreyScaled, (blur, blur), 0)
-
-
-    print("Preparing Images")
-    preparedNoFlashImage = getPrepared(noFlashGreyScaled, noFlashMask)#noFlashCapture.landmarks.getInteriorPoints())
-    preparedHalfFlashImage = getPrepared(halfFlashGreyStretched, halfFlashMask)#halfFlashCapture.landmarks.getInteriorPoints())
-    preparedFullFlashImage = getPrepared(fullFlashGreyScaled, fullFlashMask)#fullFlashCapture.landmarks.getInteriorPoints())
-    print("Done Preparing Images")
-
-
-    print("Calculating Offset")
-    noFlashOffset = calculateOffset(preparedNoFlashImage, preparedHalfFlashImage)#[0, 0] #All offsets are relative to noFlashImage
-    #noFlashOffset = calculateOffset(preparedNoFlashImage, preparedHalfFlashImage)#[0, 0] #All offsets are relative to noFlashImage
-    #halfFlashOffset = calculateOffset(preparedFullFlashImage, preparedHalfFlashImage)
-    halfFlashOffset = [0, 0]#calculateOffset(preparedHalfFlashImage, preparedFullFlashImage)
-    fullFlashOffset = calculateOffset(preparedFullFlashImage, preparedHalfFlashImage)
-    print("Done Calculating Offset")
-
-    alignedOffsetMagnitude = getOffsetMagnitude([noFlashOffset, halfFlashOffset, fullFlashOffset], preparedFullFlashImage.shape)
-
-    print('Landmark, Aligned values :: ' + str(landmarkOffsetMagnitude) + ' | ' + str(alignedOffsetMagnitude))
-
-    if  (alignedOffsetMagnitude > 0.05) or (landmarkOffsetMagnitude > 0.05):
-        raise NameError('Probable Error Stacking. Alignment of Landmark Offset Mag is too large. Landmark Mag :: ' + str(landmarkOffsetMagnitude) + ', Alignment Mag :: ' + str(alignedOffsetMagnitude))
-
-    print('Cropping to offsets!')
-    cropTools.cropToOffsets([noFlashCapture, halfFlashCapture, fullFlashCapture], np.array([noFlashOffset, halfFlashOffset, fullFlashOffset]))
-    print('Done Cropping to offsets!')
+#def cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture):
+#
+#    landmarkOffsetMagnitude = getLandmarkOffsetMagnitude([noFlashCapture, halfFlashCapture, fullFlashCapture], 25)#Users right Eye Outside Point
+#
+#    print('one')
+#    noFlashGrey = np.sum(noFlashCapture.image, axis=2) / 3#.astype('uint8')
+#    halfFlashGrey = np.sum(halfFlashCapture.image, axis=2) / 3#.astype('uint8')
+#    fullFlashGrey = np.sum(fullFlashCapture.image, axis=2) / 3#.astype('uint8')
+#
+#
+#    print('two')
+#    noFlashMask = getMask(noFlashGrey, noFlashCapture.landmarks.getInteriorPoints())
+#    halfFlashMask = getMask(halfFlashGrey, halfFlashCapture.landmarks.getInteriorPoints())
+#    fullFlashMask = getMask(fullFlashGrey, fullFlashCapture.landmarks.getInteriorPoints())
+#
+#
+#    print('three')
+#    noFlashGreyStretched = stretchHistogram(noFlashGrey, noFlashMask)
+#    halfFlashGreyStretched = stretchHistogram(halfFlashGrey, halfFlashMask)
+#    fullFlashGreyStretched = stretchHistogram(fullFlashGrey, fullFlashMask)
+#
+#    print('four')
+#    #REMOVE ONCE PARTIAL ILLUMINATION ON NO FLASH IS ADDED?
+#    luminosityNoFlash = getLuminosity(noFlashGreyStretched)
+#    luminosityHalfFlash = getLuminosity(halfFlashGreyStretched)
+#    luminosityFullFlash = getLuminosity(fullFlashGreyStretched)
+#
+#    print('five')
+#    noFlashMultiplier = luminosityHalfFlash / luminosityNoFlash
+#    fullFlashMultiplier = luminosityHalfFlash / luminosityFullFlash
+#
+#    print('six')
+#    noFlashGreyScaled = np.clip(np.floor(noFlashGreyStretched * noFlashMultiplier), 0, 255)#.astype('uint8')
+#    fullFlashGreyScaled = np.clip(np.floor(fullFlashGreyStretched * fullFlashMultiplier), 0, 255)#.astype('uint8')
+#    #noFlashGreyScaled = noFlashGreyStretched
+#    #fullFlashGreyScaled = fullFlashGreyStretched
+#    print('seven')
+#
+#    blur = 11
+#    noFlashGreyScaledBlurred = cv2.GaussianBlur(noFlashGreyScaled, (blur, blur), 0)
+#    halfFlashGreyStretchedBlurred = cv2.GaussianBlur(halfFlashGreyStretched, (blur, blur), 0)
+#    fullFlashGreyScaledBlurred = cv2.GaussianBlur(fullFlashGreyScaled, (blur, blur), 0)
+#
+#
+#    print("Preparing Images")
+#    preparedNoFlashImage = getPrepared(noFlashGreyScaled, noFlashMask)#noFlashCapture.landmarks.getInteriorPoints())
+#    preparedHalfFlashImage = getPrepared(halfFlashGreyStretched, halfFlashMask)#halfFlashCapture.landmarks.getInteriorPoints())
+#    preparedFullFlashImage = getPrepared(fullFlashGreyScaled, fullFlashMask)#fullFlashCapture.landmarks.getInteriorPoints())
+#    print("Done Preparing Images")
+#
+#
+#    print("Calculating Offset")
+#    noFlashOffset = calculateOffset(preparedNoFlashImage, preparedHalfFlashImage)#[0, 0] #All offsets are relative to noFlashImage
+#    #noFlashOffset = calculateOffset(preparedNoFlashImage, preparedHalfFlashImage)#[0, 0] #All offsets are relative to noFlashImage
+#    #halfFlashOffset = calculateOffset(preparedFullFlashImage, preparedHalfFlashImage)
+#    halfFlashOffset = [0, 0]#calculateOffset(preparedHalfFlashImage, preparedFullFlashImage)
+#    fullFlashOffset = calculateOffset(preparedFullFlashImage, preparedHalfFlashImage)
+#    print("Done Calculating Offset")
+#
+#    alignedOffsetMagnitude = getOffsetMagnitude([noFlashOffset, halfFlashOffset, fullFlashOffset], preparedFullFlashImage.shape)
+#
+#    print('Landmark, Aligned values :: ' + str(landmarkOffsetMagnitude) + ' | ' + str(alignedOffsetMagnitude))
+#
+#    if  (alignedOffsetMagnitude > 0.05) or (landmarkOffsetMagnitude > 0.05):
+#        raise NameError('Probable Error Stacking. Alignment of Landmark Offset Mag is too large. Landmark Mag :: ' + str(landmarkOffsetMagnitude) + ', Alignment Mag :: ' + str(alignedOffsetMagnitude))
+#
+#    print('Cropping to offsets!')
+#    cropTools.cropToOffsets([noFlashCapture, halfFlashCapture, fullFlashCapture], np.array([noFlashOffset, halfFlashOffset, fullFlashOffset]))
+#    print('Done Cropping to offsets!')

@@ -397,115 +397,17 @@ def getResponse(imageName, successful, noFlashValues=None, halfFlashValues=None,
 #    #cv2.imshow('fullFlash', smallFullFlashNoise)
 #    #cv2.waitKey(0)
 
+def getNonLinearityMask(flashStepDiff, fullFlashRangeDiff):
+    blurDiffs = np.abs(cv2.blur(flashStepDiff, (5, 5)))#.astype('uint8')
 
-def run(username, imageName, fast=False, saveStats=False, failOnError=False):
-    saveStep = Save(username, imageName)
-    saveStep.resetLogFile()
-    saveStep.deleteReference()
-    images = loadImages(username, imageName)
-
-    metadata = saveStep.getMetadata()
-
-    numImages = len(images)
-    captures = [Capture('{}_{}_Flash'.format(index, numImages), image, metadata[index]) for index, image in enumerate(images)]
-
-
-    for capture in captures:
-        capture.whiteBalanceImageToD65()
-
-
-    print('Cropping and Aligning')
-    try:
-        alignImages.cropAndAlignCaptures(captures)
-        #alignImages.cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture)
-    except Exception as err:
-        if failOnError:
-            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
-        else:
-            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
-            return getResponse(imageName, False)
-        
-
-    noFlashCapture.landmarks = halfFlashCapture.landmarks
-    fullFlashCapture.landmarks = halfFlashCapture.landmarks
-
-    print('Done Cropping and aligning')
-
-    partialMask = np.logical_or(noFlashCapture.mask, halfFlashCapture.mask)
-    allPointsMask = np.logical_or(partialMask, fullFlashCapture.mask)
-
-    # (All Pixels That Are Clipped In Full Flash) AND (All The Pixels That Are NOT Clipped By Base & Top & Bottom Flash)
-    # => Pixel Values caused to clip by Full Flash
-    #potentiallyRecoverablePixelsMask = np.logical_and(fullFlashImageMask, np.logical_not(partialMask))
-    #unrecoverablePixelsMask = np.logical_and(fullFlashImageMask, partialMask)
-    #allPointsMask = np.logical_and(allPointsMask, np.logical_not(unrecoverablePixelsMask))
-
-
-    #unrecoverablePixelsMask = maskPolygons(unrecoverablePixelsMask, polygons)
-    #potentiallyRecoverablePixelsMask = maskPolygons(potentiallyRecoverablePixelsMask, polygons)
-    #RecoveredFullFlash = ((2 * halfFlashImage) - noFlashImage)
-
-    #fullFlashImage[potentiallyRecoverablePixelsMask] = RecoveredFullFlash[potentiallyRecoverablePixelsMask]
-
-    #NOTE: MIGHT BE NEEDED
-    #noFlashImageBlur = cv2.GaussianBlur(noFlashCapture.getClippedImage(), (7, 7), 0)
-    #halfFlashImageBlur = cv2.GaussianBlur(halfFlashCapture.getClippedImage(), (7, 7), 0)
-    #fullFlashImageBlur = cv2.GaussianBlur(fullFlashCapture.getClippedImage(), (7, 7), 0)
-    #END NOTE
-
-    print('Testing Linearity')
-    #howLinear = np.abs((2 * halfFlashCapture.image) - (fullFlashCapture.image + noFlashCapture.image))
-
-    maxFullFlash = np.max(fullFlashCapture.image)
-    print('FULL MAX VALUE :: ' + str(maxFullFlash))
-
-    fullFlashCapture.scaleToValue(maxFullFlash)
-    halfFlashCapture.scaleToValue(maxFullFlash)
-    noFlashCapture.scaleToValue(maxFullFlash)
-
-
-    print('Subtracting Base from Flash')
-    halfDiffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
-    #halfDiffImage = halfFlashCapture.blurredImage().astype('int32') - noFlashCapture.blurredImage().astype('int32')
-    #halfDiffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.blurredImage().astype('int32')
-
-    #halfDiffImageBlur = cv2.GaussianBlur(halfDiffImage, (11, 11), 0)
-    #halfDiffImageBlur = cv2.medianBlur(halfDiffImage, 9)
-
-    fullDiffImage = fullFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
-    #fullDiffImage = fullFlashCapture.blurredImage().astype('int32') - noFlashCapture.blurredImage().astype('int32')
-    #fullDiffImage = fullFlashCapture.image.astype('int32') - noFlashCapture.blurredImage().astype('int32')
-
-    #fullDiffImageBlur = cv2.GaussianBlur(fullDiffImage, (25, 25), 0)
-    #fullDiffImageBlur = cv2.medianBlur(fullDiffImage, 9)
-
-    #howLinear = np.abs((2 * halfDiffImage) - fullDiffImage)
-    #fullDiffImage[fullDiffImage == 0] = 1
-    #percentError = howLinear / fullDiffImage
-    #perSubPixelMaxError = np.mean(percentError, axis=2)
-    #perSubPixelMaxError = np.max(percentError, axis=2)
-    #nonLinearMask = perSubPixelMaxError > .10
-    #perChannelNonLinearMask = perSubPixelMaxError > .02
-    lowDiffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
-    highDiffImage = fullFlashCapture.image.astype('int32') - halfFlashCapture.image.astype('int32')
-
-    diffs = highDiffImage - lowDiffImage
-    #IMPORTANT TO BLUR TO HELP COUNTER ACT NOISE
-    blurrDiffs = np.abs(cv2.blur(diffs, (5, 5)))#.astype('uint8')
-
-    if len(blurrDiffs) == 0:
-        raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Empty Image', err))
-
-    fullDiffImage[fullDiffImage == 0] = 1
-
-    percentError = blurrDiffs / fullDiffImage
+    percentError = blurDiffs / fullFlashRangeDiff
     perSubPixelMaxError = np.mean(percentError, axis=2)
 
-    meanFullDiffImage = np.max(fullDiffImage, axis=2)
-    lowValueMask = meanFullDiffImage < 10
-    medLowValueMask = meanFullDiffImage < 25
-    medHighValueMask = meanFullDiffImage < 100
-    medHigherValueMask = meanFullDiffImage < 180
+    maxFullDiffImage = np.max(fullFlashRangeDiff, axis=2)
+    lowValueMask = maxFullDiffImage < 10
+    medLowValueMask = maxFullDiffImage < 25
+    medHighValueMask = maxFullDiffImage < 100
+    medHigherValueMask = maxFullDiffImage < 180
 
     nonLinearMaskHigh = perSubPixelMaxError > .04 #All Values less than 255
     nonLinearMaskMedHigher = perSubPixelMaxError > .06 #All Values less than 180
@@ -519,53 +421,81 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     nonLinearMask[medLowValueMask] = nonLinearMaskMedLow[medLowValueMask]
     nonLinearMask[lowValueMask] = nonLinearMaskLow[lowValueMask]
 
-    #nonLinearMask = np.zeros(nonLinearMask.shape, dtype='Bool')
-
-    #lowDiffImage = halfFlashCapture.image.astype('int32') - noFlashCapture.image.astype('int32')
-    #highDiffImage = fullFlashCapture.image.astype('int32') - halfFlashCapture.image.astype('int32')
-
-    #diffs = highDiffImage - lowDiffImage
-    #blurrDiffs = np.abs(cv2.blur(diffs, (5, 5))).astype('uint8')
+    return nonLinearMask
 
 
-    #ratio = 2
-    #smallDiffs = cv2.resize(diffs, (0, 0), fx=1/ratio, fy=1/ratio)
-    #cv2.imshow('diffs', smallDiffs)
+def run(username, imageName, fast=False, saveStats=False, failOnError=False):
+    saveStep = Save(username, imageName)
+    saveStep.resetLogFile()
+    saveStep.deleteReference()
+    images = loadImages(username, imageName)
+
+    metadata = saveStep.getMetadata()
+
+    numImages = len(images)
+    captures = [Capture('{}_{}_Flash'.format(numImages - index, numImages), image, metadata[index]) for index, image in enumerate(images)]
+    #Brightest is index 0, dimmest is last
+
+    print('Cropping and Aligning')
+    try:
+        alignImages.cropAndAlignCaptures(captures)
+        #alignImages.cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture)
+    except Exception as err:
+        if failOnError:
+            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
+        else:
+            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
+            return getResponse(imageName, False)
+        
+
+    
+
+    #Now that they are aligned, use the same landmarks for all of them... (Maybe use the average?)
+    # -> Simplifies things down the line...
+    for capture in captures:
+        capture.landmarks = captures[0].landmarks
+    
+    
+    print('Done Cropping and aligning')
+
+    allPointsMask = captures[0].mask
+    for capture in captures:
+        np.logical_or(allPointsMask, capture.mask)
+
+    for capture in captures:
+        capture.whiteBalanceImageToD65()
+
+    maxFullFlash = np.max([np.max(capture.image) for capture in captures])
+    print('MAX VALUE :: ' + str(maxFullFlash))
+
+    for capture in captures:
+        capture.scaleToValue(maxFullFlash)
+
+    print('Subtracting Base from Flash')
+
+    fullFlashRangeDiff = captures[0].image.astype('int32') - captures[-1].image.astype('int32')
+    fullFlashRangeDiff[fullFlashRangeDiff == 0] = 1 #We will be dividing by this later
+
+    flashSteps = np.array([captures[index].image.astype('int32') - captures[index - 1].image.astype('int32') for index in range(1, len(captures))])
+
+
+    meanFlashStep = np.mean(flashSteps, axis=0)
+    flashStepDiffs = flashSteps - meanFlashStep
+
+    #meanDiffStack = np.abs(np.hstack(MeanDiff)).astype('uint8')
+    #smallShowImg = cv2.resize(meanDiffStack.astype('uint8'), (0, 0), fx=1/2, fy=1/2)
+    #cv2.imshow('MeanDiff', smallShowImg.astype('uint8'))
     #cv2.waitKey(0)
-    #saveStep.saveReferenceImageBGR(np.abs(diffs).astype('uint8'), 'Diff')
-    #saveStep.saveReferenceImageBGR(blurrDiffs.astype('uint8'), 'BlurDiff')
+
+    nonLinearityMasks = [getNonLinearityMask(flashStepDiff, fullFlashRangeDiff) for flashStepDiff in flashStepDiffs]
+
+    for nonLinearityMask in nonLinearityMasks:
+        allPointsMask = np.logical_or(allPointsMask, nonLinearityMask)
 
 
-    #cv2.imshow('All Points mask', allPointsMask.astype('uint8') * 255)
-    #cv2.imshow('Non Linear Mask', nonLinearMask.astype('uint8') * 255)
-    #cv2.waitKey(0)
-
-    #TODO: Compare Subpixel nonlinearity with full pixel nonlinearity....
-    #howLinearSum = np.sum(howLinear, axis=2)
-    #nonLinearMask = howLinearMax > 6#8 #12
-
-    allPointsMask = np.logical_or(allPointsMask, nonLinearMask)
-
-    #fullDiffImage = fullFlashCapture.image - noFlashCapture.image
-    #halfDiffImage = halfFlashCapture.image - noFlashCapture.image
-
-    #print('Diff Image :: ' + str(diffImage))
-    #noMask = np.zeros(allPointsMask.shape).astype('bool')
-    #fullDiffCapture = Capture('Diff', fullDiffImage, fullFlashCapture.metadata, noMask)
-
-    #fullDiffCapture = Capture('FullDiff', fullDiffImage, fullFlashCapture.metadata, allPointsMask)
-    #halfDiffCapture = Capture('Diff', halfDiffImage, halfFlashCapture.metadata, noMask)
-    #halfDiffCapture = Capture('HalfDiff', halfDiffImage, halfFlashCapture.metadata, allPointsMask)
-    #calculateNoise(fullDiffCapture, saveStep)
-    #calculateNoise(halfDiffCapture, saveStep)
-
-    #saveStep.saveReferenceImageBGR(halfDiffCapture.calculateNoise(), '{}Noise'.format(halfDiffCapture.name))
-    #saveStep.saveReferenceImageBGR(fullDiffCapture.calculateNoise(), '{}Noise'.format(fullDiffCapture.name))
-
-
-    #print('Getting Polygons')
-    #polygons = fullDiffCapture.landmarks.getFacePolygons()
-    #print('POLYGONS :: ' + str(polygons))
+    smallShowImg = cv2.resize(allPointsMask.astype('uint8') * 255, (0, 0), fx=1/2, fy=1/2)
+    cv2.imshow('All Points Mask', smallShowImg.astype('uint8'))
+    cv2.waitKey(0)
 
     if not fast:
         print('Saving Step 1')
