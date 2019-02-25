@@ -88,6 +88,8 @@ def cropImagesToAxis(images, offsets, axis):
     return croppedImages[:, 0], croppedImages[:, 1]
 
 def cropImagesToOffsets(images, offsets):
+    images = np.array(images)
+    offsets = np.array(offsets)
     updatedOffsets = np.copy(offsets)
     images, xOffsets = cropImagesToAxis(images, offsets[:, X], X)
     images, yOffsets = cropImagesToAxis(images, offsets[:, Y], Y)

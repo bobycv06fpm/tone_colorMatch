@@ -478,15 +478,8 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
 
     flashSteps = np.array([captures[index].image.astype('int32') - captures[index - 1].image.astype('int32') for index in range(1, len(captures))])
 
-
     meanFlashStep = np.mean(flashSteps, axis=0)
     flashStepDiffs = flashSteps - meanFlashStep
-
-    #meanDiffStack = np.abs(np.hstack(MeanDiff)).astype('uint8')
-    #smallShowImg = cv2.resize(meanDiffStack.astype('uint8'), (0, 0), fx=1/2, fy=1/2)
-    #cv2.imshow('MeanDiff', smallShowImg.astype('uint8'))
-    #cv2.waitKey(0)
-
     nonLinearityMasks = [getNonLinearityMask(flashStepDiff, fullFlashRangeDiff) for flashStepDiff in flashStepDiffs]
 
     for nonLinearityMask in nonLinearityMasks:
@@ -499,16 +492,12 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
 
     if not fast:
         print('Saving Step 1')
-        #saveStep.saveShapeStep(username, imageName, imageShape, 1)
-        saveStep.saveImageStep(np.clip(fullFlashCapture.image - noFlashCapture.image, 0, 255).astype('uint8'), 1)
+        saveStep.saveImageStep(np.clip(fullFlashRangeDiff, 0, 255).astype('uint8'), 1)
         saveStep.saveMaskStep(allPointsMask, 1, 'clippedMask')
 
-    #alignImages.alignEyes(noFlashCapture, halfFlashCapture, fullFlashCapture)
-    #whiteBalance_CIE1931_coord_asShot = saveStep.getAsShotWhiteBalance()
-    #print('White Balance As Shot :: ' + str(whiteBalance_CIE1931_coord_asShot))
 
     try:
-        [reflectionValue, leftLuminance, leftFluxish, rightLuminance, rightFluxish, leftReflectionValues, rightReflectionValues] = getAverageScreenReflectionColor(noFlashCapture, halfFlashCapture, fullFlashCapture, saveStep)
+        averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections = getAverageScreenReflectionColor(captures, saveStep)
     except Exception as err:
         if failOnError:
             raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
@@ -516,28 +505,10 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
             print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
             return getResponse(imageName, False)
 
-    averageFluxish = (leftFluxish + rightFluxish) / 2
-    print("Reflection Value:: " + str(reflectionValue))
-    print("Fluxish :: " + str(averageFluxish))
-    #diffCapture.show()
-
-    #saveStep.saveReferenceImageBGR(fullDiffCapture.getClippedImage(), 'full_noWhitebalancedImage')
-    #saveStep.saveReferenceImageBGR(halfDiffCapture.getClippedImage(), 'half_noWhitebalancedImage')
-
-#    colorTools.whitebalanceBGR(fullFlashCapture, reflectionValue)
-#    colorTools.whitebalanceBGR(halfFlashCapture, reflectionValue)
-#    colorTools.whitebalanceBGR(noFlashCapture, reflectionValue)
-
     #Want to reassign mask after getting screen reflection color. Masks get used in that step
-    noFlashCapture.mask = allPointsMask
-    halfFlashCapture.mask = allPointsMask
-    fullFlashCapture.mask = allPointsMask
 
-    #SCALE WBed IMAGES NOW?
-
-
-    #saveStep.saveReferenceImageBGR(fullDiffCapture.getClippedImage(), 'full_WhitebalancedImage')
-    #saveStep.saveReferenceImageBGR(halfDiffCapture.getClippedImage(), 'half_WhitebalancedImage')
+    for capture in captures:
+        capture.mask = allPointsMask
 
     try:
         #[fullPoints, fullPointsLeftCheek, fullPointsRightCheek, fullPointsChin, fullPointsForehead] = extractMask(fullDiffCapture, percentError, saveStep)
