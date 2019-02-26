@@ -4,7 +4,7 @@ import alignImages
 from getAverageReflection import getAverageScreenReflectionColor
 from saveStep import Save
 from getPolygons import getPolygons, getFullFacePolygon
-from extractMask import extractMask, maskPolygons
+#from extractMask import extractMask
 import colorTools
 import plotTools
 #import processPoints
@@ -17,6 +17,7 @@ import math
 import matplotlib.pyplot as plt
 #import landmarkPoints
 from capture import Capture 
+from faceRegions import FaceRegions
 
 import multiprocessing as mp
 import colorsys
@@ -447,20 +448,16 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
             print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
             return getResponse(imageName, False)
         
-
-    
-
     #Now that they are aligned, use the same landmarks for all of them... (Maybe use the average?)
     # -> Simplifies things down the line...
     for capture in captures:
         capture.landmarks = captures[0].landmarks
     
-    
     print('Done Cropping and aligning')
 
     allPointsMask = captures[0].mask
     for capture in captures:
-        np.logical_or(allPointsMask, capture.mask)
+        allPointsMask = np.logical_or(allPointsMask, capture.mask)
 
     for capture in captures:
         capture.whiteBalanceImageToD65()
@@ -486,9 +483,9 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         allPointsMask = np.logical_or(allPointsMask, nonLinearityMask)
 
 
-    smallShowImg = cv2.resize(allPointsMask.astype('uint8') * 255, (0, 0), fx=1/2, fy=1/2)
-    cv2.imshow('All Points Mask', smallShowImg.astype('uint8'))
-    cv2.waitKey(0)
+    #smallShowImg = cv2.resize(allPointsMask.astype('uint8') * 255, (0, 0), fx=1/2, fy=1/2)
+    #cv2.imshow('All Points Mask', smallShowImg.astype('uint8'))
+    #cv2.waitKey(0)
 
     if not fast:
         print('Saving Step 1')
@@ -507,15 +504,14 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
 
     #Want to reassign mask after getting screen reflection color. Masks get used in that step
 
+    print('Left Eye Reflections :: {}'.format(leftEyeReflections))
+    print('Right Eye Reflections :: {}'.format(rightEyeReflections))
+
     for capture in captures:
         capture.mask = allPointsMask
 
     try:
-        #[fullPoints, fullPointsLeftCheek, fullPointsRightCheek, fullPointsChin, fullPointsForehead] = extractMask(fullDiffCapture, percentError, saveStep)
-        [fullPoints, fullPointsLeftCheek, fullPointsRightCheek, fullPointsChin, fullPointsForehead] = extractMask(fullFlashCapture, percentError, saveStep)
-        #[halfPoints, halfPointsLeftCheek, halfPointsRightCheek, halfPointsChin, halfPointsForehead] = extractMask(halfDiffCapture, percentError, saveStep)
-        [halfPoints, halfPointsLeftCheek, halfPointsRightCheek, halfPointsChin, halfPointsForehead] = extractMask(halfFlashCapture, percentError, saveStep)
-        [noFlashPoints, noFlashPointsLeftCheek, noFlashPointsRightCheek, noFlashPointsChin, noFlashPointsForehead] = extractMask(noFlashCapture, percentError, saveStep)
+        faceRegions = [FaceRegions(capture) for capture in captures]
     except Exception as err:
         if failOnError:
             raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
@@ -523,35 +519,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
             print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
             return getResponse(imageName, False)
     else:
-        noPointsLeftCheek, leftCheekLinearityError, leftCheekClippingRatio = noFlashPointsLeftCheek
-        noPointsRightCheek, rightCheekLinearityError, rightCheekClippingRatio = noFlashPointsRightCheek
-        noPointsChin, chinLinearityError, chinClippingRatio = noFlashPointsChin
-        noPointsForehead, foreheadLinearityError, foreheadClippingRatio = noFlashPointsForehead
-
-        noFlashPointsLeftCheekMedian = np.median(noPointsLeftCheek, axis=0)
-        noFlashPointsRightCheekMedian = np.median(noPointsRightCheek, axis=0)
-        noFlashPointsChinMedian = np.median(noPointsChin, axis=0)
-        noFlashPointsForeheadMedian = np.median(noPointsForehead, axis=0)
-
-        halfPointsLeftCheek, leftCheekLinearityError, leftCheekClippingRatio = halfPointsLeftCheek
-        halfPointsRightCheek, rightCheekLinearityError, rightCheekClippingRatio = halfPointsRightCheek
-        halfPointsChin, chinLinearityError, chinClippingRatio = halfPointsChin
-        halfPointsForehead, foreheadLinearityError, foreheadClippingRatio = halfPointsForehead
-
-        halfFlashPointsLeftCheekMedian = np.median(halfPointsLeftCheek, axis=0)
-        halfFlashPointsRightCheekMedian = np.median(halfPointsRightCheek, axis=0)
-        halfFlashPointsChinMedian = np.median(halfPointsChin, axis=0)
-        halfFlashPointsForeheadMedian = np.median(halfPointsForehead, axis=0)
-
-        fullPointsLeftCheek, leftCheekLinearityError, leftCheekClippingRatio = fullPointsLeftCheek
-        fullPointsRightCheek, rightCheekLinearityError, rightCheekClippingRatio = fullPointsRightCheek
-        fullPointsChin, chinLinearityError, chinClippingRatio = fullPointsChin
-        fullPointsForehead, foreheadLinearityError, foreheadClippingRatio = fullPointsForehead
-
-        fullFlashPointsLeftCheekMedian = np.median(fullPointsLeftCheek, axis=0)
-        fullFlashPointsRightCheekMedian = np.median(fullPointsRightCheek, axis=0)
-        fullFlashPointsChinMedian = np.median(fullPointsChin, axis=0)
-        fullFlashPointsForeheadMedian = np.median(fullPointsForehead, axis=0)
+        saveStep.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')
 
         size=1
         # Start Linearity Plot

@@ -6,6 +6,7 @@ import colorTools
 import alignImages
 import cropTools
 import colorsys
+import math
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -207,16 +208,16 @@ def getAverageScreenReflectionColor(captures, saveStep):
     leftReflectionStats = np.array([extractReflectionPoints(leftReflectionBB, eyeCrop, eyeMask) for eyeCrop, eyeMask in zip(leftEyeCrops, leftEyeMasks)])
     rightReflectionStats = np.array([extractReflectionPoints(rightReflectionBB, eyeCrop, eyeMask) for eyeCrop, eyeMask in zip(rightEyeCrops, rightEyeMasks)])
 
-    averageReflections = ((leftReflectionStats[:, 0] + rightReflectionStats[:, 0]) / 2).astype('uint16')
+    averageReflections = (leftReflectionStats[:, 0] + rightReflectionStats[:, 0]) / 2
 
     print('AVERAGE NO, HALF, FULL REFLECTION :: {}'.format(averageReflections))
 
     #Whitebalance per flash and eye to get luminance levels... Maybe compare the average reflection values?
-    wbLeftReflection = [colorTools.whitebalanceBGRPoints(leftReflection, averageReflection) for leftReflection, averageReflection in zip(leftReflectionStats[:, 0], averageReflections)]
-    wbRightReflection = [colorTools.whitebalanceBGRPoints(rightReflection, averageReflection) for rightReflection, averageReflection in zip(rightReflectionStats[:, 0], averageReflections)]
+    wbLeftReflections = [colorTools.whitebalanceBGRPoints(leftReflection, averageReflection) for leftReflection, averageReflection in zip(leftReflectionStats[:, 0], averageReflections)]
+    wbRightReflections = [colorTools.whitebalanceBGRPoints(rightReflection, averageReflection) for rightReflection, averageReflection in zip(rightReflectionStats[:, 0], averageReflections)]
     #GET Luminance in reflection per flash and eye
-    leftReflectionLuminances = [colorTools.getRelativeLuminance([leftReflection])[0] for leftReflection in wbLeftReflection]
-    rightReflectionLuminances = [colorTools.getRelativeLuminance([rightReflection])[0] for rightReflection in wbRightReflection]
+    leftReflectionLuminances = [colorTools.getRelativeLuminance([leftReflection])[0] for leftReflection in wbLeftReflections]
+    rightReflectionLuminances = [colorTools.getRelativeLuminance([rightReflection])[0] for rightReflection in wbRightReflections]
 
     eyeWidth = getEyeWidth(captures[0])
 
@@ -245,8 +246,8 @@ def getAverageScreenReflectionColor(captures, saveStep):
 
     middleIndex = math.floor(len(captures) / 2)
 
-    leftHalfReflectionLuminance = leftHalfReflectionLuminances[middleIndex] * 2 #2x because we are using half
-    rightHalfReflectionLuminance = rightHalfReflectionLuminances[middleIndex] * 2 #2x because we are using half
+    leftHalfReflectionLuminance = leftReflectionLuminances[middleIndex] * 2 #2x because we are using half
+    rightHalfReflectionLuminance = rightReflectionLuminances[middleIndex] * 2 #2x because we are using half
 
     leftFluxish = leftReflectionArea * leftHalfReflectionLuminance
     rightFluxish = rightReflectionArea * rightHalfReflectionLuminance
