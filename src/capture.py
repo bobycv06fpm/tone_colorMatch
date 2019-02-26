@@ -21,6 +21,9 @@ class Capture:
         if mask is not None:
             self.mask = np.logical_or(self.mask, mask)
 
+    def getLargestValue(self):
+        return np.max(self.image)
+
     def blurredImage(self):
         return cv2.GaussianBlur(self.image, (5, 5), 0)
         #return cv2.medianBlur(self.image.astype('uint16'), 5)

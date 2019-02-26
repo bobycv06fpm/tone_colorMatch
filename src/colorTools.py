@@ -286,7 +286,7 @@ def convertSingle_linearValue_to_sValue(point):
 def whitebalanceBGR(capture, wb):
     targetValue = max(wb)
     wbMultiplier = [targetValue, targetValue, targetValue] / wb
-    capture.image = (capture.image * wbMultiplier).astype('uint16')
+    capture.image = (capture.image * wbMultiplier)#.astype('uint16')
 
 def whitebalanceBGRImage(image, wb):
     targetValue = max(wb)

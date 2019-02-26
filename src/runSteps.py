@@ -69,24 +69,24 @@ def unRotateHue(hue):
     hue[np.logical_not(shiftMask)] += 2/3
     return hue
 
-def cullPoints(points):
-    median = np.median(points, axis=0)
-    sd = np.std(points, axis=0)
-
-    deviations = 2
-    boundsLow = median - (deviations * sd)
-    boundsHigh = median + (deviations * sd)
-
-    hueMask = np.logical_and(points[:, 0] > boundsLow[0], points[:, 0] < boundsHigh[0])
-    saturationMask = np.logical_and(points[:, 1] > boundsLow[1], points[:, 1] < boundsHigh[1])
-    valueMask = np.logical_and(points[:, 2] > boundsLow[2], points[:, 2] < boundsHigh[2])
-
-    fullMask = np.logical_and(hueMask, saturationMask)
-    fullMask = np.logical_and(fullMask, valueMask)
-    culled = points[fullMask]
-    #print('Shape Before :: ' + str(points.shape))
-    #print('Shape After :: ' + str(culled.shape))
-    return culled
+#def cullPoints(points):
+#    median = np.median(points, axis=0)
+#    sd = np.std(points, axis=0)
+#
+#    deviations = 2
+#    boundsLow = median - (deviations * sd)
+#    boundsHigh = median + (deviations * sd)
+#
+#    hueMask = np.logical_and(points[:, 0] > boundsLow[0], points[:, 0] < boundsHigh[0])
+#    saturationMask = np.logical_and(points[:, 1] > boundsLow[1], points[:, 1] < boundsHigh[1])
+#    valueMask = np.logical_and(points[:, 2] > boundsLow[2], points[:, 2] < boundsHigh[2])
+#
+#    fullMask = np.logical_and(hueMask, saturationMask)
+#    fullMask = np.logical_and(fullMask, valueMask)
+#    culled = points[fullMask]
+#    #print('Shape Before :: ' + str(points.shape))
+#    #print('Shape After :: ' + str(culled.shape))
+#    return culled
 
 
 def plotZones(leftCheek, rightCheek, chin, forehead, saveStep, tag=''):
@@ -425,6 +425,24 @@ def getNonLinearityMask(flashStepDiff, fullFlashRangeDiff):
     return nonLinearMask
 
 
+def plotPerRegionLinearity(faceRegions, saveStep):
+        captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
+        numberOfRegions = captureFaceRegions.shape[1]
+        numberOfCaptures = captureFaceRegions.shape[0]
+
+        size=50
+        colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1)]
+        flashRatios = [(numberOfCaptures - flashIndex) / numberOfCaptures for flashIndex in range(0, numberOfCaptures)]
+
+        #Plot Red
+        for regionIndex in range(0, numberOfRegions):
+            print('Regions :: ' + str(captureFaceRegions[:, regionIndex]))
+            plotBGR(plt, colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 2])
+
+        plt.xlabel('Screen Flash Ratio')
+        plt.ylabel('Red Channel Magnitude')
+        saveStep.savePlot('RegionLinearity', plt)
+
 def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     saveStep = Save(username, imageName)
     saveStep.resetLogFile()
@@ -462,11 +480,11 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     for capture in captures:
         capture.whiteBalanceImageToD65()
 
-    maxFullFlash = np.max([np.max(capture.image) for capture in captures])
-    print('MAX VALUE :: ' + str(maxFullFlash))
+    maxValue = np.max([np.max(capture.image) for capture in captures])
+    print('MAX VALUE :: ' + str(maxValue))
 
     for capture in captures:
-        capture.scaleToValue(maxFullFlash)
+        capture.scaleToValue(maxValue)
 
     print('Subtracting Base from Flash')
 
@@ -508,7 +526,14 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     print('Right Eye Reflections :: {}'.format(rightEyeReflections))
 
     for capture in captures:
+        colorTools.whitebalanceBGR(capture, averageReflection)
         capture.mask = allPointsMask
+
+    maxValue = np.max([np.max(capture.image) for capture in captures])
+    print('MAX VALUE :: ' + str(maxValue))
+
+    for capture in captures:
+        capture.scaleToValue(maxValue)
 
     try:
         faceRegions = [FaceRegions(capture) for capture in captures]
@@ -521,44 +546,35 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     else:
         saveStep.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')
 
-        size=1
-        # Start Linearity Plot
-        plotBGR(plt, (1, 0, 0), 50, [(1/3), (2/3), 1.0], [noFlashPointsLeftCheekMedian[2], halfFlashPointsLeftCheekMedian[2], fullFlashPointsLeftCheekMedian[2]])
-        plotBGR(plt, (1, 1, 0), 50, [(1/3), (2/3), 1.0], [noFlashPointsRightCheekMedian[2], halfFlashPointsRightCheekMedian[2], fullFlashPointsRightCheekMedian[2]])
-        plotBGR(plt, (0, 1, 0), 50, [(1/3), (2/3), 1.0], [noFlashPointsChinMedian[2], halfFlashPointsChinMedian[2], fullFlashPointsChinMedian[2]])
-        plotBGR(plt, (0, 0, 1), 50, [(1/3), (2/3), 1.0], [noFlashPointsForeheadMedian[2], halfFlashPointsForeheadMedian[2], fullFlashPointsForeheadMedian[2]])
+        plotPerRegionLinearity(faceRegions, saveStep)
 
-        #plt.show()
-        saveStep.savePlot('Zone Linearity', plt)
 
         # End Linearity Plot
 
-        largestValue = np.max(fullPoints)
-        print('LARGEST VALUE :: ' + str(largestValue))
 
-        scaleDivisor = largestValue / 255
-        scaledLeftFluxish = leftFluxish / scaleDivisor
-        scaledRightFluxish = rightFluxish / scaleDivisor
-        scaledAverageFluxish = averageFluxish / scaleDivisor
+        #scaleDivisor = largestValue / 255
+        #scaledLeftFluxish = leftFluxish / scaleDivisor
+        #scaledRightFluxish = rightFluxish / scaleDivisor
+        #scaledAverageFluxish = averageFluxish / scaleDivisor
 
-        scaledFullPointsLeftCheek = fullPointsLeftCheek / scaleDivisor
-        scaledFullPointsRightCheek = fullPointsRightCheek / scaleDivisor
-        scaledFullPointsChin = fullPointsChin / scaleDivisor
-        scaledFullPointsForehead = fullPointsForehead / scaleDivisor
+        #scaledFullPointsLeftCheek = fullPointsLeftCheek / scaleDivisor
+        #scaledFullPointsRightCheek = fullPointsRightCheek / scaleDivisor
+        #scaledFullPointsChin = fullPointsChin / scaleDivisor
+        #scaledFullPointsForehead = fullPointsForehead / scaleDivisor
 
-        scaledHalfPointsLeftCheek = halfPointsLeftCheek / scaleDivisor
-        scaledHalfPointsRightCheek = halfPointsRightCheek / scaleDivisor
-        scaledHalfPointsChin = halfPointsChin / scaleDivisor
-        scaledHalfPointsForehead = halfPointsForehead / scaleDivisor
+        #scaledHalfPointsLeftCheek = halfPointsLeftCheek / scaleDivisor
+        #scaledHalfPointsRightCheek = halfPointsRightCheek / scaleDivisor
+        #scaledHalfPointsChin = halfPointsChin / scaleDivisor
+        #scaledHalfPointsForehead = halfPointsForehead / scaleDivisor
 
-        scaledNoPointsLeftCheek = noPointsLeftCheek / scaleDivisor
-        scaledNoPointsRightCheek = noPointsRightCheek / scaleDivisor
-        scaledNoPointsChin = noPointsChin / scaleDivisor
-        scaledNoPointsForehead = noPointsForehead / scaleDivisor
+        #scaledNoPointsLeftCheek = noPointsLeftCheek / scaleDivisor
+        #scaledNoPointsRightCheek = noPointsRightCheek / scaleDivisor
+        #scaledNoPointsChin = noPointsChin / scaleDivisor
+        #scaledNoPointsForehead = noPointsForehead / scaleDivisor
 
-        print('Unscaled :: ' + str(fullPointsChin))
-        print('Scaled Full :: ' + str(scaledFullPointsChin))
-        print('Scaled Half :: ' + str(scaledHalfPointsChin))
+        #print('Unscaled :: ' + str(fullPointsChin))
+        #print('Scaled Full :: ' + str(scaledFullPointsChin))
+        #print('Scaled Half :: ' + str(scaledHalfPointsChin))
 
 
         #scaledFullPointsLeftCheek = cullPoints(scaledFullPointsLeftCheek)

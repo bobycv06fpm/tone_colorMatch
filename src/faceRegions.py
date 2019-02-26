@@ -28,3 +28,12 @@ class FaceRegions:
     def getMaskedImage(self):
         return extractMask.getMaskedImage(self.capture.image, self.capture.mask, [self.leftCheekPolygon, self.rightCheekPolygon, self.chinPolygon, self.foreheadPolygon])
 
+    def getRegionPoints(self):
+        return np.array([self.leftCheekPoints, self.rightCheekPoints, self.chinPoints, self.foreheadPoints])
+
+    def getRegionMedians(self):
+        return np.array([self.leftCheekMedian, self.rightCheekMedian, self.chinMedian, self.foreheadMedian])
+
+    def getRegionCleanRatios(self):
+        return np.array([self.leftCheekCleanRatio, self.rightCheekCleanRatio, self.chinCleanRatio, self.foreheadCleanRatio])
+
