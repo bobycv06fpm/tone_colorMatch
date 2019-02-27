@@ -99,7 +99,7 @@ def getLuminosity(image):#, image, blur=101, dimensions=3):
     return luminosity
 
 def getPreparedEye(gray):
-    gray = cv2.bilateralFilter(np.clip(gray, 0, 255).astype('uint8'),30,300,300)
+    gray = cv2.bilateralFilter(np.clip(gray, 0, 255).astype('uint8'),30,150,150)
     prepped = cv2.Sobel(gray, cv2.CV_16S, 1, 1, ksize=5)
     return np.float32(prepped)
 
@@ -108,6 +108,9 @@ def cropAndAlignEyes(eyes):
     stretchedEyes = [stretchHistogram(greyEye) for greyEye in greyEyes]
     preparedEyes = [getPreparedEye(stretchedEye) for stretchedEye in stretchedEyes]
 
+    #preparedShow = np.hstack(preparedEyes)
+    #cv2.imshow('prepared', preparedShow)
+    #cv2.waitKey(0)
 
     middleEyeIndex = math.floor(len(eyes) / 2)
     eyeOffsets = [calculateOffset(preparedEye, preparedEyes[middleEyeIndex]) for preparedEye in preparedEyes]
@@ -154,14 +157,19 @@ def cropAndAlignCaptures(captures):
     print('six')
     scaledStretchedImages = [np.clip(np.floor(stretchedImage * flashMultiplier), 0, 255) for stretchedImage, flashMultiplier in zip(stretchedImages, flashMultipliers)]
 
-    print('seven')
-    blur = 5
-    blurredScaledStretchedImages = [cv2.GaussianBlur(scaledStretchedImage, (blur, blur), 0) for scaledStretchedImage in scaledStretchedImages]
+    #print('seven')
+    #blur = 5
+    #blurredScaledStretchedImages = [cv2.GaussianBlur(scaledStretchedImage, (blur, blur), 0) for scaledStretchedImage in scaledStretchedImages]
 
     print("Preparing Images")
-    preparedImages = [getPrepared(blurredScaledStretchedImage, mask) for blurredScaledStretchedImage, mask in zip(blurredScaledStretchedImages, masks)]
-    #preparedImages = [getPrepared(scaledStretchedImage, mask) for scaledStretchedImage, mask in zip(scaledStretchedImages, masks)]
+    #preparedImages = [getPrepared(blurredScaledStretchedImage, mask) for blurredScaledStretchedImage, mask in zip(blurredScaledStretchedImages, masks)]
+    preparedImages = [getPrepared(scaledStretchedImage, mask) for scaledStretchedImage, mask in zip(scaledStretchedImages, masks)]
     print("Done Preparing Images")
+
+    #preparedShow = np.hstack(preparedImages)
+    #preparedShow = cv2.resize(preparedShow, (0, 0), fx=1/3, fy=1/3)
+    #cv2.imshow('prepared', preparedShow)
+    #cv2.waitKey(0)
 
     print("Calculating Offset")
     imageOffsets = [calculateOffset(preparedImage, preparedImages[middleImageIndex]) for preparedImage in preparedImages]

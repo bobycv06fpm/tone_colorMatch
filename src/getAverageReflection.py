@@ -194,8 +194,6 @@ def getAverageScreenReflectionColor(captures, saveStep):
     leftReflectionBB = maskReflectionBB(leftEyeCrops)
     rightReflectionBB = maskReflectionBB(rightEyeCrops)
 
-    print('leftEyeCoords :: ' + str(leftEyeCoords))
-    print('leftEyeOffsets :: ' + str(leftEyeOffsets))
     leftEyeCoords[:, 0:2] += leftEyeOffsets
     rightEyeCoords[:, 0:2] += rightEyeOffsets
 

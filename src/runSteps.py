@@ -282,7 +282,6 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     print('Cropping and Aligning')
     try:
         alignImages.cropAndAlignCaptures(captures)
-        #alignImages.cropAndAlign(noFlashCapture, halfFlashCapture, fullFlashCapture)
     except Exception as err:
         if failOnError:
             raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
