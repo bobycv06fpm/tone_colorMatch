@@ -26,10 +26,10 @@ class FaceRegions:
 
     def getRegionMapValue(self):
         value = {}
-        value['left'] = self.leftCheekMedian
-        value['right'] = self.rightCheekMedian
-        value['chin'] = self.chinMedian
-        value['forehead'] = self.foreheadMedian
+        value['left'] = [float(value) for value in self.leftCheekMedian]
+        value['right'] = [float(value) for value in self.rightCheekMedian]
+        value['chin'] = [float(value) for value in self.chinMedian]
+        value['forehead'] = [float(value) for value in self.foreheadMedian]
         return value
 
     def maxSubpixelValue(self):

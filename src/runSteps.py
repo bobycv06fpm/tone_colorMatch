@@ -141,8 +141,8 @@ def getRegionMapBGR(leftCheek, rightCheek, chin, forehead):
 
 def getReflectionMap(leftReflection, rightReflection):
     value = {}
-    value['left'] = list(leftReflection)
-    value['right'] = list(rightReflection)
+    value['left'] = [float(value) for value in leftReflection]
+    value['right'] = [float(value) for value in rightReflection]
 
     return value
 

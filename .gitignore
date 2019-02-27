@@ -141,3 +141,4 @@ tools/compare.PNG
 tools/output.txt
 tools/*.PNG
 tools/*.png
+tools/*.json
