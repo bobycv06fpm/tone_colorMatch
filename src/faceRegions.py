@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 import extractMask
+import colorTools
+import colorsys
 
 class FaceRegions:
 
@@ -22,6 +24,14 @@ class FaceRegions:
         self.chinMedian = np.median(self.chinPoints, axis=0)
         self.foreheadMedian = np.median(self.foreheadPoints, axis=0)
 
+    def getRegionMapValue(self):
+        value = {}
+        value['left'] = self.leftCheekMedian
+        value['right'] = self.rightCheekMedian
+        value['chin'] = self.chinMedian
+        value['forehead'] = self.foreheadMedian
+        return value
+
     def maxSubpixelValue(self):
         return np.max([np.max(region) for region in [self.leftCheekPoints, self.rightCheekPoints, self.chinPoints, self.foreheadPoints]])
 
@@ -34,6 +44,22 @@ class FaceRegions:
     def getRegionMedians(self):
         return np.array([self.leftCheekMedian, self.rightCheekMedian, self.chinMedian, self.foreheadMedian])
 
+    def getRegionMedianHSV(self):
+        return [colorsys.rgb_to_hsv(r, g, b) for b, g, r in self.getRegionMedians()]
+
+    def getRegionHSV(self):
+        #Need to match CV2 result with colorsys result H: [0-1] S: [0-1] V: [0-255] so divide by [255, 255, 1]
+        return [cv2.cvtColor(np.array([regionPoints]).astype('uint8'), cv2.COLOR_BGR2HSV_FULL)[0] / np.array([255, 255, 1]) for regionPoints in self.getRegionPoints()]
+
+    def getRegionMedianLuminance(self):
+        return [colorTools.getRelativeLuminance([regionMedian]) for regionMedian in self.getRegionMedians()]
+
+    def getRegionLuminance(self):
+        return [colorTools.getRelativeLuminance(regionPoints) for regionPoints in self.getRegionPoints()]
+
     def getRegionCleanRatios(self):
         return np.array([self.leftCheekCleanRatio, self.rightCheekCleanRatio, self.chinCleanRatio, self.foreheadCleanRatio])
+
+    def getNumberOfRegions(self):
+        return 4
 
