@@ -53,7 +53,7 @@ def stretchHistogram(gray, mask=None):
     return stretched
 
 def getPrepared(gray, mask):
-    prepped = cv2.Sobel(gray, cv2.CV_16S, 1, 1, ksize=5)
+    prepped = cv2.Sobel(gray, cv2.CV_16S, 1, 1, ksize=9)
     preppedMasked = prepped * mask
     return np.float32(preppedMasked)
 
@@ -145,25 +145,13 @@ def cropAndAlignCaptures(captures):
     print('three')
     stretchedImages = [stretchHistogram(image, mask) for image, mask in zip(greyImages, masks)]
 
+    #stretchedShow = np.hstack(stretchedImages)
+    #stretchedShow = cv2.resize(stretchedShow, (0, 0), fx=1/3, fy=1/3)
+    #cv2.imshow('stretched', stretchedShow.astype('uint8'))
+    #cv2.waitKey(0)
+
     print('four')
-    #REMOVE ONCE PARTIAL ILLUMINATION ON NO FLASH IS ADDED?
-    imageLuminosities = [getLuminosity(image) for image in stretchedImages]
-
-    print('five')
-    #Scale images to the luminosity of the middle image
-    middleImageIndex = math.floor(len(imageLuminosities) / 2)
-    flashMultipliers = [imageLuminosity / imageLuminosities[middleImageIndex] for imageLuminosity in imageLuminosities]
-
-    print('six')
-    scaledStretchedImages = [np.clip(np.floor(stretchedImage * flashMultiplier), 0, 255) for stretchedImage, flashMultiplier in zip(stretchedImages, flashMultipliers)]
-
-    #print('seven')
-    #blur = 5
-    #blurredScaledStretchedImages = [cv2.GaussianBlur(scaledStretchedImage, (blur, blur), 0) for scaledStretchedImage in scaledStretchedImages]
-
-    print("Preparing Images")
-    #preparedImages = [getPrepared(blurredScaledStretchedImage, mask) for blurredScaledStretchedImage, mask in zip(blurredScaledStretchedImages, masks)]
-    preparedImages = [getPrepared(scaledStretchedImage, mask) for scaledStretchedImage, mask in zip(scaledStretchedImages, masks)]
+    preparedImages = [getPrepared(stretchedImage, mask) for stretchedImage, mask in zip(stretchedImages, masks)]
     print("Done Preparing Images")
 
     #preparedShow = np.hstack(preparedImages)
@@ -172,6 +160,7 @@ def cropAndAlignCaptures(captures):
     #cv2.waitKey(0)
 
     print("Calculating Offset")
+    middleImageIndex = math.floor(len(captures) / 2)
     imageOffsets = [calculateOffset(preparedImage, preparedImages[middleImageIndex]) for preparedImage in preparedImages]
     print("Done Calculating Offset")
 
