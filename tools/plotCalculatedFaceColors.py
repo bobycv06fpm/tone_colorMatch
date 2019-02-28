@@ -87,16 +87,20 @@ for faceData in facesData:
     if (faceData['name'] in blacklist) or not faceData['successful']:
         continue
 
-    if not isinstance(faceData['noFlashValues']['chin'], list):
-        print('NOT A LIST :: ' + faceData['name'])
-        break
+    for key in faceData['captures']:
+        print('{} -> {}'.format(key, faceData['captures'][key]))
 
-    mapResultsRegions(noFlash, faceData['noFlashValues'])
-    mapResultsRegions(halfFlash, faceData['halfFlashValues'])
-    mapResultsRegions(fullFlash, faceData['fullFlashValues'])
-    mapResultsRegions(linearity, faceData['linearity'])
-    mapResultsRegions(cleanRatio, faceData['cleanRatio'])
-    mapResultsRegions(fluxish, faceData['fluxishValues'])
+    #if not isinstance(faceData['noFlashValues']['chin'], list):
+    #    print('NOT A LIST :: ' + faceData['name'])
+    #    break
+
+
+    #mapResultsRegions(noFlash, faceData['noFlashValues'])
+    #mapResultsRegions(halfFlash, faceData['halfFlashValues'])
+    #mapResultsRegions(fullFlash, faceData['fullFlashValues'])
+    #mapResultsRegions(linearity, faceData['linearity'])
+    #mapResultsRegions(cleanRatio, faceData['cleanRatio'])
+    #mapResultsRegions(fluxish, faceData['fluxishValues'])
 
     mapResultsFlash(leftReflections, rightReflections, sidesReflections, meanReflections, faceData['reflectionValues'])
 

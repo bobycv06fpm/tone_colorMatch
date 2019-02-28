@@ -150,6 +150,7 @@ def getResponse(imageName, successful, captureSets=None):
     response = {}
     response['name'] = imageName
     response['successful'] = successful
+    response['captures'] = {}
 
     if not successful:
         return response
@@ -157,9 +158,9 @@ def getResponse(imageName, successful, captureSets=None):
     for captureSet in captureSets:
         faceRegions, leftEyeReflection, rightEyeReflection = captureSet
         key = faceRegions.capture.name
-        response[key] = {}
-        response[key]['regions'] = faceRegions.getRegionMapValue()
-        response[key]['reflections'] = getReflectionMap(leftEyeReflection, rightEyeReflection)
+        response['captures'][key] = {}
+        response['captures'][key]['regions'] = faceRegions.getRegionMapValue()
+        response['captures'][key]['reflections'] = getReflectionMap(leftEyeReflection, rightEyeReflection)
 
     #response['noFlashValues'] = getRegionMapBGR(*noFlashValues)
     #response['halfFlashValues'] = getRegionMapBGR(*halfFlashValues)
@@ -273,7 +274,8 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     metadata = saveStep.getMetadata()
 
     if not isMetadataValid(metadata):
-        raise NameError('User :: {} | Image :: {} | Error :: {}'.format(username, imageName, 'Metadata does not Match'))
+        print('User :: {} | Image :: {} | Error :: {}'.format(username, imageName, 'Metadata does not Match'))
+        return getResponse(imageName, False)
 
     numImages = len(images)
     captures = [Capture('{}_{}_Flash'.format(numImages - index, numImages), image, metadata[index]) for index, image in enumerate(images)]
