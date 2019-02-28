@@ -130,6 +130,28 @@ def plotBGR(axs, color, size, x, y):
     m, c = fitLine(x_sample, y_sample)
     axs.plot([start_x, end_x], [(m * start_x + c), (m * end_x + c)], color=color)
 
+def plotPerEyeReflectionBrightness(leftEyeReflections, rightEyeReflections, saveStep):
+    size = 25
+    numCaptures = len(leftEyeReflections)
+    expectedBrightness = [(numCaptures - value) / numCaptures for value in range(0, numCaptures)]
+
+    leftEyeReflectionsLuminance = colorTools.getRelativeLuminance(leftEyeReflections)
+    rightEyeReflectionsLuminance = colorTools.getRelativeLuminance(rightEyeReflections)
+
+    plt.scatter(expectedBrightness, leftEyeReflectionsLuminance, size, (1, 0, 0))
+    m, c = fitLine(expectedBrightness, leftEyeReflectionsLuminance)
+    plt.plot([0, 1], [c, (m + c)], color=(1, 0, 0))
+
+    plt.scatter(expectedBrightness, rightEyeReflectionsLuminance, size, (0, 0, 1))
+    m, c = fitLine(expectedBrightness, rightEyeReflectionsLuminance)
+    plt.plot([0, 1], [c, (m + c)], color=(1, 0, 0))
+
+    plt.title('Measured Reflection Brightness vs Expected Reflection Brightness')
+    plt.xlabel('Expected Reflection Brightness')
+    plt.ylabel('Measured Reflectoin Brightness')
+
+    saveStep.savePlot('Measured_vs_Expected_Reflection', plt)
+
 def getRegionMapBGR(leftCheek, rightCheek, chin, forehead):
     value = {}
     value['left'] = list(leftCheek)
@@ -204,7 +226,7 @@ def plotPerRegionLinearity(faceRegions, saveStep):
     numberOfRegions = captureFaceRegions.shape[1]
     numberOfCaptures = captureFaceRegions.shape[0]
 
-    size=50
+    size=25
     colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1)]
     flashRatios = [(numberOfCaptures - flashIndex) / numberOfCaptures for flashIndex in range(0, numberOfCaptures)]
 
@@ -222,9 +244,7 @@ def plotPerRegionPoints(faceRegionsSets, saveStep):
     colors = [(1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 0), (1, 0, 1), (0, 1, 1), (0, 0, 0)]
 
     numRegions = faceRegionsSets[0].getNumberOfRegions()
-    numCaptures = len(faceRegionsSets)
-
-    fig, axs = plt.subplots(numCaptures, numRegions, sharex=False, sharey=False, tight_layout=True)
+    fig, axs = plt.subplots(3, numRegions, sharex=True, sharey=True, tight_layout=True)
 
     #Red vs Green
     for region in range(0, numRegions):
@@ -374,6 +394,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         plotPerRegionLinearity(faceRegions, saveStep)
         plotPerRegionPoints(faceRegions, saveStep)
         plotPerRegionDistribution(faceRegions, saveStep)
+        plotPerEyeReflectionBrightness(leftEyeReflections, rightEyeReflections, saveStep)
 
 
         #NEW RULES: COLORS ARE RETURNED IN BGR
