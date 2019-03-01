@@ -163,8 +163,8 @@ def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask):
 
     representativeReflectionPoint = calculateRepresentativeReflectionPoint(reflectionPoints)
 
-    if cleanPixelRatio < 0.8:
-        raise NameError('Not enough clean non-clipped pixels in eye reflections')
+    #if cleanPixelRatio < 0.8:
+    #    raise NameError('Not enough clean non-clipped pixels in eye reflections')
 
     return [representativeReflectionPoint, cleanPixelRatio]
 
@@ -212,8 +212,12 @@ def getAverageScreenReflectionColor(captures, saveStep):
     print('AVERAGE NO, HALF, FULL REFLECTION :: {}'.format(averageReflections))
 
     #Whitebalance per flash and eye to get luminance levels... Maybe compare the average reflection values?
-    wbLeftReflections = np.vstack([colorTools.whitebalanceBGRPoints(leftReflection, averageReflection) for leftReflection, averageReflection in zip(leftReflectionStats[:, 0], averageReflections)])
-    wbRightReflections = np.vstack([colorTools.whitebalanceBGRPoints(rightReflection, averageReflection) for rightReflection, averageReflection in zip(rightReflectionStats[:, 0], averageReflections)])
+
+    #wbLeftReflections = np.vstack([colorTools.whitebalanceBGRPoints(leftReflection, averageReflection) for leftReflection, averageReflection in zip(leftReflectionStats[:, 0], averageReflections)])
+    wbLeftReflections = np.vstack(leftReflectionStats[:, 0])
+    #wbRightReflections = np.vstack([colorTools.whitebalanceBGRPoints(rightReflection, averageReflection) for rightReflection, averageReflection in zip(rightReflectionStats[:, 0], averageReflections)])
+    wbRightReflections = np.vstack(rightReflectionStats[:, 0])
+
     #GET Luminance in reflection per flash and eye
     leftReflectionLuminances = [colorTools.getRelativeLuminance([leftReflection])[0] for leftReflection in wbLeftReflections]
     rightReflectionLuminances = [colorTools.getRelativeLuminance([rightReflection])[0] for rightReflection in wbRightReflections]
