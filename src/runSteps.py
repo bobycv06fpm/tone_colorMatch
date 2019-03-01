@@ -135,8 +135,10 @@ def plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeRefl
     numCaptures = len(leftEyeReflections)
     expectedBrightness = np.array([regions.capture.flashRatio for regions in faceRegions])
 
-    leftEyeReflectionsLuminance = colorTools.getRelativeLuminance(leftEyeReflections)
-    rightEyeReflectionsLuminance = colorTools.getRelativeLuminance(rightEyeReflections)
+    print('leftEyeReflections :: ' + str(leftEyeReflections))
+    print('rightEyeReflections :: ' + str(rightEyeReflections))
+    leftEyeReflectionsLuminance = np.max(leftEyeReflections, axis=1) #colorTools.getRelativeLuminance(leftEyeReflections)
+    rightEyeReflectionsLuminance = np.max(rightEyeReflections, axis=1) #colorTools.getRelativeLuminance(rightEyeReflections)
 
     plt.scatter(expectedBrightness, leftEyeReflectionsLuminance, size, (1, 0, 0))
     m, c = fitLine(expectedBrightness, leftEyeReflectionsLuminance)
@@ -341,14 +343,14 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     for capture in captures:
         allPointsMask = np.logical_or(allPointsMask, capture.mask)
 
-    for capture in captures:
-        capture.whiteBalanceImageToD65()
+    #for capture in captures:
+    #    capture.whiteBalanceImageToD65()
 
     maxValue = np.max([np.max(capture.image) for capture in captures])
     print('MAX VALUE :: ' + str(maxValue))
 
-    for capture in captures:
-        capture.scaleToValue(maxValue)
+    #for capture in captures:
+    #    capture.scaleToValue(maxValue)
 
     print('Subtracting Base from Flash')
 
@@ -390,14 +392,14 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     print('Right Eye Reflections :: {}'.format(rightEyeReflections))
 
     for capture in captures:
-        colorTools.whitebalanceBGR(capture, averageReflection)
+        #colorTools.whitebalanceBGR(capture, averageReflection)
         capture.mask = allPointsMask
 
     maxValue = np.max([np.max(capture.image) for capture in captures])
     print('MAX VALUE :: ' + str(maxValue))
 
-    for capture in captures:
-        capture.scaleToValue(maxValue)
+    #for capture in captures:
+    #    capture.scaleToValue(maxValue)
 
     try:
         faceRegions = np.array([FaceRegions(capture) for capture in captures])
