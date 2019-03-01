@@ -229,14 +229,20 @@ def plotPerRegionLinearity(faceRegions, saveStep):
     size=25
     colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1)]
     flashRatios = [(numberOfCaptures - flashIndex) / numberOfCaptures for flashIndex in range(0, numberOfCaptures)]
+    fig, axs = plt.subplots(1, 3, sharex=True, sharey=True, tight_layout=True)
 
-    #Plot Red
     for regionIndex in range(0, numberOfRegions):
         print('Regions :: ' + str(captureFaceRegions[:, regionIndex]))
-        plotBGR(plt, colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 2])
+        plotBGR(axs[0], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 2])
+        plotBGR(axs[1], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 1])
+        plotBGR(axs[2], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 0])
 
-    plt.xlabel('Screen Flash Ratio')
-    plt.ylabel('Red Channel Magnitude')
+    axs[0].set_title('Red')
+    axs[1].set_title('Green')
+    axs[2].set_title('Blue')
+
+    axs[0].set_xlabel('Screen Flash Ratio')
+    axs[0].set_ylabel('Channel Magnitude')
     saveStep.savePlot('RegionLinearity', plt)
 
 def plotPerRegionPoints(faceRegionsSets, saveStep):

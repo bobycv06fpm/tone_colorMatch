@@ -283,7 +283,7 @@ class Save:
 
     def savePlot(self, name, plot):
         path = self.referencePathBuilder(name, '.jpg')
-        plot.savefig(path, dpi=300)
+        plot.savefig(path, dpi=500)
         plot.close()
 
     def saveImageStat(self, statName, statValue):
