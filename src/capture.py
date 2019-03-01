@@ -7,8 +7,11 @@ from landmarkPoints import Landmarks
 
 class Capture:
 
-    def __init__(self, name, image, metadata, mask=None):
-        self.name = name
+    def __init__(self, image, metadata, mask=None):
+        self.name = '{}_{}_Flash'.format(metadata["flashSettings"]["area"], metadata["flashSettings"]["areas"])
+        self.flashSettings = metadata["flashSettings"]
+        self.flashRatio = self.flashSettings["area"] / self.flashSettings["areas"]
+        self.isNoFlash = True if metadata["flashSettings"]["area"] == 0 else False
         #self.image = np.clip(image, 0, 255).astype('uint8')
         #self.image = image.astype('int32')
         #colorTools.whitebalance_from_asShot_to_d65(image.astype('uint16'), metadata['whiteBalance']['x'], metadata['whiteBalance']['y'])

@@ -316,7 +316,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         return getResponse(imageName, False)
 
     numImages = len(images)
-    captures = [Capture('{}_{}_Flash'.format(numImages - index, numImages), image, metadata[index]) for index, image in enumerate(images)]
+    captures = [Capture(image, meta) for image, meta in zip(images, metadata)]
     #Brightest is index 0, dimmest is last
 
     print('Cropping and Aligning')
