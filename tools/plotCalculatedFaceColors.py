@@ -17,48 +17,48 @@ def fitLine(x, y):
     x_prepped = np.vstack([x, np.ones(len(x))]).T
     return np.linalg.lstsq(x_prepped, y, rcond=None)[0]
 
-def mapResultsRegions(target, source):
-    target['cheek'].append(source['left'])
-    target['cheek'].append(source['right'])
-    target['chin'].append(source['chin'])
-    target['forehead'].append(source['forehead'])
-
-def mapResultsFlash(leftTarget, rightTarget, sidesTarget, meanTarget, source):
-
-    #print("{}, {}, {}".format(averageNo, averageHalf, averageFull))
-    leftTarget['no'].append(np.array(source['left'][0]))
-    leftTarget['half'].append(np.array(source['left'][1]))
-    leftTarget['full'].append(np.array(source['left'][2]))
-
-    rightTarget['no'].append(np.array(source['right'][0]))
-    rightTarget['half'].append(np.array(source['right'][1]))
-    rightTarget['full'].append(np.array(source['right'][2]))
-
-    sidesTarget['no'].append(np.array(source['left'][0]))
-    sidesTarget['half'].append(np.array(source['left'][1]))
-    sidesTarget['full'].append(np.array(source['left'][2]))
-
-    sidesTarget['no'].append(np.array(source['right'][0]))
-    sidesTarget['half'].append(np.array(source['right'][1]))
-    sidesTarget['full'].append(np.array(source['right'][2]))
-
-    averageNo = (np.array(source['left'][0]) + np.array(source['right'][0])) / 2
-    averageHalf = (np.array(source['left'][1]) + np.array(source['right'][1])) / 2
-    averageFull = (np.array(source['left'][2]) + np.array(source['right'][2])) / 2
-
-    meanTarget['no'].append(averageNo)
-    meanTarget['half'].append(averageHalf)
-    meanTarget['full'].append(averageFull)
-
-    #target['no'].append(source['left'][0])
-    #target['half'].append(source['left'][1])
-    #target['full'].append(source['left'][2])
-
-    #target['no'].append(source['right'][0])
-    #target['half'].append(source['right'][1])
-    #target['full'].append(source['right'][2])
-
-blacklist = ['doug205', 'doug206', 'doug246', 'doug258', 'doug257', 'doug247', 'doug250', 'doug255', 'doug294', 'doug274', 'doug286', 'doug272', 'doug282', 'doug197', 'doug293', 'doug277', 'doug273', 'doug275', 'doug358']
+#def mapResultsRegions(target, source):
+#    target['cheek'].append(source['left'])
+#    target['cheek'].append(source['right'])
+#    target['chin'].append(source['chin'])
+#    target['forehead'].append(source['forehead'])
+#
+#def mapResultsFlash(leftTarget, rightTarget, sidesTarget, meanTarget, source):
+#
+#    #print("{}, {}, {}".format(averageNo, averageHalf, averageFull))
+#    leftTarget['no'].append(np.array(source['left'][0]))
+#    leftTarget['half'].append(np.array(source['left'][1]))
+#    leftTarget['full'].append(np.array(source['left'][2]))
+#
+#    rightTarget['no'].append(np.array(source['right'][0]))
+#    rightTarget['half'].append(np.array(source['right'][1]))
+#    rightTarget['full'].append(np.array(source['right'][2]))
+#
+#    sidesTarget['no'].append(np.array(source['left'][0]))
+#    sidesTarget['half'].append(np.array(source['left'][1]))
+#    sidesTarget['full'].append(np.array(source['left'][2]))
+#
+#    sidesTarget['no'].append(np.array(source['right'][0]))
+#    sidesTarget['half'].append(np.array(source['right'][1]))
+#    sidesTarget['full'].append(np.array(source['right'][2]))
+#
+#    averageNo = (np.array(source['left'][0]) + np.array(source['right'][0])) / 2
+#    averageHalf = (np.array(source['left'][1]) + np.array(source['right'][1])) / 2
+#    averageFull = (np.array(source['left'][2]) + np.array(source['right'][2])) / 2
+#
+#    meanTarget['no'].append(averageNo)
+#    meanTarget['half'].append(averageHalf)
+#    meanTarget['full'].append(averageFull)
+#
+#    #target['no'].append(source['left'][0])
+#    #target['half'].append(source['left'][1])
+#    #target['full'].append(source['left'][2])
+#
+#    #target['no'].append(source['right'][0])
+#    #target['half'].append(source['right'][1])
+#    #target['full'].append(source['right'][2])
+#
+#blacklist = ['doug205', 'doug206', 'doug246', 'doug258', 'doug257', 'doug247', 'doug250', 'doug255', 'doug294', 'doug274', 'doug286', 'doug272', 'doug282', 'doug197', 'doug293', 'doug277', 'doug273', 'doug275', 'doug358']
 
 
 with open('faceColors.json', 'r') as f:
@@ -67,20 +67,20 @@ with open('faceColors.json', 'r') as f:
 
 size = 10
 
-resultsRegionsTemplate = {'cheek': [], 'chin': [], 'forehead': []}
-resultsFlashTemplate = {'no': [], 'half': [], 'full': []}
-
-noFlash = deepcopy(resultsRegionsTemplate)
-halfFlash = deepcopy(resultsRegionsTemplate)
-fullFlash = deepcopy(resultsRegionsTemplate)
-linearity = deepcopy(resultsRegionsTemplate)
-cleanRatio = deepcopy(resultsRegionsTemplate)
-fluxish = deepcopy(resultsRegionsTemplate)
-
-meanReflections = deepcopy(resultsFlashTemplate)
-sidesReflections = deepcopy(resultsFlashTemplate)
-leftReflections = deepcopy(resultsFlashTemplate)
-rightReflections = deepcopy(resultsFlashTemplate)
+#resultsRegionsTemplate = {'cheek': [], 'chin': [], 'forehead': []}
+#resultsFlashTemplate = {'no': [], 'half': [], 'full': []}
+#
+#noFlash = deepcopy(resultsRegionsTemplate)
+#halfFlash = deepcopy(resultsRegionsTemplate)
+#fullFlash = deepcopy(resultsRegionsTemplate)
+#linearity = deepcopy(resultsRegionsTemplate)
+#cleanRatio = deepcopy(resultsRegionsTemplate)
+#fluxish = deepcopy(resultsRegionsTemplate)
+#
+#meanReflections = deepcopy(resultsFlashTemplate)
+#sidesReflections = deepcopy(resultsFlashTemplate)
+#leftReflections = deepcopy(resultsFlashTemplate)
+#rightReflections = deepcopy(resultsFlashTemplate)
 
 for faceData in facesData:
 
@@ -102,15 +102,15 @@ for faceData in facesData:
     #mapResultsRegions(cleanRatio, faceData['cleanRatio'])
     #mapResultsRegions(fluxish, faceData['fluxishValues'])
 
-    mapResultsFlash(leftReflections, rightReflections, sidesReflections, meanReflections, faceData['reflectionValues'])
+    #mapResultsFlash(leftReflections, rightReflections, sidesReflections, meanReflections, faceData['reflectionValues'])
 
-    keys = list(faceData.keys())
-    fields = keys[2:]
+    #keys = list(faceData.keys())
+    #fields = keys[2:]
 
-    print('~~~~~')
-    printTemplate = '{} - {} - {}'
-    for field in fields:
-        print(printTemplate.format(faceData['name'], field, faceData[field]))
+    #print('~~~~~')
+    #printTemplate = '{} - {} - {}'
+    #for field in fields:
+        #print(printTemplate.format(faceData['name'], field, faceData[field]))
 
 #reflections['no'] = np.array(reflections['no'])
 #reflections['half'] = np.array(reflections['half'])
