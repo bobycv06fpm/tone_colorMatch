@@ -221,7 +221,7 @@ def getNonLinearityMask(flashStepDiff, fullFlashRangeDiff):
     return nonLinearMask
 
 
-def plotPerRegionLinearity(faceRegions, saveStep):
+def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
     captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
     numberOfRegions = captureFaceRegions.shape[1]
     numberOfCaptures = captureFaceRegions.shape[0]
@@ -229,20 +229,32 @@ def plotPerRegionLinearity(faceRegions, saveStep):
     size=25
     colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1)]
     flashRatios = [(numberOfCaptures - flashIndex) / numberOfCaptures for flashIndex in range(0, numberOfCaptures)]
-    fig, axs = plt.subplots(1, 3, sharex=True, sharey=True, tight_layout=True)
+    fig, axs = plt.subplots(2, 3, sharex=True, sharey=True, tight_layout=True)
 
     for regionIndex in range(0, numberOfRegions):
         print('Regions :: ' + str(captureFaceRegions[:, regionIndex]))
-        plotBGR(axs[0], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 2])
-        plotBGR(axs[1], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 1])
-        plotBGR(axs[2], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 0])
+        plotBGR(axs[0, 0], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 2])
+        plotBGR(axs[0, 1], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 1])
+        plotBGR(axs[0, 2], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 0])
 
-    axs[0].set_title('Red')
-    axs[1].set_title('Green')
-    axs[2].set_title('Blue')
+    plotBGR(axs[1, 0], colors[0], size, flashRatios, rightEyeReflections[:, 2])
+    plotBGR(axs[1, 0], colors[2], size, flashRatios, leftEyeReflections[:, 2])
 
-    axs[0].set_xlabel('Screen Flash Ratio')
-    axs[0].set_ylabel('Channel Magnitude')
+    plotBGR(axs[1, 1], colors[0], size, flashRatios, rightEyeReflections[:, 1])
+    plotBGR(axs[1, 1], colors[2], size, flashRatios, leftEyeReflections[:, 1])
+
+    plotBGR(axs[1, 2], colors[0], size, flashRatios, rightEyeReflections[:, 0])
+    plotBGR(axs[1, 2], colors[2], size, flashRatios, leftEyeReflections[:, 0])
+
+    axs[0, 0].set_title('Red')
+    axs[0, 1].set_title('Green')
+    axs[0, 2].set_title('Blue')
+
+    axs[0, 0].set_xlabel('Screen Flash Ratio')
+    axs[0, 0].set_ylabel('Channel Mag')
+
+    axs[1, 0].set_xlabel('Screen Flash Ratio')
+    axs[1, 0].set_ylabel('Measured Reflection Mag')
     saveStep.savePlot('RegionLinearity', plt)
 
 def plotPerRegionPoints(faceRegionsSets, saveStep):
@@ -397,7 +409,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     else:
         saveStep.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')
 
-        plotPerRegionLinearity(faceRegions, saveStep)
+        plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
         plotPerRegionPoints(faceRegions, saveStep)
         plotPerRegionDistribution(faceRegions, saveStep)
         plotPerEyeReflectionBrightness(leftEyeReflections, rightEyeReflections, saveStep)
