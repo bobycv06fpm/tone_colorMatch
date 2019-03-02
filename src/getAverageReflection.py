@@ -153,7 +153,7 @@ def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask):
 
     reflectionCrop = eyeCrop[y:y+h, x:x+w]
     reflectionMask = eyeMask[y:y+h, x:x+w]
-    #reflectionMask.fill(False)
+    reflectionMask.fill(False)
     reflectionPoints = reflectionCrop[np.logical_not(reflectionMask)]
 
     if (reflectionMask.shape[0] == 0) or (reflectionMask.shape[1] == 0):

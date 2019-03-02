@@ -63,7 +63,7 @@ def calculateOffset(offsetImage, targetImage):
     (offset, response) = cv2.phaseCorrelate(targetImage, offsetImage)
     offset = list(offset)
     offset = [round(value) for value in offset]
-    print("Offset :: " + str(offset))
+    #print("Offset :: " + str(offset))
     return np.array(offset)
 
 def getPoints(bb):

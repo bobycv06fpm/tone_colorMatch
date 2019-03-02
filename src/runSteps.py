@@ -130,10 +130,10 @@ def plotBGR(axs, color, size, x, y):
     m, c = fitLine(x_sample, y_sample)
     axs.plot([start_x, end_x], [(m * start_x + c), (m * end_x + c)], color=color)
 
-def plotPerEyeReflectionBrightness(leftEyeReflections, rightEyeReflections, saveStep):
+def plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
     size = 25
     numCaptures = len(leftEyeReflections)
-    expectedBrightness = [(numCaptures - value) / numCaptures for value in range(0, numCaptures)]
+    expectedBrightness = np.array([regions.capture.flashRatio for regions in faceRegions])
 
     leftEyeReflectionsLuminance = colorTools.getRelativeLuminance(leftEyeReflections)
     rightEyeReflectionsLuminance = colorTools.getRelativeLuminance(rightEyeReflections)
@@ -223,12 +223,13 @@ def getNonLinearityMask(flashStepDiff, fullFlashRangeDiff):
 
 def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
     captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
+    flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
     numberOfRegions = captureFaceRegions.shape[1]
     numberOfCaptures = captureFaceRegions.shape[0]
 
     size=25
     colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1)]
-    flashRatios = [(numberOfCaptures - flashIndex) / numberOfCaptures for flashIndex in range(0, numberOfCaptures)]
+
     fig, axs = plt.subplots(2, 3, sharex=True, sharey=True, tight_layout=True)
 
     for regionIndex in range(0, numberOfRegions):
@@ -259,7 +260,7 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
 
 def plotPerRegionPoints(faceRegionsSets, saveStep):
     size=1
-    colors = [(1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 0), (1, 0, 1), (0, 1, 1), (0, 0, 0)]
+    colors = [(1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 0), (1, 0, 1), (0, 1, 1), (0, 0, 0), (0.5, 0.5, 0.5), (0.5, 0.5, 0)]
 
     numRegions = faceRegionsSets[0].getNumberOfRegions()
     fig, axs = plt.subplots(3, numRegions, sharex=True, sharey=True, tight_layout=True)
@@ -412,7 +413,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
         plotPerRegionPoints(faceRegions, saveStep)
         plotPerRegionDistribution(faceRegions, saveStep)
-        plotPerEyeReflectionBrightness(leftEyeReflections, rightEyeReflections, saveStep)
+        plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
 
 
         #NEW RULES: COLORS ARE RETURNED IN BGR
