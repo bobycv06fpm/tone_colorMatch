@@ -303,6 +303,14 @@ def isMetadataValid(metadata):
         
     return True
 
+def getMedianDiff(points):
+    diffs = []
+    for index in range(1, len(points)):
+        diffs.append(np.abs(points[index] - points[index - 1]))
+
+    return np.median(np.array(diffs), axis=0)
+
+
 
 def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     saveStep = Save(username, imageName)
@@ -414,6 +422,26 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         plotPerRegionPoints(faceRegions, saveStep)
         plotPerRegionDistribution(faceRegions, saveStep)
         plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
+
+        leftEyeDiffReflectionMedian = getMedianDiff(leftEyeReflections)
+        leftEyeDiffReflectionMedianHSV = colorTools.bgr_to_hsv(leftEyeDiffReflectionMedian)
+
+        rightEyeDiffReflectionMedian = getMedianDiff(rightEyeReflections)
+        rightEyeDiffReflectionMedianHSV = colorTools.bgr_to_hsv(rightEyeDiffReflectionMedian)
+
+        faceRegionMedians = np.vstack([[region.getRegionMedians() for region in faceRegions]])
+        faceRegionDiffMedians = [getMedianDiff(faceRegionMedians[:, idx]) for idx in range(0, faceRegionMedians.shape[1])]
+        faceRegionDiffMediansHSV  = [colorTools.bgr_to_hsv(point) for point in faceRegionDiffMedians]
+
+        formatString = '\nMEDIAN DIFFS :: {}\n\tEYES \n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\tFACE\n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\t\tCHIN \t\t{}\n\t\tFOREHEAD \t{}\n'
+        formatted = formatString.format('BGR', leftEyeDiffReflectionMedian, rightEyeDiffReflectionMedian, *faceRegionDiffMedians)
+        formattedHSV = formatString.format('HSV', leftEyeDiffReflectionMedianHSV, rightEyeDiffReflectionMedianHSV, *faceRegionDiffMediansHSV)
+        print(formatted)
+        print(formattedHSV)
+
+
+
+
 
 
         #NEW RULES: COLORS ARE RETURNED IN BGR
