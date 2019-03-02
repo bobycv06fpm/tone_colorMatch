@@ -104,16 +104,22 @@ def getPreparedEye(gray):
     return np.float32(prepped)
 
 def cropAndAlignEyes(eyes):
-    greyEyes = [np.mean(eye, axis=2) for eye in eyes]
+    greyEyes = [np.min(eye, axis=2) for eye in eyes] #Sort of counter intuitive, but using min we basically isolate white values/reflections
     stretchedEyes = [stretchHistogram(greyEye) for greyEye in greyEyes]
     preparedEyes = [getPreparedEye(stretchedEye) for stretchedEye in stretchedEyes]
 
+    #stretchedShow = np.hstack(stretchedEyes)
     #preparedShow = np.hstack(preparedEyes)
-    #cv2.imshow('prepared', preparedShow)
+    #cv2.imshow('prepared', np.vstack((stretchedShow.astype('uint8'), preparedShow)).astype('uint8'))
     #cv2.waitKey(0)
 
-    middleEyeIndex = math.floor(len(eyes) / 2)
-    eyeOffsets = [calculateOffset(preparedEye, preparedEyes[middleEyeIndex]) for preparedEye in preparedEyes]
+    #middleEyeIndex = math.floor(len(eyes) / 2)
+    #eyeOffsets = [calculateOffset(preparedEye, preparedEyes[middleEyeIndex]) for preparedEye in preparedEyes]
+    relativeEyeOffsets = [calculateOffset(preparedEye, preparedEyes[index - 1 if index > 0 else 0]) for index, preparedEye in enumerate(preparedEyes)]
+
+    eyeOffsets = [relativeEyeOffsets[0]]
+    for relativeEyeOffset in relativeEyeOffsets[1:]:
+        eyeOffsets.append(eyeOffsets[-1] + relativeEyeOffset)
 
     for index, eyeOffset in enumerate(eyeOffsets):
         print('Eye Offset {} :: {}'.format(index, eyeOffset))
@@ -144,7 +150,8 @@ def cropAndAlignCaptures(captures):
 
     print('three')
     stretchedImages = [stretchHistogram(image, mask) for image, mask in zip(greyImages, masks)]
-
+    #stretchedImages = greyImages
+    
     #stretchedShow = np.hstack(stretchedImages)
     #stretchedShow = cv2.resize(stretchedShow, (0, 0), fx=1/3, fy=1/3)
     #cv2.imshow('stretched', stretchedShow.astype('uint8'))
@@ -160,8 +167,14 @@ def cropAndAlignCaptures(captures):
     #cv2.waitKey(0)
 
     print("Calculating Offset")
-    middleImageIndex = math.floor(len(captures) / 2)
-    imageOffsets = [calculateOffset(preparedImage, preparedImages[middleImageIndex]) for preparedImage in preparedImages]
+    #middleImageIndex = math.floor(len(captures) / 2)
+    relativeImageOffsets = [calculateOffset(preparedImage, preparedImages[index - 1 if index > 0 else 0]) for index, preparedImage in enumerate(preparedImages)]
+
+    imageOffsets = [relativeImageOffsets[0]]
+    for relativeImageOffset in relativeImageOffsets[1:]:
+        imageOffsets.append(imageOffsets[-1] + relativeImageOffset)
+
+    print('Image Offsets :: ' + str(imageOffsets))
     print("Done Calculating Offset")
 
     alignedOffsetMagnitude = getOffsetMagnitude(imageOffsets, captures[0].image.shape)
