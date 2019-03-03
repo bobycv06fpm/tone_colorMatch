@@ -306,7 +306,7 @@ def isMetadataValid(metadata):
 def getMedianDiff(points):
     diffs = []
     for index in range(1, len(points)):
-        diffs.append(np.abs(points[index] - points[index - 1]))
+        diffs.append(np.abs(points[index - 1] - points[index]))
 
     return np.median(np.array(diffs), axis=0)
 
@@ -457,5 +457,6 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
 
         response = getResponse(imageName, True, captureSets)
         return response
+
 
 
