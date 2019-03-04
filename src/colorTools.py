@@ -294,6 +294,10 @@ def whitebalanceBGRImage(image, wb):
     return (image * wbMultiplier).astype('uint16')
 
 def whitebalanceBGRPoints(points, wb):
+    if not np.all(wb.astype('bool')):
+        print('Trying to WB to a 0 value!')
+        raise NameError('Trying to WB to a 0 value!')
+
     targetValue = max(wb)
     wbMultiplier = [targetValue, targetValue, targetValue] / wb
     return (points * wbMultiplier).astype('uint16')

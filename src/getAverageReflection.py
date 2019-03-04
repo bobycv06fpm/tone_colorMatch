@@ -209,6 +209,8 @@ def getAverageScreenReflectionColor(captures, saveStep):
 
     averageReflections = (leftReflectionStats[:, 0] + rightReflectionStats[:, 0]) / 2
 
+    averageReflections = [(averageReflection if np.all(averageReflection.astype('bool')) else (averageReflection + np.array([1, 1, 1]))) for averageReflection in averageReflections]
+
     print('AVERAGE NO, HALF, FULL REFLECTION :: {}'.format(averageReflections))
 
     #Whitebalance per flash and eye to get luminance levels... Maybe compare the average reflection values?

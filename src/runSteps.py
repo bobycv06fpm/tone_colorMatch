@@ -167,11 +167,12 @@ def getReflectionMap(leftReflection, rightReflection):
 
     return value
 
-def getResponse(imageName, successful, captureSets=None):
+def getResponse(imageName, successful, captureSets=None, medianDiffSets=None):
     response = {}
     response['name'] = imageName
     response['successful'] = successful
     response['captures'] = {}
+    response['medianDiffs'] = medianDiffSets
 
     if not successful:
         return response
@@ -309,6 +310,35 @@ def getMedianDiff(points):
 
     return np.median(np.array(diffs), axis=0)
 
+def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
+        leftEyeDiffReflectionMedian = getMedianDiff(leftEyeReflections)
+        leftEyeDiffReflectionMedianHSV = colorTools.bgr_to_hsv(leftEyeDiffReflectionMedian)
+
+        rightEyeDiffReflectionMedian = getMedianDiff(rightEyeReflections)
+        rightEyeDiffReflectionMedianHSV = colorTools.bgr_to_hsv(rightEyeDiffReflectionMedian)
+
+        faceRegionMedians = np.vstack([[region.getRegionMedians() for region in faceRegions]])
+        faceRegionDiffMedians = [getMedianDiff(faceRegionMedians[:, idx]) for idx in range(0, faceRegionMedians.shape[1])]
+        faceRegionDiffMediansHSV  = [colorTools.bgr_to_hsv(point) for point in faceRegionDiffMedians]
+
+        medianDiffs = {}
+        medianDiffs["reflections"] = {}
+        medianDiffs["reflections"]["left"] = list(leftEyeDiffReflectionMedian)
+        medianDiffs["reflections"]["right"] = list(rightEyeDiffReflectionMedian)
+
+        medianDiffs["faceRegions"] = {}
+        medianDiffs["faceRegions"]["left"] = list(faceRegionDiffMedians[0])
+        medianDiffs["faceRegions"]["right"] = list(faceRegionDiffMedians[1])
+        medianDiffs["faceRegions"]["chin"] = list(faceRegionDiffMedians[2])
+        medianDiffs["faceRegions"]["forehead"] = list(faceRegionDiffMedians[3])
+
+        formatString = '\nMEDIAN DIFFS :: {}\n\tEYES \n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\tFACE\n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\t\tCHIN \t\t{}\n\t\tFOREHEAD \t{}\n'
+        formatted = formatString.format('BGR', leftEyeDiffReflectionMedian, rightEyeDiffReflectionMedian, *faceRegionDiffMedians)
+        formattedHSV = formatString.format('HSV', leftEyeDiffReflectionMedianHSV, rightEyeDiffReflectionMedianHSV, *faceRegionDiffMediansHSV)
+        print(formatted)
+        print(formattedHSV)
+
+        return medianDiffs
 
 
 def run(username, imageName, fast=False, saveStats=False, failOnError=False):
@@ -422,22 +452,6 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         plotPerRegionDistribution(faceRegions, saveStep)
         plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
 
-        leftEyeDiffReflectionMedian = getMedianDiff(leftEyeReflections)
-        leftEyeDiffReflectionMedianHSV = colorTools.bgr_to_hsv(leftEyeDiffReflectionMedian)
-
-        rightEyeDiffReflectionMedian = getMedianDiff(rightEyeReflections)
-        rightEyeDiffReflectionMedianHSV = colorTools.bgr_to_hsv(rightEyeDiffReflectionMedian)
-
-        faceRegionMedians = np.vstack([[region.getRegionMedians() for region in faceRegions]])
-        faceRegionDiffMedians = [getMedianDiff(faceRegionMedians[:, idx]) for idx in range(0, faceRegionMedians.shape[1])]
-        faceRegionDiffMediansHSV  = [colorTools.bgr_to_hsv(point) for point in faceRegionDiffMedians]
-
-        formatString = '\nMEDIAN DIFFS :: {}\n\tEYES \n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\tFACE\n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\t\tCHIN \t\t{}\n\t\tFOREHEAD \t{}\n'
-        formatted = formatString.format('BGR', leftEyeDiffReflectionMedian, rightEyeDiffReflectionMedian, *faceRegionDiffMedians)
-        formattedHSV = formatString.format('HSV', leftEyeDiffReflectionMedianHSV, rightEyeDiffReflectionMedianHSV, *faceRegionDiffMediansHSV)
-        print(formatted)
-        print(formattedHSV)
-
         #NEW RULES: COLORS ARE RETURNED IN BGR
         #           FIELDS are Left Cheek, Right Cheek, Chin Forehead
         #noFlashValues = [noFlashPointsLeftCheekMedian, noFlashPointsRightCheekMedian, noFlashPointsChinMedian, noFlashPointsForeheadMedian]
@@ -448,8 +462,9 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         #reflectionValues = [leftReflectionValues, rightReflectionValues]
         #fluxishValues = [scaledLeftFluxish, scaledRightFluxish, scaledAverageFluxish, scaledAverageFluxish]
         captureSets = zip(faceRegions, leftEyeReflections, rightEyeReflections)
+        medianDiffSets = getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions)
 
-        response = getResponse(imageName, True, captureSets)
+        response = getResponse(imageName, True, captureSets, medianDiffSets)
         return response
 
 
