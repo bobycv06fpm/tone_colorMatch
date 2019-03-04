@@ -55,7 +55,6 @@ def plotPerRegionDistribution(faceRegionsSets, saveStep):
     numCaptures = len(faceRegionsSets)
     numRegions = len(faceRegionsSets[0].getRegionMedians())
 
-
     size = 1
     color = (1, 0, 0)
     fig, axs = plt.subplots(numRegions + 1, 3, sharey=False, tight_layout=True) #Extra region for cumulative region
@@ -438,11 +437,6 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         formattedHSV = formatString.format('HSV', leftEyeDiffReflectionMedianHSV, rightEyeDiffReflectionMedianHSV, *faceRegionDiffMediansHSV)
         print(formatted)
         print(formattedHSV)
-
-
-
-
-
 
         #NEW RULES: COLORS ARE RETURNED IN BGR
         #           FIELDS are Left Cheek, Right Cheek, Chin Forehead
