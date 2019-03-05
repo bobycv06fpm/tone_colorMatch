@@ -19,7 +19,6 @@ import matplotlib.pyplot as plt
 from capture import Capture 
 from faceRegions import FaceRegions
 
-import multiprocessing as mp
 import colorsys
 
 def fitLine(A, B):
@@ -233,7 +232,7 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
     fig, axs = plt.subplots(2, 3, sharex=True, sharey=True, tight_layout=True)
 
     for regionIndex in range(0, numberOfRegions):
-        print('Regions :: ' + str(captureFaceRegions[:, regionIndex]))
+        #print('Regions :: ' + str(captureFaceRegions[:, regionIndex]))
         plotBGR(axs[0, 0], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 2])
         plotBGR(axs[0, 1], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 1])
         plotBGR(axs[0, 2], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 0])
@@ -326,11 +325,11 @@ def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
         medianDiffs["reflections"]["left"] = list(leftEyeDiffReflectionMedian)
         medianDiffs["reflections"]["right"] = list(rightEyeDiffReflectionMedian)
 
-        medianDiffs["faceRegions"] = {}
-        medianDiffs["faceRegions"]["left"] = list(faceRegionDiffMedians[0])
-        medianDiffs["faceRegions"]["right"] = list(faceRegionDiffMedians[1])
-        medianDiffs["faceRegions"]["chin"] = list(faceRegionDiffMedians[2])
-        medianDiffs["faceRegions"]["forehead"] = list(faceRegionDiffMedians[3])
+        medianDiffs["regions"] = {}
+        medianDiffs["regions"]["left"] = list(faceRegionDiffMedians[0])
+        medianDiffs["regions"]["right"] = list(faceRegionDiffMedians[1])
+        medianDiffs["regions"]["chin"] = list(faceRegionDiffMedians[2])
+        medianDiffs["regions"]["forehead"] = list(faceRegionDiffMedians[3])
 
         formatString = '\nMEDIAN DIFFS :: {}\n\tEYES \n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\tFACE\n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\t\tCHIN \t\t{}\n\t\tFOREHEAD \t{}\n'
         formatted = formatString.format('BGR', leftEyeDiffReflectionMedian, rightEyeDiffReflectionMedian, *faceRegionDiffMedians)
@@ -378,14 +377,14 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     for capture in captures:
         allPointsMask = np.logical_or(allPointsMask, capture.mask)
 
-    for capture in captures:
-        capture.whiteBalanceImageToD65()
+    #for capture in captures:
+    #    capture.whiteBalanceImageToD65()
 
     maxValue = np.max([np.max(capture.image) for capture in captures])
     print('MAX VALUE :: ' + str(maxValue))
 
-    for capture in captures:
-        capture.scaleToValue(maxValue)
+    #for capture in captures:
+    #    capture.scaleToValue(maxValue)
 
     print('Subtracting Base from Flash')
 
@@ -427,14 +426,14 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     print('Right Eye Reflections :: {}'.format(rightEyeReflections))
 
     for capture in captures:
-        colorTools.whitebalanceBGR(capture, averageReflection)
+        #colorTools.whitebalanceBGR(capture, averageReflection)
         capture.mask = allPointsMask
 
     maxValue = np.max([np.max(capture.image) for capture in captures])
     print('MAX VALUE :: ' + str(maxValue))
 
-    for capture in captures:
-        capture.scaleToValue(maxValue)
+    #for capture in captures:
+    #    capture.scaleToValue(maxValue)
 
     try:
         faceRegions = np.array([FaceRegions(capture) for capture in captures])
@@ -452,20 +451,9 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         plotPerRegionDistribution(faceRegions, saveStep)
         plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
 
-        #NEW RULES: COLORS ARE RETURNED IN BGR
-        #           FIELDS are Left Cheek, Right Cheek, Chin Forehead
-        #noFlashValues = [noFlashPointsLeftCheekMedian, noFlashPointsRightCheekMedian, noFlashPointsChinMedian, noFlashPointsForeheadMedian]
-        #halfFlashValues = [leftCheekMedianHalfBGR, rightCheekMedianHalfBGR, chinMedianHalfBGR, foreheadMedianHalfBGR]
-        #fullFlashValues = [leftCheekMedianFullBGR, rightCheekMedianFullBGR, chinMedianFullBGR, foreheadMedianFullBGR]
-        #linearity = [leftCheekLinearityError, rightCheekLinearityError, chinLinearityError, foreheadLinearityError]
-        #cleanRatio = [leftCheekClippingRatio, rightCheekClippingRatio, chinClippingRatio, foreheadClippingRatio]
-        #reflectionValues = [leftReflectionValues, rightReflectionValues]
-        #fluxishValues = [scaledLeftFluxish, scaledRightFluxish, scaledAverageFluxish, scaledAverageFluxish]
         captureSets = zip(faceRegions, leftEyeReflections, rightEyeReflections)
         medianDiffSets = getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions)
 
         response = getResponse(imageName, True, captureSets, medianDiffSets)
         return response
-
-
 

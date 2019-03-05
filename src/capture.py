@@ -40,6 +40,9 @@ class Capture:
     def whiteBalanceImageToD65(self):
         self.image = colorTools.whitebalance_from_asShot_to_d65(self.image.astype('uint16'), self.whiteBalance['x'], self.whiteBalance['y'])
 
+    def getWhiteBalancedImageToD65(self):
+        return colorTools.whitebalance_from_asShot_to_d65(self.image.astype('uint16'), self.whiteBalance['x'], self.whiteBalance['y'])
+
     def getAsShotWhiteBalance(self):
         return [self.whiteBalance['x'], self.whiteBalance['y']]
 

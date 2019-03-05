@@ -103,7 +103,11 @@ def getPreparedEye(gray):
     prepped = cv2.Sobel(gray, cv2.CV_16S, 1, 1, ksize=5)
     return np.float32(prepped)
 
-def cropAndAlignEyes(eyes):
+def cropAndAlignEyes(eyes, wb=None):
+    originalEyes = np.copy(eyes)
+    if wb is not None:
+        eyes = [colorTools.whitebalance_from_asShot_to_d65(eye, *wb) for eye in eyes]
+
     greyEyes = [np.min(eye, axis=2) for eye in eyes] #Sort of counter intuitive, but using min we basically isolate white values/reflections
     stretchedEyes = [stretchHistogram(greyEye) for greyEye in greyEyes]
     preparedEyes = [getPreparedEye(stretchedEye) for stretchedEye in stretchedEyes]
@@ -124,7 +128,7 @@ def cropAndAlignEyes(eyes):
     for index, eyeOffset in enumerate(eyeOffsets):
         print('Eye Offset {} :: {}'.format(index, eyeOffset))
 
-    return cropTools.cropImagesToOffsets(eyes, eyeOffsets)
+    return cropTools.cropImagesToOffsets(originalEyes, eyeOffsets)
 
 def getOffsetMagnitude(offsets, imageShape):
     offsets = np.array(offsets)
