@@ -14,7 +14,7 @@ def getMaskedImage(image, clippedMask, polygons):
     filteredRegionsMask = np.logical_and(regionsMask, np.logical_not(clippedMask))
     maskedImage = np.where(filteredRegionsMask[..., None], image, 1)
 
-    return maskedImage
+    return maskedImage.astype('uint8')
 
 
 def extractPolygonPoints(image, clippedMask, polygon):
