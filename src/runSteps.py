@@ -303,6 +303,10 @@ def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
         rightEyeDiffReflectionMedianHSV = colorTools.bgr_to_hsv(rightEyeDiffReflectionMedian)
 
         faceRegionMedians = np.vstack([[region.getRegionMedians() for region in faceRegions]])
+
+        #Take half of the face diffs for better accuracy... Maybe
+        faceRegionMedians = np.array([faceRegionMedian for i, faceRegionMedian in enumerate(faceRegionMedians) if i % 2 == 0])
+
         faceRegionDiffMedians = [getMedianDiff(faceRegionMedians[:, idx]) for idx in range(0, faceRegionMedians.shape[1])]
         faceRegionDiffMediansHSV  = [colorTools.bgr_to_hsv(point) for point in faceRegionDiffMedians]
 
