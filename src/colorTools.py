@@ -369,3 +369,17 @@ def whitebalance_from_asShot_to_d65(image, x, y):
 
     return image * bgrMultiplier
 
+def rotateHue(hue):
+    hue = hue.copy()
+    shiftMask = hue <= 2/3
+    hue[shiftMask] += 1/3
+    hue[np.logical_not(shiftMask)] -= 2/3
+    return hue
+
+def unRotateHue(hue):
+    hue = hue.copy()
+    shiftMask = hue >= 1/3
+    hue[shiftMask] -= 1/3
+    hue[np.logical_not(shiftMask)] += 2/3
+    return hue
+

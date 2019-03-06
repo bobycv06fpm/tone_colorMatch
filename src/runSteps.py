@@ -25,20 +25,6 @@ def fitLine(A, B):
     A_prepped = np.vstack([A, np.ones(len(A))]).T
     return np.linalg.lstsq(A_prepped, B, rcond=None)[0]
 
-def rotateHue(hue):
-    hue = hue.copy()
-    shiftMask = hue <= 2/3
-    hue[shiftMask] += 1/3
-    hue[np.logical_not(shiftMask)] -= 2/3
-    return hue
-
-def unRotateHue(hue):
-    hue = hue.copy()
-    shiftMask = hue >= 1/3
-    hue[shiftMask] -= 1/3
-    hue[np.logical_not(shiftMask)] += 2/3
-    return hue
-
 def samplePoints(pointsA, pointsB):
     sampleSize = 1000
     if len(pointsA) > sampleSize:
@@ -86,7 +72,7 @@ def plotPerRegionDistribution(faceRegionsSets, saveStep):
             yValues = faceRegionsSetsHSV[capture, region][:, 0]
 
             xValues, yValues = samplePoints(xValues, yValues)
-            yValues = rotateHue(yValues)
+            yValues = colorTools.rotateHue(yValues)
 
             axs[region, chartRow].scatter(xValues, yValues, size, color)
 
@@ -105,7 +91,7 @@ def plotPerRegionDistribution(faceRegionsSets, saveStep):
             yValues = faceRegionsSetsHSV[capture, region][:, 1]
 
             xValues, yValues = samplePoints(xValues, yValues)
-            xValues = rotateHue(xValues)
+            xValues = colorTools.rotateHue(xValues)
 
             axs[region, chartRow].scatter(xValues, yValues, size, color)
 
