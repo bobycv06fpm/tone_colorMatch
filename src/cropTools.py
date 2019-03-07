@@ -99,6 +99,14 @@ def cropImagesToOffsets(images, offsets):
 
     return images, updatedOffsets
 
+def cropCapturesToOffsets(captures, offsets):
+    images = [capture.image for capture in captures]
+    croppedImages, updatedOffsets = cropImagesToOffsets(images, offsets)
+    for capture, croppedImage in zip(captures, croppedImages):
+        capture.image = croppedImage
+
+    return updatedOffsets
+
 #TODO: ARE LANDMARKS LABLED BACKWARKS?!?! YEESH
 def cropCapturesToLandmark(captures, landmarkIndex):
     offsetsFromZero = np.array([capture.landmarks.landmarkPoints[landmarkIndex] for capture in captures])

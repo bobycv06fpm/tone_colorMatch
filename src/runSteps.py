@@ -15,6 +15,7 @@ import thresholdMask
 import math
 #from scipy import ndimage
 import matplotlib.pyplot as plt
+import cropTools
 #import landmarkPoints
 from capture import Capture 
 from faceRegions import FaceRegions
@@ -329,7 +330,6 @@ def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
 
         return medianDiffs
 
-
 def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     saveStep = Save(username, imageName)
     saveStep.resetLogFile()
@@ -342,108 +342,227 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         print('User :: {} | Image :: {} | Error :: {}'.format(username, imageName, 'Metadata does not Match'))
         return getResponse(imageName, False)
 
-    numImages = len(images)
+    #numImages = len(images)
     captures = [Capture(image, meta) for image, meta in zip(images, metadata)]
     #Brightest is index 0, dimmest is last
 
-    print('Cropping and Aligning')
     try:
-        alignImages.cropAndAlignCaptures(captures)
+        leftEyeOffsets, rightEyeOffsets, averageOffsets = alignImages.getCaptureEyeOffsets(captures)
     except Exception as err:
-        if failOnError:
-            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
-        else:
-            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
-            return getResponse(imageName, False)
-        
-    #Now that they are aligned, use the same landmarks for all of them... (Maybe use the average?)
-    # -> Simplifies things down the line...
-    for capture in captures:
-        capture.landmarks = captures[0].landmarks
-    
-    print('Done Cropping and aligning')
+        print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
+        return getResponse(imageName, False)
 
-    allPointsMask = captures[0].mask
-    for capture in captures:
-        allPointsMask = np.logical_or(allPointsMask, capture.mask)
+    updatedAverageOffset = cropTools.cropCapturesToOffsets(captures, averageOffsets)
 
-    #for capture in captures:
-    #    capture.whiteBalanceImageToD65()
+    leftEyeOffsets -= averageOffsets #Need offsets relative to averageOffset now that we are aligned
+    rightEyeOffsets -= averageOffsets #Need offsets relative to averageOffset
 
-    maxValue = np.max([np.max(capture.image) for capture in captures])
-    print('MAX VALUE :: ' + str(maxValue))
+    print('Updated Left Eye Offsets :: ' + str(leftEyeOffsets))
+    print('Updated Right Eye Offsets :: ' + str(rightEyeOffsets))
 
-    #for capture in captures:
-    #    capture.scaleToValue(maxValue)
-
-    print('Subtracting Base from Flash')
-
-    fullFlashRangeDiff = captures[0].image - captures[-1].image
-    fullFlashRangeDiff[fullFlashRangeDiff == 0] = 1 #We will be dividing by this later
-
-    flashSteps = np.array([captures[index].image - captures[index - 1].image for index in range(1, len(captures))])
-
-    meanFlashStep = np.mean(flashSteps, axis=0)
-    flashStepDiffs = flashSteps - meanFlashStep
-    nonLinearityMasks = [getNonLinearityMask(flashStepDiff, fullFlashRangeDiff) for flashStepDiff in flashStepDiffs]
-
-    for nonLinearityMask in nonLinearityMasks:
-        allPointsMask = np.logical_or(allPointsMask, nonLinearityMask)
-
-
-    #smallShowImg = cv2.resize(allPointsMask.astype('uint8') * 255, (0, 0), fx=1/2, fy=1/2)
-    #cv2.imshow('All Points Mask', smallShowImg.astype('uint8'))
+    #testDiff = captures[0].image - captures[-1].image
+    #smallImage = cv2.resize(testDiff, (0, 0), fx=1/2, fy=1/2)
+    #cv2.imshow('diff', smallImage)
     #cv2.waitKey(0)
 
-    if not fast:
-        print('Saving Step 1')
-        saveStep.saveImageStep(np.clip(fullFlashRangeDiff * 255, 0, 255).astype('uint8'), 1)
-        saveStep.saveMaskStep(allPointsMask, 1, 'clippedMask')
 
 
-    try:
-        averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections = getAverageScreenReflectionColor(captures, saveStep)
-    except Exception as err:
-        if failOnError:
-            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
-        else:
-            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
-            return getResponse(imageName, False)
-
-    #Want to reassign mask after getting screen reflection color. Masks get used in that step
-
-    print('Left Eye Reflections :: {}'.format(leftEyeReflections))
-    print('Right Eye Reflections :: {}'.format(rightEyeReflections))
-
-    for capture in captures:
-        #colorTools.whitebalanceBGR(capture, averageReflection)
-        capture.mask = allPointsMask
-
-    maxValue = np.max([np.max(capture.image) for capture in captures])
-    print('MAX VALUE :: ' + str(maxValue))
-
+    #print('Cropping and Aligning')
+    #try:
+    #    alignImages.cropAndAlignCaptures(captures)
+    #except Exception as err:
+    #    if failOnError:
+    #        raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
+    #    else:
+    #        print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
+    #        return getResponse(imageName, False)
+    #    
+    ##Now that they are aligned, use the same landmarks for all of them... (Maybe use the average?)
+    ## -> Simplifies things down the line...
     #for capture in captures:
-    #    capture.scaleToValue(maxValue)
+    #    capture.landmarks = captures[0].landmarks
+    #
+    #print('Done Cropping and aligning')
 
-    try:
-        faceRegions = np.array([FaceRegions(capture) for capture in captures])
-    except Exception as err:
-        if failOnError:
-            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
-        else:
-            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
-            return getResponse(imageName, False)
-    else:
-        saveStep.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')
+    #allPointsMask = captures[0].mask
+    #for capture in captures:
+    #    allPointsMask = np.logical_or(allPointsMask, capture.mask)
 
-        plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
-        plotPerRegionPoints(faceRegions, saveStep)
-        plotPerRegionDistribution(faceRegions, saveStep)
-        plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
+    #print('Subtracting Base from Flash')
 
-        captureSets = zip(faceRegions, leftEyeReflections, rightEyeReflections)
-        medianDiffSets = getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions)
+    #fullFlashRangeDiff = captures[0].image - captures[-1].image
+    #fullFlashRangeDiff[fullFlashRangeDiff == 0] = 1 #We will be dividing by this later
 
-        response = getResponse(imageName, True, captureSets, medianDiffSets)
-        return response
+    #flashSteps = np.array([captures[index].image - captures[index - 1].image for index in range(1, len(captures))])
 
+    #meanFlashStep = np.mean(flashSteps, axis=0)
+    #flashStepDiffs = flashSteps - meanFlashStep
+    #nonLinearityMasks = [getNonLinearityMask(flashStepDiff, fullFlashRangeDiff) for flashStepDiff in flashStepDiffs]
+
+    #for nonLinearityMask in nonLinearityMasks:
+    #    allPointsMask = np.logical_or(allPointsMask, nonLinearityMask)
+
+
+    #if not fast:
+    #    print('Saving Step 1')
+    #    saveStep.saveImageStep(np.clip(fullFlashRangeDiff * 255, 0, 255).astype('uint8'), 1)
+    #    saveStep.saveMaskStep(allPointsMask, 1, 'clippedMask')
+
+
+    #try:
+    #    averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections = getAverageScreenReflectionColor(captures, saveStep)
+    #except Exception as err:
+    #    if failOnError:
+    #        raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
+    #    else:
+    #        print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
+    #        return getResponse(imageName, False)
+
+    #print('Left Eye Reflections :: {}'.format(leftEyeReflections))
+    #print('Right Eye Reflections :: {}'.format(rightEyeReflections))
+
+    ##Want to reassign mask after getting screen reflection color. Masks get used in that step
+    #for capture in captures:
+    #    capture.mask = allPointsMask
+
+    #try:
+    #    faceRegions = np.array([FaceRegions(capture) for capture in captures])
+    #except Exception as err:
+    #    if failOnError:
+    #        raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
+    #    else:
+    #        print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
+    #        return getResponse(imageName, False)
+    #else:
+    #    saveStep.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')
+
+    #    plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
+    #    plotPerRegionPoints(faceRegions, saveStep)
+    #    plotPerRegionDistribution(faceRegions, saveStep)
+    #    plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
+
+    #    captureSets = zip(faceRegions, leftEyeReflections, rightEyeReflections)
+    #    medianDiffSets = getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions)
+
+    #    response = getResponse(imageName, True, captureSets, medianDiffSets)
+    #    return response
+
+
+
+#def run(username, imageName, fast=False, saveStats=False, failOnError=False):
+#    saveStep = Save(username, imageName)
+#    saveStep.resetLogFile()
+#    saveStep.deleteReference()
+#    images = loadImages(username, imageName)
+#
+#    metadata = saveStep.getMetadata()
+#
+#    if not isMetadataValid(metadata):
+#        print('User :: {} | Image :: {} | Error :: {}'.format(username, imageName, 'Metadata does not Match'))
+#        return getResponse(imageName, False)
+#
+#    numImages = len(images)
+#    captures = [Capture(image, meta) for image, meta in zip(images, metadata)]
+#    #Brightest is index 0, dimmest is last
+#
+#    print('Cropping and Aligning')
+#    try:
+#        alignImages.cropAndAlignCaptures(captures)
+#    except Exception as err:
+#        if failOnError:
+#            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
+#        else:
+#            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
+#            return getResponse(imageName, False)
+#        
+#    #Now that they are aligned, use the same landmarks for all of them... (Maybe use the average?)
+#    # -> Simplifies things down the line...
+#    for capture in captures:
+#        capture.landmarks = captures[0].landmarks
+#    
+#    print('Done Cropping and aligning')
+#
+#    allPointsMask = captures[0].mask
+#    for capture in captures:
+#        allPointsMask = np.logical_or(allPointsMask, capture.mask)
+#
+#    #for capture in captures:
+#    #    capture.whiteBalanceImageToD65()
+#
+#    #maxValue = np.max([np.max(capture.image) for capture in captures])
+#    #print('MAX VALUE :: ' + str(maxValue))
+#
+#    #for capture in captures:
+#    #    capture.scaleToValue(maxValue)
+#
+#    print('Subtracting Base from Flash')
+#
+#    fullFlashRangeDiff = captures[0].image - captures[-1].image
+#    fullFlashRangeDiff[fullFlashRangeDiff == 0] = 1 #We will be dividing by this later
+#
+#    flashSteps = np.array([captures[index].image - captures[index - 1].image for index in range(1, len(captures))])
+#
+#    meanFlashStep = np.mean(flashSteps, axis=0)
+#    flashStepDiffs = flashSteps - meanFlashStep
+#    nonLinearityMasks = [getNonLinearityMask(flashStepDiff, fullFlashRangeDiff) for flashStepDiff in flashStepDiffs]
+#
+#    for nonLinearityMask in nonLinearityMasks:
+#        allPointsMask = np.logical_or(allPointsMask, nonLinearityMask)
+#
+#
+#    #smallShowImg = cv2.resize(allPointsMask.astype('uint8') * 255, (0, 0), fx=1/2, fy=1/2)
+#    #cv2.imshow('All Points Mask', smallShowImg.astype('uint8'))
+#    #cv2.waitKey(0)
+#
+#    if not fast:
+#        print('Saving Step 1')
+#        saveStep.saveImageStep(np.clip(fullFlashRangeDiff * 255, 0, 255).astype('uint8'), 1)
+#        saveStep.saveMaskStep(allPointsMask, 1, 'clippedMask')
+#
+#
+#    try:
+#        averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections = getAverageScreenReflectionColor(captures, saveStep)
+#    except Exception as err:
+#        if failOnError:
+#            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
+#        else:
+#            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
+#            return getResponse(imageName, False)
+#
+#    #Want to reassign mask after getting screen reflection color. Masks get used in that step
+#
+#    print('Left Eye Reflections :: {}'.format(leftEyeReflections))
+#    print('Right Eye Reflections :: {}'.format(rightEyeReflections))
+#
+#    for capture in captures:
+#        #colorTools.whitebalanceBGR(capture, averageReflection)
+#        capture.mask = allPointsMask
+#
+#    #maxValue = np.max([np.max(capture.image) for capture in captures])
+#    #print('MAX VALUE :: ' + str(maxValue))
+#
+#    #for capture in captures:
+#    #    capture.scaleToValue(maxValue)
+#
+#    try:
+#        faceRegions = np.array([FaceRegions(capture) for capture in captures])
+#    except Exception as err:
+#        if failOnError:
+#            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
+#        else:
+#            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
+#            return getResponse(imageName, False)
+#    else:
+#        saveStep.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')
+#
+#        plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
+#        plotPerRegionPoints(faceRegions, saveStep)
+#        plotPerRegionDistribution(faceRegions, saveStep)
+#        plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
+#
+#        captureSets = zip(faceRegions, leftEyeReflections, rightEyeReflections)
+#        medianDiffSets = getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions)
+#
+#        response = getResponse(imageName, True, captureSets, medianDiffSets)
+#        return response
+#

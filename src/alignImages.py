@@ -103,6 +103,28 @@ def getPreparedEye(gray):
     prepped = cv2.Sobel(gray, cv2.CV_16S, 1, 1, ksize=5)
     return np.float32(prepped)
 
+def getEyeOffsets(eyes, wb=None):
+    originalEyes = np.copy(eyes)
+
+    eyes = [colorTools.convert_sBGR_to_linearBGR_float_fast(eye) for eye in eyes]
+    if wb is not None:
+        eyes = [colorTools.whitebalance_from_asShot_to_d65(eye, *wb) for eye in eyes]
+
+    greyEyes = [np.min(eye, axis=2) for eye in eyes] #Sort of counter intuitive, but using min we basically isolate white values/reflections
+    stretchedEyes = [stretchHistogram(greyEye) for greyEye in greyEyes]
+    preparedEyes = [getPreparedEye(stretchedEye) for stretchedEye in stretchedEyes]
+
+    relativeEyeOffsets = [calculateOffset(preparedEye, preparedEyes[index - 1 if index > 0 else 0]) for index, preparedEye in enumerate(preparedEyes)]
+
+    eyeOffsets = [relativeEyeOffsets[0]]
+    for relativeEyeOffset in relativeEyeOffsets[1:]:
+        eyeOffsets.append(eyeOffsets[-1] + relativeEyeOffset)
+
+    for index, eyeOffset in enumerate(eyeOffsets):
+        print('Eye Offset {} :: {}'.format(index, eyeOffset))
+
+    return np.array(eyeOffsets)
+
 def cropAndAlignEyes(eyes, wb=None):
     originalEyes = np.copy(eyes)
     if wb is not None:
@@ -142,52 +164,170 @@ def getLandmarkOffsetMagnitude(captures, landmarkIndex):
     offsets = offsetsFromZero - offsetsFromZero[0]#[minXOffset, minYOffset]
     return getOffsetMagnitude(offsets, captures[0].image.shape)
 
-def cropAndAlignCaptures(captures):
+def getRightEyeCoords(capture):
+    return np.array(capture.landmarks.getRightEyeBB())
+
+def getLeftEyeCoords(capture):
+    return np.array(capture.landmarks.getLeftEyeBB())
+
+def standardizeEyeCoordDimensions(eyeCoords):
+    maxWidth = np.max(eyeCoords[:, 2])
+    maxHeight = np.max(eyeCoords[:, 3])
+
+    standardizedEyeCoords = []
+    eyeCoordDiffs = []
+    for eyeCoord in eyeCoords:
+        widthDiff = maxWidth - eyeCoord[2]
+        heightDiff = maxHeight - eyeCoord[3]
+
+        widthDelta = int(widthDiff / 2)
+        heightDelta = int(heightDiff / 2)
+
+        eyeCoord[0] -= widthDelta
+        eyeCoord[1] -= heightDelta
+        eyeCoord[2] = maxWidth
+        eyeCoord[3] = maxHeight
+
+        standardizedEyeCoords.append(eyeCoord)
+        eyeCoordDiffs.append([widthDelta, heightDelta])
+
+    return [np.array(standardizedEyeCoords), np.array(eyeCoordDiffs)]
+
+def getRelativeLandmarkOffsets(eyeCoords):
+    return eyeCoords[:, 0:2] - eyeCoords[0, 0:2]
+
+#Returns leftEyeOffset, rightEyeOffset, averageOffset
+def getCaptureEyeOffsets(captures):
     landmarkOffsetMagnitude = getLandmarkOffsetMagnitude(captures, 25)#Users right Eye Outside Point
 
-    print('one')
-    greyImages = [np.mean(capture.image, axis=2) for capture in captures]
+    wb = captures[0].getAsShotWhiteBalance()
 
-    print('two')
-    interiorPoints = [capture.landmarks.getInteriorPoints() for capture in captures]
-    masks = [getMask(greyImage, interiorPoints) for greyImage, interiorPoints in zip(greyImages, interiorPoints)]
+    leftEyeCoords = np.array([getLeftEyeCoords(capture) for capture in captures])
+    leftEyeLandmarkOffsets = getRelativeLandmarkOffsets(leftEyeCoords)
+    standardizedLeftEyeCoords, leftEyeCoordDiffs = standardizeEyeCoordDimensions(leftEyeCoords)
+    leftEyeCrops = [capture.image[y:y+h, x:x+w] for (x, y, w, h), capture in zip(standardizedLeftEyeCoords, captures)]
+    leftEyeOffsets = getEyeOffsets(leftEyeCrops, wb) 
+    fullLeftEyeOffsets = leftEyeLandmarkOffsets + (-1 * leftEyeCoordDiffs) + leftEyeOffsets
+    #print('Full Left Offsets :: ' + str(fullLeftEyeOffsets))
 
-    print('three')
-    stretchedImages = [stretchHistogram(image, mask) for image, mask in zip(greyImages, masks)]
-    #stretchedImages = greyImages
-    
-    #stretchedShow = np.hstack(stretchedImages)
-    #stretchedShow = cv2.resize(stretchedShow, (0, 0), fx=1/3, fy=1/3)
-    #cv2.imshow('stretched', stretchedShow.astype('uint8'))
-    #cv2.waitKey(0)
+    rightEyeCoords = np.array([getRightEyeCoords(capture) for capture in captures])
+    rightEyeLandmarkOffsets = getRelativeLandmarkOffsets(rightEyeCoords)
+    standardizedRightEyeCoords, rightEyeCoordDiffs = standardizeEyeCoordDimensions(rightEyeCoords)
+    rightEyeCrops = [capture.image[y:y+h, x:x+w] for (x, y, w, h), capture in zip(standardizedRightEyeCoords, captures)]
+    rightEyeOffsets = getEyeOffsets(rightEyeCrops, wb) #Do eyes need to be linear for effective WB?
+    fullRightEyeOffsets = rightEyeLandmarkOffsets + (-1 * rightEyeCoordDiffs) + rightEyeOffsets
+    #print('Full Right Offsets :: ' + str(fullRightEyeOffsets))
 
-    print('four')
-    preparedImages = [getPrepared(stretchedImage, mask) for stretchedImage, mask in zip(stretchedImages, masks)]
-    print("Done Preparing Images")
+    fullAverageEyeOffsets = ((fullLeftEyeOffsets + fullRightEyeOffsets) / 2).astype('int32')
+    #print('Full Average Offsets :: ' + str(fullAverageEyeOffsets))
 
-    #preparedShow = np.hstack(preparedImages)
-    #preparedShow = cv2.resize(preparedShow, (0, 0), fx=1/3, fy=1/3)
-    #cv2.imshow('prepared', preparedShow)
-    #cv2.waitKey(0)
-
-    print("Calculating Offset")
-    #middleImageIndex = math.floor(len(captures) / 2)
-    relativeImageOffsets = [calculateOffset(preparedImage, preparedImages[index - 1 if index > 0 else 0]) for index, preparedImage in enumerate(preparedImages)]
-
-    imageOffsets = [relativeImageOffsets[0]]
-    for relativeImageOffset in relativeImageOffsets[1:]:
-        imageOffsets.append(imageOffsets[-1] + relativeImageOffset)
-
-    print('Image Offsets :: ' + str(imageOffsets))
-    print("Done Calculating Offset")
-
-    alignedOffsetMagnitude = getOffsetMagnitude(imageOffsets, captures[0].image.shape)
-
-    print('Landmark, Aligned values :: ' + str(landmarkOffsetMagnitude) + ' | ' + str(alignedOffsetMagnitude))
-
+    alignedOffsetMagnitude = getOffsetMagnitude(fullAverageEyeOffsets, captures[0].image.shape)
     if  (alignedOffsetMagnitude > 0.05) or (landmarkOffsetMagnitude > 0.05):
         raise NameError('Probable Error Stacking. Alignment of Landmark Offset Mag is too large. Landmark Mag :: ' + str(landmarkOffsetMagnitude) + ', Alignment Mag :: ' + str(alignedOffsetMagnitude))
 
-    print('Cropping to offsets!')
-    cropTools.cropToOffsets(captures, np.array(imageOffsets))
-    print('Done Cropping to offsets!')
+    return [fullLeftEyeOffsets, fullRightEyeOffsets, fullAverageEyeOffsets]
+    #rightStacked = np.hstack(rightEyeCrops)
+    #cv2.imshow('rightEye', rightStacked)
+    #cv2.waitKey(0)
+    #print('Right Eye Coords :: ' + str(rightEyeCoords))
+    #print('Right Eye Coord Diffs :: ' + str(rightEyeCoordDiffs))
+    #print('Right Eye Offsets :: ' + str(rightEyeOffsets))
+
+    #testCropRight, testCropRightOffsets = cropTools.cropImagesToOffsets([capture.image for capture in captures], fullRightEyeOffsets)
+    #print('testCropRight Offsets:: ' + str(testCropRightOffsets))
+    #rightStacked = np.hstack(testCropRight)
+    #smallRightStacked = cv2.resize(rightStacked, (0, 0), fx=1/4, fy=1/4)
+    #cv2.imshow('rightEye', smallRightStacked)
+    #cv2.waitKey(0)
+
+    #rightEyeCrops = [getCrop(capture, coords) for capture, coords in zip(captures, rightEyeCoords)]
+
+#    leftEyeCrops, leftEyeOffsets = alignImages.cropAndAlignEyes(leftEyeCrops, wb)
+#    rightEyeCrops, rightEyeOffsets = alignImages.cropAndAlignEyes(rightEyeCrops, wb)
+#
+#    print('one')
+#    greyImages = [np.mean(capture.image, axis=2) for capture in captures]
+#
+#    print('two')
+#    interiorPoints = [capture.landmarks.getInteriorPoints() for capture in captures]
+#    masks = [getMask(greyImage, interiorPoints) for greyImage, interiorPoints in zip(greyImages, interiorPoints)]
+#
+#    print('three')
+#    stretchedImages = [stretchHistogram(image, mask) for image, mask in zip(greyImages, masks)]
+#
+#    print('four')
+#    preparedImages = [getPrepared(stretchedImage, mask) for stretchedImage, mask in zip(stretchedImages, masks)]
+#    print("Done Preparing Images")
+#
+#
+#    print("Calculating Offset")
+#    relativeImageOffsets = [calculateOffset(preparedImage, preparedImages[index - 1 if index > 0 else 0]) for index, preparedImage in enumerate(preparedImages)]
+#
+#    imageOffsets = [relativeImageOffsets[0]]
+#    for relativeImageOffset in relativeImageOffsets[1:]:
+#        imageOffsets.append(imageOffsets[-1] + relativeImageOffset)
+#
+#    print('Image Offsets :: ' + str(imageOffsets))
+#    print("Done Calculating Offset")
+#
+#    alignedOffsetMagnitude = getOffsetMagnitude(imageOffsets, captures[0].image.shape)
+#
+#    print('Landmark, Aligned values :: ' + str(landmarkOffsetMagnitude) + ' | ' + str(alignedOffsetMagnitude))
+#
+#    if  (alignedOffsetMagnitude > 0.05) or (landmarkOffsetMagnitude > 0.05):
+#        raise NameError('Probable Error Stacking. Alignment of Landmark Offset Mag is too large. Landmark Mag :: ' + str(landmarkOffsetMagnitude) + ', Alignment Mag :: ' + str(alignedOffsetMagnitude))
+#
+#    print('Cropping to offsets!')
+#    cropTools.cropToOffsets(captures, np.array(imageOffsets))
+#    print('Done Cropping to offsets!')
+
+
+#def cropAndAlignCaptures(captures):
+#    landmarkOffsetMagnitude = getLandmarkOffsetMagnitude(captures, 25)#Users right Eye Outside Point
+#
+#    print('one')
+#    greyImages = [np.mean(capture.image, axis=2) for capture in captures]
+#
+#    print('two')
+#    interiorPoints = [capture.landmarks.getInteriorPoints() for capture in captures]
+#    masks = [getMask(greyImage, interiorPoints) for greyImage, interiorPoints in zip(greyImages, interiorPoints)]
+#
+#    print('three')
+#    stretchedImages = [stretchHistogram(image, mask) for image, mask in zip(greyImages, masks)]
+#    #stretchedImages = greyImages
+#    
+#    #stretchedShow = np.hstack(stretchedImages)
+#    #stretchedShow = cv2.resize(stretchedShow, (0, 0), fx=1/3, fy=1/3)
+#    #cv2.imshow('stretched', stretchedShow.astype('uint8'))
+#    #cv2.waitKey(0)
+#
+#    print('four')
+#    preparedImages = [getPrepared(stretchedImage, mask) for stretchedImage, mask in zip(stretchedImages, masks)]
+#    print("Done Preparing Images")
+#
+#    #preparedShow = np.hstack(preparedImages)
+#    #preparedShow = cv2.resize(preparedShow, (0, 0), fx=1/3, fy=1/3)
+#    #cv2.imshow('prepared', preparedShow)
+#    #cv2.waitKey(0)
+#
+#    print("Calculating Offset")
+#    #middleImageIndex = math.floor(len(captures) / 2)
+#    relativeImageOffsets = [calculateOffset(preparedImage, preparedImages[index - 1 if index > 0 else 0]) for index, preparedImage in enumerate(preparedImages)]
+#
+#    imageOffsets = [relativeImageOffsets[0]]
+#    for relativeImageOffset in relativeImageOffsets[1:]:
+#        imageOffsets.append(imageOffsets[-1] + relativeImageOffset)
+#
+#    print('Image Offsets :: ' + str(imageOffsets))
+#    print("Done Calculating Offset")
+#
+#    alignedOffsetMagnitude = getOffsetMagnitude(imageOffsets, captures[0].image.shape)
+#
+#    print('Landmark, Aligned values :: ' + str(landmarkOffsetMagnitude) + ' | ' + str(alignedOffsetMagnitude))
+#
+#    if  (alignedOffsetMagnitude > 0.05) or (landmarkOffsetMagnitude > 0.05):
+#        raise NameError('Probable Error Stacking. Alignment of Landmark Offset Mag is too large. Landmark Mag :: ' + str(landmarkOffsetMagnitude) + ', Alignment Mag :: ' + str(alignedOffsetMagnitude))
+#
+#    print('Cropping to offsets!')
+#    cropTools.cropToOffsets(captures, np.array(imageOffsets))
+#    print('Done Cropping to offsets!')

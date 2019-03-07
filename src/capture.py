@@ -15,11 +15,13 @@ class Capture:
         #self.image = np.clip(image, 0, 255).astype('uint8')
         #self.image = image.astype('int32')
         #colorTools.whitebalance_from_asShot_to_d65(image.astype('uint16'), metadata['whiteBalance']['x'], metadata['whiteBalance']['y'])
-        if metadata["imageTransforms"]["isGammaSBGR"] is False:
-            self.image = colorTools.convert_sBGR_to_linearBGR_float_fast(image)
-            print('{} :: sBGR -> Linear'.format(self.name))
-        else:
-            self.image = image / 255
+        self.isGammaSBGR = metadata["imageTransforms"]["isGammaSBGR"]
+        self.image = image
+        #if metadata["imageTransforms"]["isGammaSBGR"] is False:
+        #    self.image = colorTools.convert_sBGR_to_linearBGR_float_fast(image)
+        #    print('{} :: sBGR -> Linear'.format(self.name))
+        #else:
+        #    self.image = image / 255
 
         self.metadata = metadata
         self.landmarks = Landmarks(self.metadata['faceLandmarksSource'], self.metadata['faceLandmarks'], image.shape)
