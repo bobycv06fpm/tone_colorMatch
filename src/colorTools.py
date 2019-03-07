@@ -227,6 +227,21 @@ def convert_sBGR_to_linearBGR_float(image, isFloat=False):
     #print('(almost) Done :: sBGR -> linearBGR float')
     return image_float + convertedLargeValues
 
+def convert_sBGR_to_linearBGR_float_fast(image):
+    image_float = image / 255
+
+    largeValuesMask = (image_float > .04045)
+    largeValues = image_float[largeValuesMask]
+
+    largeValues += ALPHA
+    largeValues /= One_Plus_Alpha
+    largeValues **= GAMMA
+
+    image_float[largeValuesMask] = largeValues
+    image_float[np.logical_not(largeValuesMask)] /= Small_Values_Const
+
+    return image_float
+
 def convert_linearBGR_float_to_sBGR(image):
     #print('Starting :: linearBGR float -> sBGR')
     smallValuesMask = (image <= .0031308)
@@ -308,7 +323,7 @@ def whitebalanceBGRPoints(points, wb):
 
     targetValue = max(wb)
     wbMultiplier = [targetValue, targetValue, targetValue] / wb
-    return (points * wbMultiplier).astype('uint16')
+    return points * wbMultiplier
 
 def getRelativeLuminance(points):
     points = np.array(points)

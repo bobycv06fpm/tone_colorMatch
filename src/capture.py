@@ -15,7 +15,12 @@ class Capture:
         #self.image = np.clip(image, 0, 255).astype('uint8')
         #self.image = image.astype('int32')
         #colorTools.whitebalance_from_asShot_to_d65(image.astype('uint16'), metadata['whiteBalance']['x'], metadata['whiteBalance']['y'])
-        self.image = image.astype('uint16')
+        if metadata["imageTransforms"]["isGammaSBGR"] is False:
+            self.image = colorTools.convert_sBGR_to_linearBGR_float_fast(image)
+            print('{} :: sBGR -> Linear'.format(self.name))
+        else:
+            self.image = image / 255
+
         self.metadata = metadata
         self.landmarks = Landmarks(self.metadata['faceLandmarksSource'], self.metadata['faceLandmarks'], image.shape)
         self.mask = thresholdMask.getClippedMask(image)
@@ -24,45 +29,44 @@ class Capture:
         if mask is not None:
             self.mask = np.logical_or(self.mask, mask)
 
+    def getFormattedImage(self):
+        return np.clip(self.image * 255, 0, 255).astype('uint8')
+
     def getLargestValue(self):
-        return np.max(self.image)
+        return np.max(self.getFormattedImage())
 
     def blurredImage(self):
-        return cv2.GaussianBlur(self.image, (5, 5), 0)
+        return cv2.GaussianBlur(self.getFormattedImage(), (5, 5), 0)
         #return cv2.medianBlur(self.image.astype('uint16'), 5)
 
-    def scaleToValue(self, value):
-        if value < 255:
-            return
+    #def scaleToValue(self, value):
+    #    if value < 255:
+    #        return
 
-        self.image = self.image * (255 / value)
+    #    self.image = self.image * (255 / value)
 
     def whiteBalanceImageToD65(self):
-        self.image = colorTools.whitebalance_from_asShot_to_d65(self.image.astype('uint16'), self.whiteBalance['x'], self.whiteBalance['y'])
+        self.image = colorTools.whitebalance_from_asShot_to_d65(self.image, self.whiteBalance['x'], self.whiteBalance['y'])
 
     def getWhiteBalancedImageToD65(self):
-        return colorTools.whitebalance_from_asShot_to_d65(self.image.astype('uint16'), self.whiteBalance['x'], self.whiteBalance['y'])
+        whiteBalanced = colorTools.whitebalance_from_asShot_to_d65(self.image, self.whiteBalance['x'], self.whiteBalance['y'])
+        return whiteBalanced#np.clip(whiteBalanced * 255, 0, 255).astype('uint8')
 
     def getAsShotWhiteBalance(self):
         return [self.whiteBalance['x'], self.whiteBalance['y']]
 
-    def getClippedImage(self):
-        return np.clip(self.image, 0, 255).astype('uint8')
+    #def getClippedImage(self):
+    #    return np.clip(self.image, 0, 255).astype('uint8')
 
-    def show(self, wait=True, passedImage=None):
-        image = passedImage if passedImage is not None else self.image
-        clippedImage = np.clip(image, 0, 255).astype('uint8')
-
+    def show(self):
         ratio = 3
-        smallImage = cv2.resize(clippedImage, (0, 0), fx=1/ratio, fy=1/ratio)
-
+        smallImage = cv2.resize(self.getFormattedImage(), (0, 0), fx=1/ratio, fy=1/ratio)
         cv2.imshow(self.name, smallImage)
-        if wait:
-            cv2.waitKey(0)
+        cv2.waitKey(0)
 
     def calculateNoise(self):
         blurSize = 5
-        blurred = cv2.medianBlur(self.image.astype('uint16'), blurSize)
+        blurred = cv2.medianBlur(self.getFormattedImage(), blurSize)
         #blurred = cv2.blur(image.astype('uint16'), (blurSize, blurSize))
         #blurred = cv2.GaussianBlur(image.astype('uint16'), (blurSize, blurSize), 0)
 
@@ -70,7 +74,7 @@ class Capture:
         #blurredLuminance[blurredLuminance == 0] = 1
 
         #noise = (np.abs(image.astype('int32') - blurred.astype('int32')) * 50).astype('uint8')
-        noise = (np.abs(self.image.astype('int32') - blurred.astype('int32'))).astype('uint8')
+        noise = (np.abs(self.getFormattedImage().astype('int32') - blurred.astype('int32'))).astype('uint8')
         #noise = (np.clip(capture.image.astype('int32') - blurred.astype('int32'), 0, 255) * 50).astype('uint8')
         #noise = ((np.abs(capture.image.astype('int32') - blurred.astype('int32')) / capture.image) * 5000).astype('uint8')
 
@@ -81,13 +85,13 @@ class Capture:
         #saveStep.saveReferenceImageBGR(noise, '{}Noise'.format(capture.name))
 
     def showMasked(self, wait=True):
-        masked = np.copy(self.image)
+        masked = np.copy(self.getFormattedImage())
         masked[self.mask] = [0, 0, 0]
 
         self.show(wait, masked)
 
     def showImageWithLandmarks(self, wait=True, tag=''):
-        img = np.clip(self.image, 0, 255).astype('uint8')
+        img = self.getFormattedImage()
         for point in self.landmarks.landmarkPoints:
             cv2.circle(img, (point[0], point[1]), 5, (0, 0, 255), -1)
 

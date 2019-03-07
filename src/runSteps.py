@@ -186,10 +186,10 @@ def getNonLinearityMask(flashStepDiff, fullFlashRangeDiff):
     perSubPixelMaxError = np.mean(percentError, axis=2)
 
     maxFullDiffImage = np.max(fullFlashRangeDiff, axis=2)
-    lowValueMask = maxFullDiffImage < 10
-    medLowValueMask = maxFullDiffImage < 25
-    medHighValueMask = maxFullDiffImage < 100
-    medHigherValueMask = maxFullDiffImage < 180
+    lowValueMask = maxFullDiffImage < (10 / 255)
+    medLowValueMask = maxFullDiffImage < (25 / 255)
+    medHighValueMask = maxFullDiffImage < (100 / 255)
+    medHigherValueMask = maxFullDiffImage < (180 / 255)
 
     nonLinearMaskHigh = perSubPixelMaxError > .04 #All Values less than 255
     nonLinearMaskMedHigher = perSubPixelMaxError > .06 #All Values less than 180
@@ -378,10 +378,10 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
 
     print('Subtracting Base from Flash')
 
-    fullFlashRangeDiff = captures[0].image.astype('int32') - captures[-1].image.astype('int32')
+    fullFlashRangeDiff = captures[0].image - captures[-1].image
     fullFlashRangeDiff[fullFlashRangeDiff == 0] = 1 #We will be dividing by this later
 
-    flashSteps = np.array([captures[index].image.astype('int32') - captures[index - 1].image.astype('int32') for index in range(1, len(captures))])
+    flashSteps = np.array([captures[index].image - captures[index - 1].image for index in range(1, len(captures))])
 
     meanFlashStep = np.mean(flashSteps, axis=0)
     flashStepDiffs = flashSteps - meanFlashStep
@@ -397,7 +397,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
 
     if not fast:
         print('Saving Step 1')
-        saveStep.saveImageStep(np.clip(fullFlashRangeDiff, 0, 255).astype('uint8'), 1)
+        saveStep.saveImageStep(np.clip(fullFlashRangeDiff * 255, 0, 255).astype('uint8'), 1)
         saveStep.saveMaskStep(allPointsMask, 1, 'clippedMask')
 
 

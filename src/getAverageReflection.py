@@ -65,8 +65,8 @@ def erode(img):
     morph = cv2.morphologyEx(img, cv2.MORPH_CROSS, kernel)
     return morph
 
-def getReflectionBB(mask):
-    img = mask.astype('uint8') * 255
+def getReflectionBB(maskedImg):
+    img = np.clip(maskedImg * 255, 0, 255).astype('uint8')
     im2, contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     areas = [cv2.contourArea(c) for c in contours]
     if not areas:
@@ -103,11 +103,11 @@ def maskReflectionBB(eyes, wb):
     kernel = np.ones((3, 3), np.uint16)
     #Relient on second darkest being AT LEAST 2x brighter than darkest
     secondDarkestImage, darkestImage = [cv2.morphologyEx(img, cv2.MORPH_CROSS, kernel) for img in greyEyes[-2:]]
-    externalReflections = np.clip((2 * darkestImage.astype('int32')) - secondDarkestImage.astype('int32'), 0, 255).astype('uint8')
+    externalReflections = np.clip((2 * darkestImage) - secondDarkestImage, 0, 10)
 
-    brightestClean = np.clip(greyEyes[0] - externalReflections, 0, 255)
-    brightestTop = maskTopValues(brightestClean)
-    reflectionBB = getReflectionBB(brightestTop)
+    brightestClean = np.clip(greyEyes[0] - externalReflections, 0, 10)
+    brightestTopMask = maskTopValues(brightestClean)
+    reflectionBB = getReflectionBB(brightestTopMask)
 
     return reflectionBB
 
@@ -134,7 +134,7 @@ def getAnnotatedEyeStrip(leftReflectionBB, leftOffsetCoords, rightReflectionBB, 
     rightReflectionP1 = tuple(rightReflectionP1)
     rightReflectionP2 = tuple(rightReflectionP2)
 
-    eyeStrip = np.copy(cropToBB(capture.image.astype('uint8'), eyeStripBB))
+    eyeStrip = np.copy(cropToBB(capture.getFormattedImage(), eyeStripBB))
 
     for [x, y] in eyeWidthPoints:
         cv2.circle(eyeStrip, (x, y), 5, (0, 255, 0), -1)
@@ -158,7 +158,7 @@ def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
     reflectionMask = eyeMask[y:y+h, x:x+w]
     if ignoreMask:
         reflectionMask.fill(False)
-    #reflectionMask.fill(False)
+    reflectionMask.fill(False)
     reflectionPoints = reflectionCrop[np.logical_not(reflectionMask)]
 
     if (reflectionMask.shape[0] == 0) or (reflectionMask.shape[1] == 0):

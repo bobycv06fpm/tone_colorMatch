@@ -279,6 +279,16 @@ class Save:
         with open(path) as f:
             data = json.load(f)
 
+        defaultImageTransforms = {}
+        defaultImageTransforms["isGammaSBGR"] = True
+        defaultImageTransforms["isRotated"] = True
+
+        for capture in data:
+            if not "imageTransforms" in capture:
+                capture["imageTransforms"] = defaultImageTransforms
+
+        print("LOADING :: " + str(data))
+
         return data
 
     def savePlot(self, name, plot):
