@@ -165,6 +165,8 @@ def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
     reflectionCrop = colorTools.convert_sBGR_to_linearBGR_float_fast(reflectionCrop)
     reflectionMask = eyeMask[y:y+h, x:x+w]
 
+    reflectionMask.fill(False)
+
     if (reflectionMask.shape[0] == 0) or (reflectionMask.shape[1] == 0):
         raise NameError('Zero width eye reflection')
 
@@ -187,7 +189,7 @@ def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
 
     if ignoreMask:
         reflectionMask.fill(False)
-    #reflectionMask.fill(False)
+
     reflectionPoints = reflectionCrop[np.logical_not(reflectionMask)]
 
 

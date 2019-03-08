@@ -104,7 +104,7 @@ def plotPerRegionDistribution(faceRegionsSets, saveStep):
 
     saveStep.savePlot('Regions_Scatter', plt)
 
-def plotBGR(axs, color, size, x, y):
+def plotBGR(axs, color, size, x, y, pointRange=None):
     
     x_sample, y_sample = samplePoints(x, y)
 
@@ -113,7 +113,11 @@ def plotBGR(axs, color, size, x, y):
 
     axs.scatter(x_sample, y_sample, size, [list(color)])
 
-    m, c = fitLine(x_sample, y_sample)
+    if pointRange is not None:
+        m, c = fitLine(x_sample[pointRange[0]:pointRange[1]], y_sample[pointRange[0]:pointRange[1]])
+    else:
+        m, c = fitLine(x_sample, y_sample)
+
     axs.plot([start_x, end_x], [(m * start_x + c), (m * end_x + c)], color=color)
 
 def plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
@@ -298,7 +302,9 @@ def getMedianDiff(points):
     for index in range(1, len(points)):
         diffs.append(np.abs(points[index - 1] - points[index]))
 
-    return np.median(np.array(diffs), axis=0)
+    #return np.median(np.array(diffs), axis=0)
+    #return np.median(np.array(diffs)[-6:-2], axis=0)
+    return np.mean(np.array(diffs)[-6:-2], axis=0)
 
 def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
         leftEyeDiffReflectionMedian = getMedianDiff(leftEyeReflections)
@@ -366,9 +372,6 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #All offsets are relative to capture[0]
     for capture in captures:
         capture.landmarks = captures[0].landmarks
-
-    #print('Saving Step 1')
-    #saveStep.saveImageStep(np.clip((captures[0].image - captures[-1].image) * 255, 0, 255).astype('uint8'), 1)
 
     try:
         averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections = getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, saveStep)

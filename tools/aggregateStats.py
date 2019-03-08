@@ -77,15 +77,15 @@ else:
         rightPointWB = colorTools.whitebalanceBGRPoints(rightPoint, rightReflection)
         chinPointWB = colorTools.whitebalanceBGRPoints(chinPoint, averageReflection)
         foreheadPointWB = colorTools.whitebalanceBGRPoints(foreheadPoint, averageReflection)
-        #medianBGR = np.median(np.array([leftPointWB, rightPointWB, chinPointWB, foreheadPointWB]), axis=0)
-        medianBGR = chinPointWB
+        medianBGR = np.median(np.array([leftPointWB, rightPointWB, chinPointWB, foreheadPointWB]), axis=0)
+        #medianBGR = chinPointWB
 
         leftPointHSV = colorTools.bgr_to_hsv(leftPointWB)
         rightPointHSV = colorTools.bgr_to_hsv(rightPointWB)
         chinPointHSV = colorTools.bgr_to_hsv(chinPointWB)
         foreheadPointHSV = colorTools.bgr_to_hsv(foreheadPointWB)
-        #medianHSV = np.median(np.array([leftPointHSV, rightPointHSV, chinPointHSV, foreheadPointHSV]), axis=0)
-        medianHSV = chinPointHSV
+        medianHSV = np.median(np.array([leftPointHSV, rightPointHSV, chinPointHSV, foreheadPointHSV]), axis=0)
+        #medianHSV = chinPointHSV
 
         wbBGR.append(leftPointWB)
         wbBGR.append(rightPointWB)
@@ -99,9 +99,10 @@ else:
         wbHSV.append(foreheadPointHSV)
         medianHSVs.append(medianHSV)
 
-        print('{}'.format(name))
-        print('\tBGR -> Median :: {} || Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(pts(medianBGR), pts(leftPointWB), pts(rightPointWB), pts(chinPointWB), pts(foreheadPointWB)))
-        print('\tHSV -> Median :: {} || Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(pts(medianHSV), pts(leftPointHSV), pts(rightPointHSV), pts(chinPointHSV), pts(foreheadPointHSV)))
+        #print('{}'.format(name))
+        #print('\tBGR -> Median :: {} || Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(pts(medianBGR), pts(leftPointWB), pts(rightPointWB), pts(chinPointWB), pts(foreheadPointWB)))
+        #print('\tHSV -> Median :: {} || Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(pts(medianHSV), pts(leftPointHSV), pts(rightPointHSV), pts(chinPointHSV), pts(foreheadPointHSV)))
+        print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
 
     wbBGR = np.array(wbBGR)
     wbHSV = np.array(wbHSV)
