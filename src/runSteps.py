@@ -35,6 +35,7 @@ def samplePoints(pointsA, pointsB):
     return [list(pointsA), list(pointsB)]
 
 def plotPerRegionDistribution(faceRegionsSets, saveStep):
+    print('PLOTTING: Per Region Distribution')
     faceRegionsSetsLuminance = np.array([faceRegionSet.getRegionLuminance() for faceRegionSet in faceRegionsSets])
     faceRegionsSetsHSV = np.array([faceRegionSet.getRegionHSV() for faceRegionSet in faceRegionsSets])
 
@@ -116,6 +117,7 @@ def plotBGR(axs, color, size, x, y):
     axs.plot([start_x, end_x], [(m * start_x + c), (m * end_x + c)], color=color)
 
 def plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
+    print('PLOTTING: Per Eye Reflection Brightness')
     size = 25
     numCaptures = len(leftEyeReflections)
     expectedBrightness = np.array([regions.capture.flashRatio for regions in faceRegions])
@@ -208,6 +210,7 @@ def getNonLinearityMask(flashStepDiff, fullFlashRangeDiff):
 
 
 def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
+    print('PLOTTING: Region Linearity')
     captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
     flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
     numberOfRegions = captureFaceRegions.shape[1]
@@ -245,6 +248,7 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
     saveStep.savePlot('RegionLinearity', plt)
 
 def plotPerRegionPoints(faceRegionsSets, saveStep):
+    print('PLOTTING: Per Region Points')
     size=1
     colors = [(1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 0), (1, 0, 1), (0, 1, 1), (0, 0, 0), (0.5, 0.5, 0.5), (0.5, 0.5, 0)]
 
@@ -375,10 +379,28 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
             print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
             return getResponse(imageName, False)
 
-    #testDiff = captures[0].image - captures[-1].image
-    #smallImage = cv2.resize(testDiff, (0, 0), fx=1/2, fy=1/2)
-    #cv2.imshow('diff', smallImage)
-    #cv2.waitKey(0)
+    try:
+        faceRegions = np.array([FaceRegions(capture) for capture in captures])
+    except Exception as err:
+        if failOnError:
+            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
+        else:
+            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
+            return getResponse(imageName, False)
+
+    saveStep.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')
+
+    plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
+    plotPerRegionPoints(faceRegions, saveStep)
+    plotPerRegionDistribution(faceRegions, saveStep)
+    plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
+
+    captureSets = zip(faceRegions, leftEyeReflections, rightEyeReflections)
+    medianDiffSets = getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions)
+
+    response = getResponse(imageName, True, captureSets, medianDiffSets)
+    return response
+
 
 
 

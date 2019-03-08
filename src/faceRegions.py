@@ -19,30 +19,40 @@ class FaceRegions:
         self.chinPoints, self.chinCleanRatio = extractMask.extractPolygonPoints(capture.image, capture.mask, self.chinPolygon)
         self.foreheadPoints, self.foreheadCleanRatio = extractMask.extractPolygonPoints(capture.image, capture.mask, self.foreheadPolygon)
 
-        self.leftCheekMedian = np.median(self.leftCheekPoints, axis=0)
-        self.rightCheekMedian = np.median(self.rightCheekPoints, axis=0)
-        self.chinMedian = np.median(self.chinPoints, axis=0)
-        self.foreheadMedian = np.median(self.foreheadPoints, axis=0)
+        print('{} - Converting Face Regions to Linear -'.format(capture.name), end="")
+        self.linearLeftCheekPoints = colorTools.convert_sBGR_to_linearBGR_float_fast(self.leftCheekPoints)
+        print('-', end="")
+        self.linearRightCheekPoints = colorTools.convert_sBGR_to_linearBGR_float_fast(self.rightCheekPoints)
+        print('-', end="")
+        self.linearChinPoints = colorTools.convert_sBGR_to_linearBGR_float_fast(self.chinPoints)
+        print('-', end="")
+        self.linearForeheadPoints = colorTools.convert_sBGR_to_linearBGR_float_fast(self.foreheadPoints)
+        print('-> Done')
+
+        self.linearLeftCheekMedian = np.median(self.linearLeftCheekPoints, axis=0)
+        self.linearRightCheekMedian = np.median(self.linearRightCheekPoints, axis=0)
+        self.linearChinMedian = np.median(self.linearChinPoints, axis=0)
+        self.linearForeheadMedian = np.median(self.linearForeheadPoints, axis=0)
 
     def getRegionMapValue(self):
         value = {}
-        value['left'] = [float(value) for value in self.leftCheekMedian]
-        value['right'] = [float(value) for value in self.rightCheekMedian]
-        value['chin'] = [float(value) for value in self.chinMedian]
-        value['forehead'] = [float(value) for value in self.foreheadMedian]
+        value['left'] = [float(value) for value in self.linearLeftCheekMedian]
+        value['right'] = [float(value) for value in self.linearRightCheekMedian]
+        value['chin'] = [float(value) for value in self.linearChinMedian]
+        value['forehead'] = [float(value) for value in self.linearForeheadMedian]
         return value
 
     def maxSubpixelValue(self):
-        return np.max([np.max(region) for region in [self.leftCheekPoints, self.rightCheekPoints, self.chinPoints, self.foreheadPoints]])
+        return np.max([np.max(region) for region in [self.linearLeftCheekPoints, self.linearRightCheekPoints, self.linearChinPoints, self.linearForeheadPoints]])
 
     def getMaskedImage(self):
         return extractMask.getMaskedImage(self.capture.image, self.capture.mask, [self.leftCheekPolygon, self.rightCheekPolygon, self.chinPolygon, self.foreheadPolygon])
 
     def getRegionPoints(self):
-        return np.array([self.leftCheekPoints, self.rightCheekPoints, self.chinPoints, self.foreheadPoints])
+        return np.array([self.linearLeftCheekPoints, self.linearRightCheekPoints, self.linearChinPoints, self.linearForeheadPoints])
 
     def getRegionMedians(self):
-        return np.array([self.leftCheekMedian, self.rightCheekMedian, self.chinMedian, self.foreheadMedian])
+        return np.array([self.linearLeftCheekMedian, self.linearRightCheekMedian, self.linearChinMedian, self.linearForeheadMedian])
 
     def getRegionMedianHSV(self):
         return [colorsys.rgb_to_hsv(r, g, b) for b, g, r in self.getRegionMedians()]
