@@ -23,10 +23,14 @@ def getMask(img, points):
     mask = cv2.fillConvexPoly(mask, hull, 1).astype('bool')
     return mask
 
+#TAKES A FLOAT
 def stretchHistogram(gray, mask=None):
+    upperBound = 1
+    lowerBound = 0
+
     if mask is not None:
-        clippedHigh = gray != 255
-        clippedLow = gray != 0
+        clippedHigh = gray != upperBound
+        clippedLow = gray != lowerBound
 
         mask = np.logical_and(mask, clippedHigh)
         mask = np.logical_and(mask, clippedLow)
@@ -38,9 +42,9 @@ def stretchHistogram(gray, mask=None):
     median = np.median(grayPoints)
     sd = np.std(grayPoints)
     lower = median - (3 * sd)
-    lower = lower if lower > 0 else 0
+    lower = lower if lower > lowerBound else lowerBound
     upper = median + (3 * sd)
-    upper = upper if upper < 256 else 255
+    upper = upper if upper < upperBound else upperBound
 
     bounds = np.copy(gray)
     bounds[bounds < lower] = lower
@@ -49,7 +53,7 @@ def stretchHistogram(gray, mask=None):
     numerator = bounds - lower
     denominator = upper - lower
     stretched = (numerator / denominator)
-    stretched = np.clip(stretched * 255, 0, 255)
+    #stretched = np.clip(stretched * 255, 0, 255)
     return stretched
 
 def getPrepared(gray, mask):
@@ -99,7 +103,7 @@ def getLuminosity(image):#, image, blur=101, dimensions=3):
     return luminosity
 
 def getPreparedEye(gray):
-    gray = cv2.bilateralFilter(np.clip(gray, 0, 255).astype('uint8'),30,150,150)
+    gray = cv2.bilateralFilter(np.clip(gray * 255, 0, 255).astype('uint8'),30,150,150)
     prepped = cv2.Sobel(gray, cv2.CV_16S, 1, 1, ksize=5)
     return np.float32(prepped)
 
@@ -114,14 +118,19 @@ def getEyeOffsets(eyes, wb=None):
     stretchedEyes = [stretchHistogram(greyEye) for greyEye in greyEyes]
     preparedEyes = [getPreparedEye(stretchedEye) for stretchedEye in stretchedEyes]
 
+    #stretched = np.hstack(stretchedEyes)
+    #prepped = np.hstack(preparedEyes)
+    #cv2.imshow('prepped', np.vstack((stretched, prepped)))
+    #cv2.waitKey(0)
+
     relativeEyeOffsets = [calculateOffset(preparedEye, preparedEyes[index - 1 if index > 0 else 0]) for index, preparedEye in enumerate(preparedEyes)]
 
     eyeOffsets = [relativeEyeOffsets[0]]
     for relativeEyeOffset in relativeEyeOffsets[1:]:
         eyeOffsets.append(eyeOffsets[-1] + relativeEyeOffset)
 
-    for index, eyeOffset in enumerate(eyeOffsets):
-        print('Eye Offset {} :: {}'.format(index, eyeOffset))
+    #for index, eyeOffset in enumerate(eyeOffsets):
+    #    print('Eye Offset {} :: {}'.format(index, eyeOffset))
 
     return np.array(eyeOffsets)
 
@@ -177,21 +186,22 @@ def standardizeEyeCoordDimensions(eyeCoords):
     standardizedEyeCoords = []
     eyeCoordDiffs = []
     for eyeCoord in eyeCoords:
-        widthDiff = maxWidth - eyeCoord[2]
-        heightDiff = maxHeight - eyeCoord[3]
+        #widthDiff = maxWidth - eyeCoord[2]
+        #heightDiff = maxHeight - eyeCoord[3]
 
-        widthDelta = int(widthDiff / 2)
-        heightDelta = int(heightDiff / 2)
+        #widthDelta = -1 * int(widthDiff / 2)
+        #heightDelta = -1 * int(heightDiff / 2)
 
-        eyeCoord[0] -= widthDelta
-        eyeCoord[1] -= heightDelta
+        #eyeCoord[0] += widthDelta
+        #eyeCoord[1] += heightDelta
         eyeCoord[2] = maxWidth
         eyeCoord[3] = maxHeight
 
         standardizedEyeCoords.append(eyeCoord)
-        eyeCoordDiffs.append([widthDelta, heightDelta])
+        #eyeCoordDiffs.append([widthDelta, heightDelta])
 
-    return [np.array(standardizedEyeCoords), np.array(eyeCoordDiffs)]
+    #return [np.array(standardizedEyeCoords), np.array(eyeCoordDiffs)]
+    return np.array(standardizedEyeCoords)
 
 def getRelativeLandmarkOffsets(eyeCoords):
     return eyeCoords[:, 0:2] - eyeCoords[0, 0:2]
@@ -204,18 +214,27 @@ def getCaptureEyeOffsets(captures):
 
     leftEyeCoords = np.array([getLeftEyeCoords(capture) for capture in captures])
     leftEyeLandmarkOffsets = getRelativeLandmarkOffsets(leftEyeCoords)
-    standardizedLeftEyeCoords, leftEyeCoordDiffs = standardizeEyeCoordDimensions(leftEyeCoords)
+    #standardizedLeftEyeCoords, leftEyeCoordDiffs = standardizeEyeCoordDimensions(leftEyeCoords)
+    standardizedLeftEyeCoords = standardizeEyeCoordDimensions(leftEyeCoords)
     leftEyeCrops = [capture.image[y:y+h, x:x+w] for (x, y, w, h), capture in zip(standardizedLeftEyeCoords, captures)]
+
     leftEyeOffsets = getEyeOffsets(leftEyeCrops, wb) 
-    fullLeftEyeOffsets = leftEyeLandmarkOffsets + (-1 * leftEyeCoordDiffs) + leftEyeOffsets
+
+    #fullLeftEyeOffsets = leftEyeLandmarkOffsets + leftEyeCoordDiffs + leftEyeOffsets
+    fullLeftEyeOffsets = leftEyeLandmarkOffsets + leftEyeOffsets
+    print('LEFT EYE OFFSETS :: {}'.format(fullLeftEyeOffsets))
     #print('Full Left Offsets :: ' + str(fullLeftEyeOffsets))
 
     rightEyeCoords = np.array([getRightEyeCoords(capture) for capture in captures])
     rightEyeLandmarkOffsets = getRelativeLandmarkOffsets(rightEyeCoords)
-    standardizedRightEyeCoords, rightEyeCoordDiffs = standardizeEyeCoordDimensions(rightEyeCoords)
+    #standardizedRightEyeCoords, rightEyeCoordDiffs = standardizeEyeCoordDimensions(rightEyeCoords)
+    standardizedRightEyeCoords = standardizeEyeCoordDimensions(rightEyeCoords)
     rightEyeCrops = [capture.image[y:y+h, x:x+w] for (x, y, w, h), capture in zip(standardizedRightEyeCoords, captures)]
     rightEyeOffsets = getEyeOffsets(rightEyeCrops, wb) #Do eyes need to be linear for effective WB?
-    fullRightEyeOffsets = rightEyeLandmarkOffsets + (-1 * rightEyeCoordDiffs) + rightEyeOffsets
+
+    #fullRightEyeOffsets = rightEyeLandmarkOffsets + rightEyeCoordDiffs + rightEyeOffsets
+    fullRightEyeOffsets = rightEyeLandmarkOffsets + rightEyeOffsets
+    print('RIGHT EYE OFFSETS :: {}'.format(fullRightEyeOffsets))
     #print('Full Right Offsets :: ' + str(fullRightEyeOffsets))
 
     fullAverageEyeOffsets = ((fullLeftEyeOffsets + fullRightEyeOffsets) / 2).astype('int32')

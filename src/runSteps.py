@@ -359,9 +359,12 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     rightEyeOffsets -= averageOffsets #Need offsets relative to averageOffset
 
     updatedAverageOffset = cropTools.cropCapturesToOffsets(captures, averageOffsets)
+    #All offsets are relative to capture[0]
+    for capture in captures:
+        capture.landmarks = captures[0].landmarks
 
-    print('Updated Left Eye Offsets :: ' + str(leftEyeOffsets))
-    print('Updated Right Eye Offsets :: ' + str(rightEyeOffsets))
+    #print('Saving Step 1')
+    #saveStep.saveImageStep(np.clip((captures[0].image - captures[-1].image) * 255, 0, 255).astype('uint8'), 1)
 
     try:
         averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections = getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, saveStep)
@@ -371,10 +374,6 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
         else:
             print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
             return getResponse(imageName, False)
-
-    # -> Simplifies things down the line...
-#    for capture in captures:
-#        capture.landmarks = captures[0].landmarks
 
     #testDiff = captures[0].image - captures[-1].image
     #smallImage = cv2.resize(testDiff, (0, 0), fx=1/2, fy=1/2)

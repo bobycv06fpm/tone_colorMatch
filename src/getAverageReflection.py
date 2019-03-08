@@ -102,13 +102,18 @@ def maskReflectionBB(eyes, wb):
     greyEyes = [np.mean(eye, axis=2) for eye in eyes]
 
     kernel = np.ones((3, 3), np.uint16)
-    #Relient on second darkest being AT LEAST 2x brighter than darkest
+    #Relient on second darkest reflection being AT LEAST 2x brighter than darkest
     secondDarkestImage, darkestImage = [cv2.morphologyEx(img, cv2.MORPH_CROSS, kernel) for img in greyEyes[-2:]]
     externalReflections = np.clip((2 * darkestImage) - secondDarkestImage, 0, 10)
 
     brightestClean = np.clip(greyEyes[0] - externalReflections, 0, 10)
     brightestTopMask = maskTopValues(brightestClean)
     reflectionBB = getReflectionBB(brightestTopMask)
+
+    #x, y, w ,h = reflectionBB
+    #crops = [eye[y:y + h, x:x + w] for eye in eyes]
+    #cv2.imshow('eye Crops', np.hstack(crops))
+    #cv2.waitKey(0)
 
     return reflectionBB
 
@@ -155,11 +160,17 @@ def calculateRepresentativeReflectionPoint(reflectionPoints):
 def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
     [x, y, w, h] = reflectionBB
 
+
     reflectionCrop = eyeCrop[y:y+h, x:x+w]
+    reflectionCrop = colorTools.convert_sBGR_to_linearBGR_float_fast(reflectionCrop)
     reflectionMask = eyeMask[y:y+h, x:x+w]
+    #cv2.imshow('Crop', reflectionCrop)
+    #cv2.imshow('Mask', reflectionMask.astype('uint8') * 255)
+    #cv2.waitKey(0)
+
     if ignoreMask:
         reflectionMask.fill(False)
-    reflectionMask.fill(False)
+    #reflectionMask.fill(False)
     reflectionPoints = reflectionCrop[np.logical_not(reflectionMask)]
 
     if (reflectionMask.shape[0] == 0) or (reflectionMask.shape[1] == 0):
@@ -195,7 +206,7 @@ def getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, s
     leftEyeCrops = [getCrop(capture, coords) for capture, coords in zip(captures, leftEyeCoords)]
     leftEyeMasks = [getMask(capture, coords) for capture, coords in zip(captures, leftEyeCoords)]
 
-    leftEyeCrops, offsets = cropTools.cropImagesToOffsets(leftEyeCrops, leftEyeOffsets)
+    leftEyeCrops, leftOffsets = cropTools.cropImagesToOffsets(leftEyeCrops, leftEyeOffsets)
     leftEyeMasks, offsets = cropTools.cropImagesToOffsets(leftEyeMasks, leftEyeOffsets)
 
     rightEyeCoords = np.array([getRightEyeCoords(capture) for capture in captures])
@@ -206,21 +217,14 @@ def getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, s
     rightEyeCrops = [getCrop(capture, coords) for capture, coords in zip(captures, rightEyeCoords)]
     rightEyeMasks = [getMask(capture, coords) for capture, coords in zip(captures, rightEyeCoords)]
 
-    rightEyeCrops, offsets = cropTools.cropImagesToOffsets(rightEyeCrops, rightEyeOffsets)
+    rightEyeCrops, rightOffsets = cropTools.cropImagesToOffsets(rightEyeCrops, rightEyeOffsets)
     rightEyeMasks, offsets = cropTools.cropImagesToOffsets(rightEyeMasks, rightEyeOffsets)
-
-
-    #leftEyeCrops, leftEyeOffsets = alignImages.cropAndAlignEyes(leftEyeCrops, wb)
-    #rightEyeCrops, rightEyeOffsets = alignImages.cropAndAlignEyes(rightEyeCrops, wb)
-    #rightEyeCrops, offsets = cropTools.cropImagesToOffsets(rightEyeMasks, rightEyeOffsets)
-
-    #rightEyeMasks, offsets = cropTools.cropImagesToOffsets(rightEyeMasks, rightEyeOffsets)
 
     leftReflectionBB = maskReflectionBB(leftEyeCrops, wb)
     rightReflectionBB = maskReflectionBB(rightEyeCrops, wb)
 
-    leftEyeCoords[:, 0:2] += leftEyeOffsets
-    rightEyeCoords[:, 0:2] += rightEyeOffsets
+    leftEyeCoords[:, 0:2] += leftOffsets
+    rightEyeCoords[:, 0:2] += rightOffsets
 
     annotatedEyeStrips = [getAnnotatedEyeStrip(leftReflectionBB, leftEyeCoord, rightReflectionBB, rightEyeCoord, capture) for leftEyeCoord, rightEyeCoord, capture in zip(leftEyeCoords, rightEyeCoords, captures)]
 
@@ -232,18 +236,7 @@ def getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, s
     stackedAnnotatedEyeStrips = np.vstack(annotatedEyeStrips)
     saveStep.saveReferenceImageLinearBGR(stackedAnnotatedEyeStrips, 'eyeStrips')
 
-    #leftEyeMasksShow = np.hstack(leftEyeMasks)
-    #leftEyeCropsShow = np.hstack(leftEyeCrops).astype('uint8')
-    #leftEyeCropsShow[leftEyeMasksShow] = [255, 255, 255]
-
-    #rightEyeMasksShow = np.hstack(rightEyeMasks)
-    #rightEyeCropsShow = np.hstack(rightEyeCrops).astype('uint8')
-    #rightEyeCropsShow[rightEyeMasksShow] = [255, 255, 255]
-
-    #cv2.imshow('Left Eye Crops', leftEyeCropsShow)
-    #cv2.imshow('Right Eye Crops', rightEyeCropsShow)
-    #cv2.waitKey(0)
-
+    #RESULTS ARE LINEAR
     leftReflectionStats = np.array([extractReflectionPoints(leftReflectionBB, eyeCrop, eyeMask, ignoreMask) for eyeCrop, eyeMask, ignoreMask in zip(leftEyeCrops, leftEyeMasks, isSpecialCase)])
     rightReflectionStats = np.array([extractReflectionPoints(rightReflectionBB, eyeCrop, eyeMask, ignoreMask) for eyeCrop, eyeMask, ignoreMask in zip(rightEyeCrops, rightEyeMasks, isSpecialCase)])
 
@@ -255,8 +248,10 @@ def getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, s
 
     #Whitebalance per flash and eye to get luminance levels... Maybe compare the average reflection values?
     #wbLeftReflections = np.vstack([colorTools.whitebalanceBGRPoints(leftReflection, averageReflection) for leftReflection, averageReflection in zip(leftReflectionStats[:, 0], averageReflections)])
+    print('Left Reflections :: ' + str(leftReflectionStats[:, 0]))
     wbLeftReflections = np.vstack(leftReflectionStats[:, 0])
     #wbRightReflections = np.vstack([colorTools.whitebalanceBGRPoints(rightReflection, averageReflection) for rightReflection, averageReflection in zip(rightReflectionStats[:, 0], averageReflections)])
+    print('Right Reflections :: ' + str(rightReflectionStats[:, 0]))
     wbRightReflections = np.vstack(rightReflectionStats[:, 0])
 
     #GET Luminance in reflection per flash and eye
