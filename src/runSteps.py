@@ -349,16 +349,32 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     try:
         leftEyeOffsets, rightEyeOffsets, averageOffsets = alignImages.getCaptureEyeOffsets(captures)
     except Exception as err:
-        print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
-        return getResponse(imageName, False)
-
-    updatedAverageOffset = cropTools.cropCapturesToOffsets(captures, averageOffsets)
+        if failOnError:
+            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
+        else:
+            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
+            return getResponse(imageName, False)
 
     leftEyeOffsets -= averageOffsets #Need offsets relative to averageOffset now that we are aligned
     rightEyeOffsets -= averageOffsets #Need offsets relative to averageOffset
 
+    updatedAverageOffset = cropTools.cropCapturesToOffsets(captures, averageOffsets)
+
     print('Updated Left Eye Offsets :: ' + str(leftEyeOffsets))
     print('Updated Right Eye Offsets :: ' + str(rightEyeOffsets))
+
+    try:
+        averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections = getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, saveStep)
+    except Exception as err:
+        if failOnError:
+            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
+        else:
+            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
+            return getResponse(imageName, False)
+
+    # -> Simplifies things down the line...
+#    for capture in captures:
+#        capture.landmarks = captures[0].landmarks
 
     #testDiff = captures[0].image - captures[-1].image
     #smallImage = cv2.resize(testDiff, (0, 0), fx=1/2, fy=1/2)

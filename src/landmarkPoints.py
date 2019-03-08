@@ -321,6 +321,9 @@ class Landmarks:
     def test_getForeheadBB(self):
         return cv2.boundingRect(self.getForeheadPoints())
 
+    def cropLandmarkPoints(self, offset):
+        self.landmarkPoints -= offset
+
     #def getFacePolygons(self):
         #return np.array([self.getForeheadPoints(), self.getLeftCheekPoints(), self.getRightCheekPoints(), self.getChinPoints()])
 

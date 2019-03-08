@@ -102,8 +102,10 @@ def cropImagesToOffsets(images, offsets):
 def cropCapturesToOffsets(captures, offsets):
     images = [capture.image for capture in captures]
     croppedImages, updatedOffsets = cropImagesToOffsets(images, offsets)
-    for capture, croppedImage in zip(captures, croppedImages):
+    for capture, croppedImage, updatedOffset in zip(captures, croppedImages, updatedOffsets):
         capture.image = croppedImage
+        capture.landmarks.cropLandmarkPoints(updatedOffset)
+        capture.mask = capture.mask[updatedOffset[1]:updatedOffset[1] + capture.image.shape[0], updatedOffset[0]:updatedOffset[0] + capture.image.shape[1]]
 
     return updatedOffsets
 

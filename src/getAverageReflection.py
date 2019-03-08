@@ -97,6 +97,7 @@ def maskReflectionBB(eyes, wb):
         if eye.shape[0] * eye.shape[1] == 0:
             raise NameError('Cannot Find #{} Eye'.format(index))
 
+    eyes = [colorTools.convert_sBGR_to_linearBGR_float_fast(eye) for eye in eyes]
     eyes = [colorTools.whitebalance_from_asShot_to_d65(eye, *wb) for eye in eyes]
     greyEyes = [np.mean(eye, axis=2) for eye in eyes]
 
@@ -134,7 +135,7 @@ def getAnnotatedEyeStrip(leftReflectionBB, leftOffsetCoords, rightReflectionBB, 
     rightReflectionP1 = tuple(rightReflectionP1)
     rightReflectionP2 = tuple(rightReflectionP2)
 
-    eyeStrip = np.copy(cropToBB(capture.getFormattedImage(), eyeStripBB))
+    eyeStrip = np.copy(cropToBB(capture.image, eyeStripBB))
 
     for [x, y] in eyeWidthPoints:
         cv2.circle(eyeStrip, (x, y), 5, (0, 255, 0), -1)
@@ -182,23 +183,38 @@ def getEyeWidth(capture):
 
     return (leftEyeWidth + rightEyeWidth) / 2
 
-def getAverageScreenReflectionColor(captures, saveStep):
+def getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, saveStep):
     wb = captures[0].getAsShotWhiteBalance()
     isSpecialCase = [capture.isNoFlash for capture in captures]
 
     leftEyeCoords = np.array([getLeftEyeCoords(capture) for capture in captures])
+    minLeftWidth = np.min(leftEyeCoords[:, 2])
+    minLeftHeight = np.min(leftEyeCoords[:, 3])
+    leftEyeCoords = np.array([[x, y, minLeftWidth, minLeftHeight] for x, y, w, h, in leftEyeCoords])
+
     leftEyeCrops = [getCrop(capture, coords) for capture, coords in zip(captures, leftEyeCoords)]
     leftEyeMasks = [getMask(capture, coords) for capture, coords in zip(captures, leftEyeCoords)]
 
+    leftEyeCrops, offsets = cropTools.cropImagesToOffsets(leftEyeCrops, leftEyeOffsets)
+    leftEyeMasks, offsets = cropTools.cropImagesToOffsets(leftEyeMasks, leftEyeOffsets)
+
     rightEyeCoords = np.array([getRightEyeCoords(capture) for capture in captures])
+    minRightWidth = np.min(rightEyeCoords[:, 2])
+    minRightHeight = np.min(rightEyeCoords[:, 3])
+    rightEyeCoords = np.array([[x, y, minRightWidth, minRightHeight] for x, y, w, h, in rightEyeCoords])
+
     rightEyeCrops = [getCrop(capture, coords) for capture, coords in zip(captures, rightEyeCoords)]
     rightEyeMasks = [getMask(capture, coords) for capture, coords in zip(captures, rightEyeCoords)]
 
-    leftEyeCrops, leftEyeOffsets = alignImages.cropAndAlignEyes(leftEyeCrops, wb)
-    rightEyeCrops, rightEyeOffsets = alignImages.cropAndAlignEyes(rightEyeCrops, wb)
-
-    leftEyeMasks, offsets = cropTools.cropImagesToOffsets(leftEyeMasks, leftEyeOffsets)
+    rightEyeCrops, offsets = cropTools.cropImagesToOffsets(rightEyeCrops, rightEyeOffsets)
     rightEyeMasks, offsets = cropTools.cropImagesToOffsets(rightEyeMasks, rightEyeOffsets)
+
+
+    #leftEyeCrops, leftEyeOffsets = alignImages.cropAndAlignEyes(leftEyeCrops, wb)
+    #rightEyeCrops, rightEyeOffsets = alignImages.cropAndAlignEyes(rightEyeCrops, wb)
+    #rightEyeCrops, offsets = cropTools.cropImagesToOffsets(rightEyeMasks, rightEyeOffsets)
+
+    #rightEyeMasks, offsets = cropTools.cropImagesToOffsets(rightEyeMasks, rightEyeOffsets)
 
     leftReflectionBB = maskReflectionBB(leftEyeCrops, wb)
     rightReflectionBB = maskReflectionBB(rightEyeCrops, wb)
@@ -207,6 +223,11 @@ def getAverageScreenReflectionColor(captures, saveStep):
     rightEyeCoords[:, 0:2] += rightEyeOffsets
 
     annotatedEyeStrips = [getAnnotatedEyeStrip(leftReflectionBB, leftEyeCoord, rightReflectionBB, rightEyeCoord, capture) for leftEyeCoord, rightEyeCoord, capture in zip(leftEyeCoords, rightEyeCoords, captures)]
+
+    minWidth = min([annotatedEyeStrip.shape[1] for annotatedEyeStrip in annotatedEyeStrips])
+    minHeight = min([annotatedEyeStrip.shape[0] for annotatedEyeStrip in annotatedEyeStrips])
+
+    annotatedEyeStrips = [annotatedEyeStrip[0:minHeight, 0:minWidth] for annotatedEyeStrip in annotatedEyeStrips]
 
     stackedAnnotatedEyeStrips = np.vstack(annotatedEyeStrips)
     saveStep.saveReferenceImageLinearBGR(stackedAnnotatedEyeStrips, 'eyeStrips')
@@ -279,3 +300,101 @@ def getAverageScreenReflectionColor(captures, saveStep):
     print('RIGHT FLUXISH :: {} | AREA ::  {} | LUMINOSITY :: {}'.format(rightFluxish, rightReflectionArea, rightHalfReflectionLuminance))
 
     return [averageReflections[middleIndex], averageReflectionArea, wbLeftReflections, wbRightReflections]
+
+#def getAverageScreenReflectionColor(captures, saveStep):
+#    wb = captures[0].getAsShotWhiteBalance()
+#    isSpecialCase = [capture.isNoFlash for capture in captures]
+#
+#    leftEyeCoords = np.array([getLeftEyeCoords(capture) for capture in captures])
+#    leftEyeCrops = [getCrop(capture, coords) for capture, coords in zip(captures, leftEyeCoords)]
+#    leftEyeMasks = [getMask(capture, coords) for capture, coords in zip(captures, leftEyeCoords)]
+#
+#    rightEyeCoords = np.array([getRightEyeCoords(capture) for capture in captures])
+#    rightEyeCrops = [getCrop(capture, coords) for capture, coords in zip(captures, rightEyeCoords)]
+#    rightEyeMasks = [getMask(capture, coords) for capture, coords in zip(captures, rightEyeCoords)]
+#
+#    leftEyeCrops, leftEyeOffsets = alignImages.cropAndAlignEyes(leftEyeCrops, wb)
+#    rightEyeCrops, rightEyeOffsets = alignImages.cropAndAlignEyes(rightEyeCrops, wb)
+#
+#    leftEyeMasks, offsets = cropTools.cropImagesToOffsets(leftEyeMasks, leftEyeOffsets)
+#    rightEyeMasks, offsets = cropTools.cropImagesToOffsets(rightEyeMasks, rightEyeOffsets)
+#
+#    leftReflectionBB = maskReflectionBB(leftEyeCrops, wb)
+#    rightReflectionBB = maskReflectionBB(rightEyeCrops, wb)
+#
+#    leftEyeCoords[:, 0:2] += leftEyeOffsets
+#    rightEyeCoords[:, 0:2] += rightEyeOffsets
+#
+#    annotatedEyeStrips = [getAnnotatedEyeStrip(leftReflectionBB, leftEyeCoord, rightReflectionBB, rightEyeCoord, capture) for leftEyeCoord, rightEyeCoord, capture in zip(leftEyeCoords, rightEyeCoords, captures)]
+#
+#    stackedAnnotatedEyeStrips = np.vstack(annotatedEyeStrips)
+#    saveStep.saveReferenceImageLinearBGR(stackedAnnotatedEyeStrips, 'eyeStrips')
+#
+#    #leftEyeMasksShow = np.hstack(leftEyeMasks)
+#    #leftEyeCropsShow = np.hstack(leftEyeCrops).astype('uint8')
+#    #leftEyeCropsShow[leftEyeMasksShow] = [255, 255, 255]
+#
+#    #rightEyeMasksShow = np.hstack(rightEyeMasks)
+#    #rightEyeCropsShow = np.hstack(rightEyeCrops).astype('uint8')
+#    #rightEyeCropsShow[rightEyeMasksShow] = [255, 255, 255]
+#
+#    #cv2.imshow('Left Eye Crops', leftEyeCropsShow)
+#    #cv2.imshow('Right Eye Crops', rightEyeCropsShow)
+#    #cv2.waitKey(0)
+#
+#    leftReflectionStats = np.array([extractReflectionPoints(leftReflectionBB, eyeCrop, eyeMask, ignoreMask) for eyeCrop, eyeMask, ignoreMask in zip(leftEyeCrops, leftEyeMasks, isSpecialCase)])
+#    rightReflectionStats = np.array([extractReflectionPoints(rightReflectionBB, eyeCrop, eyeMask, ignoreMask) for eyeCrop, eyeMask, ignoreMask in zip(rightEyeCrops, rightEyeMasks, isSpecialCase)])
+#
+#    averageReflections = (leftReflectionStats[:, 0] + rightReflectionStats[:, 0]) / 2
+#
+#    averageReflections = [(averageReflection if np.all(averageReflection.astype('bool')) else (averageReflection + np.array([1, 1, 1]))) for averageReflection in averageReflections]
+#
+#    print('AVERAGE NO, HALF, FULL REFLECTION :: {}'.format(averageReflections))
+#
+#    #Whitebalance per flash and eye to get luminance levels... Maybe compare the average reflection values?
+#    #wbLeftReflections = np.vstack([colorTools.whitebalanceBGRPoints(leftReflection, averageReflection) for leftReflection, averageReflection in zip(leftReflectionStats[:, 0], averageReflections)])
+#    wbLeftReflections = np.vstack(leftReflectionStats[:, 0])
+#    #wbRightReflections = np.vstack([colorTools.whitebalanceBGRPoints(rightReflection, averageReflection) for rightReflection, averageReflection in zip(rightReflectionStats[:, 0], averageReflections)])
+#    wbRightReflections = np.vstack(rightReflectionStats[:, 0])
+#
+#    #GET Luminance in reflection per flash and eye
+#    leftReflectionLuminances = [colorTools.getRelativeLuminance([leftReflection])[0] for leftReflection in wbLeftReflections]
+#    rightReflectionLuminances = [colorTools.getRelativeLuminance([rightReflection])[0] for rightReflection in wbRightReflections]
+#
+#    eyeWidth = getEyeWidth(captures[0])
+#
+#    if eyeWidth == 0:
+#        raise NameError('Zero value Eye Width')
+#
+#    leftReflectionWidth, leftReflectionHeight = leftReflectionBB[2:4] / eyeWidth
+#    rightReflectionWidth, rightReflectionHeight = rightReflectionBB[2:4] / eyeWidth
+#
+#    leftReflectionArea = leftReflectionWidth * leftReflectionHeight
+#    rightReflectionArea = rightReflectionWidth * rightReflectionHeight
+#
+#    averageReflectionArea = (leftReflectionArea + rightReflectionArea) / 2
+#
+#    if min(leftReflectionWidth, rightReflectionWidth) == 0:
+#        raise NameError('Zero value reflection Width')
+#
+#    if min(leftReflectionHeight, rightReflectionHeight) == 0:
+#        raise NameError('Zero value reflection Height')
+#
+#    reflectionWidthRatio = max(leftReflectionWidth, rightReflectionWidth) / min(leftReflectionWidth, rightReflectionWidth)
+#    reflectionHeightRatio = max(leftReflectionHeight, rightReflectionHeight) / min(leftReflectionHeight, rightReflectionHeight)
+#
+#    if (reflectionWidthRatio > 1.5) or (reflectionHeightRatio > 1.25):
+#        raise NameError('Reflection Sizes are too different!')
+#
+#    middleIndex = math.floor(len(captures) / 2)
+#
+#    leftHalfReflectionLuminance = leftReflectionLuminances[middleIndex] * 2 #2x because we are using half
+#    rightHalfReflectionLuminance = rightReflectionLuminances[middleIndex] * 2 #2x because we are using half
+#
+#    leftFluxish = leftReflectionArea * leftHalfReflectionLuminance
+#    rightFluxish = rightReflectionArea * rightHalfReflectionLuminance
+#
+#    print('LEFT FLUXISH :: {} | AREA ::  {} | LUMINOSITY :: {}'.format(leftFluxish, leftReflectionArea, leftHalfReflectionLuminance))
+#    print('RIGHT FLUXISH :: {} | AREA ::  {} | LUMINOSITY :: {}'.format(rightFluxish, rightReflectionArea, rightHalfReflectionLuminance))
+#
+#    return [averageReflections[middleIndex], averageReflectionArea, wbLeftReflections, wbRightReflections]
