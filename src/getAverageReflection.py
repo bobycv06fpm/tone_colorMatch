@@ -158,12 +158,29 @@ def calculateRepresentativeReflectionPoint(reflectionPoints):
     return np.median(reflectionPoints, axis=0) # Maybe change to only take median of top 10% of brightnesses?
 
 def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
-    [x, y, w, h] = reflectionBB
 
+    [x, y, w, h] = reflectionBB
 
     reflectionCrop = eyeCrop[y:y+h, x:x+w]
     reflectionCrop = colorTools.convert_sBGR_to_linearBGR_float_fast(reflectionCrop)
     reflectionMask = eyeMask[y:y+h, x:x+w]
+
+    if (reflectionMask.shape[0] == 0) or (reflectionMask.shape[1] == 0):
+        raise NameError('Zero width eye reflection')
+
+    cleanPixels = np.sum(np.logical_not(reflectionMask).astype('uint8'))
+    cleanPixelRatio = cleanPixels / (reflectionMask.shape[0] * reflectionMask.shape[1])
+
+    print('CLEAN PIXEL RATIO :: ' + str(cleanPixelRatio))
+
+    if cleanPixelRatio < 0.8:
+        raise NameError('Not enough clean non-clipped pixels in eye reflections')
+
+    medianReflection = np.median(reflectionCrop, axis=(0,1))
+    print('MEDIAN REFLECTION :: {}'.format(medianReflection))
+    lowerBoundMask = np.any(reflectionCrop < medianReflection, axis=2)
+    reflectionMask = np.logical_or(lowerBoundMask, reflectionMask)
+
     #cv2.imshow('Crop', reflectionCrop)
     #cv2.imshow('Mask', reflectionMask.astype('uint8') * 255)
     #cv2.waitKey(0)
@@ -173,15 +190,11 @@ def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
     #reflectionMask.fill(False)
     reflectionPoints = reflectionCrop[np.logical_not(reflectionMask)]
 
-    if (reflectionMask.shape[0] == 0) or (reflectionMask.shape[1] == 0):
-        raise NameError('Zero width eye reflection')
-
-    cleanPixelRatio = reflectionPoints.shape[0] / (reflectionMask.shape[0] * reflectionMask.shape[1])
 
     representativeReflectionPoint = calculateRepresentativeReflectionPoint(reflectionPoints)
 
-    if cleanPixelRatio < 0.8:
-        raise NameError('Not enough clean non-clipped pixels in eye reflections')
+
+    #if cleanPixelRatio < 0.8:
 
     return [representativeReflectionPoint, cleanPixelRatio]
 
