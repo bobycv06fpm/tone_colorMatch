@@ -22,6 +22,10 @@ def plot3d(points, xLabel, yLabel, zLabel):
     ax.set_zlabel(zLabel)
     plt.show()
 
+def getSaturation(point):
+    [name, hsv, bgr] = point
+    return hsv[1]
+
 with open('faceColors.json', 'r') as f:
     facesData = f.read()
     facesData = json.loads(facesData)
@@ -52,6 +56,7 @@ else:
 
     medianBGRs = []
     medianHSVs = []
+    printPoints = []
 
     for medianDiff in medianDiffs:
         #print('Median Diff :: ' + str(medianDiff))
@@ -102,7 +107,13 @@ else:
         #print('{}'.format(name))
         #print('\tBGR -> Median :: {} || Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(pts(medianBGR), pts(leftPointWB), pts(rightPointWB), pts(chinPointWB), pts(foreheadPointWB)))
         #print('\tHSV -> Median :: {} || Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(pts(medianHSV), pts(leftPointHSV), pts(rightPointHSV), pts(chinPointHSV), pts(foreheadPointHSV)))
-        print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
+        printPoints.append([name, medianHSV, medianBGR])
+        #print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
+
+    printPoints.sort(key=getSaturation)
+    #print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
+    for printPoint in printPoints:
+        print('\t{} - MEDIANS -> HSV :: {} | BGR :: {}'.format(*printPoint))
 
     wbBGR = np.array(wbBGR)
     wbHSV = np.array(wbHSV)

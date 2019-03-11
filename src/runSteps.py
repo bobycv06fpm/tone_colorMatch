@@ -307,38 +307,38 @@ def getMedianDiff(points):
     return np.mean(np.array(diffs)[-6:-2], axis=0)
 
 def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
-        leftEyeDiffReflectionMedian = getMedianDiff(leftEyeReflections)
-        leftEyeDiffReflectionMedianHSV = colorTools.bgr_to_hsv(leftEyeDiffReflectionMedian)
+    leftEyeDiffReflectionMedian = getMedianDiff(leftEyeReflections)
+    leftEyeDiffReflectionMedianHSV = colorTools.bgr_to_hsv(leftEyeDiffReflectionMedian)
 
-        rightEyeDiffReflectionMedian = getMedianDiff(rightEyeReflections)
-        rightEyeDiffReflectionMedianHSV = colorTools.bgr_to_hsv(rightEyeDiffReflectionMedian)
+    rightEyeDiffReflectionMedian = getMedianDiff(rightEyeReflections)
+    rightEyeDiffReflectionMedianHSV = colorTools.bgr_to_hsv(rightEyeDiffReflectionMedian)
 
-        faceRegionMedians = np.vstack([[region.getRegionMedians() for region in faceRegions]])
+    faceRegionMedians = np.vstack([[region.getRegionMedians() for region in faceRegions]])
 
-        #Take half of the face diffs for better accuracy... Maybe
-        faceRegionMedians = np.array([faceRegionMedian for i, faceRegionMedian in enumerate(faceRegionMedians) if i % 2 == 0])
+    #Take half of the face diffs for better accuracy... Maybe
+    faceRegionMedians = np.array([faceRegionMedian for i, faceRegionMedian in enumerate(faceRegionMedians) if i % 2 == 0])
 
-        faceRegionDiffMedians = [getMedianDiff(faceRegionMedians[:, idx]) for idx in range(0, faceRegionMedians.shape[1])]
-        faceRegionDiffMediansHSV  = [colorTools.bgr_to_hsv(point) for point in faceRegionDiffMedians]
+    faceRegionDiffMedians = [getMedianDiff(faceRegionMedians[:, idx]) for idx in range(0, faceRegionMedians.shape[1])]
+    faceRegionDiffMediansHSV  = [colorTools.bgr_to_hsv(point) for point in faceRegionDiffMedians]
 
-        medianDiffs = {}
-        medianDiffs["reflections"] = {}
-        medianDiffs["reflections"]["left"] = list(leftEyeDiffReflectionMedian)
-        medianDiffs["reflections"]["right"] = list(rightEyeDiffReflectionMedian)
+    medianDiffs = {}
+    medianDiffs["reflections"] = {}
+    medianDiffs["reflections"]["left"] = list(leftEyeDiffReflectionMedian)
+    medianDiffs["reflections"]["right"] = list(rightEyeDiffReflectionMedian)
 
-        medianDiffs["regions"] = {}
-        medianDiffs["regions"]["left"] = list(faceRegionDiffMedians[0])
-        medianDiffs["regions"]["right"] = list(faceRegionDiffMedians[1])
-        medianDiffs["regions"]["chin"] = list(faceRegionDiffMedians[2])
-        medianDiffs["regions"]["forehead"] = list(faceRegionDiffMedians[3])
+    medianDiffs["regions"] = {}
+    medianDiffs["regions"]["left"] = list(faceRegionDiffMedians[0])
+    medianDiffs["regions"]["right"] = list(faceRegionDiffMedians[1])
+    medianDiffs["regions"]["chin"] = list(faceRegionDiffMedians[2])
+    medianDiffs["regions"]["forehead"] = list(faceRegionDiffMedians[3])
 
-        formatString = '\nMEDIAN DIFFS :: {}\n\tEYES \n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\tFACE\n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\t\tCHIN \t\t{}\n\t\tFOREHEAD \t{}\n'
-        formatted = formatString.format('BGR', leftEyeDiffReflectionMedian, rightEyeDiffReflectionMedian, *faceRegionDiffMedians)
-        formattedHSV = formatString.format('HSV', leftEyeDiffReflectionMedianHSV, rightEyeDiffReflectionMedianHSV, *faceRegionDiffMediansHSV)
-        print(formatted)
-        print(formattedHSV)
+    formatString = '\nMEDIAN DIFFS :: {}\n\tEYES \n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\tFACE\n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\t\tCHIN \t\t{}\n\t\tFOREHEAD \t{}\n'
+    formatted = formatString.format('BGR', leftEyeDiffReflectionMedian, rightEyeDiffReflectionMedian, *faceRegionDiffMedians)
+    formattedHSV = formatString.format('HSV', leftEyeDiffReflectionMedianHSV, rightEyeDiffReflectionMedianHSV, *faceRegionDiffMediansHSV)
+    print(formatted)
+    print(formattedHSV)
 
-        return medianDiffs
+    return medianDiffs
 
 def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     saveStep = Save(username, imageName)

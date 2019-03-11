@@ -142,3 +142,5 @@ tools/output.txt
 tools/*.PNG
 tools/*.png
 tools/*.json
+src/yarn.lock
+src/node_modules
