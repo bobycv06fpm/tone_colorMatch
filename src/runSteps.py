@@ -220,6 +220,8 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
     numberOfRegions = captureFaceRegions.shape[1]
     numberOfCaptures = captureFaceRegions.shape[0]
 
+    averageEyeReflections = (leftEyeReflections + rightEyeReflections) / 2
+
     size=25
     colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1)]
 
@@ -231,14 +233,17 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
         plotBGR(axs[0, 1], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 1])
         plotBGR(axs[0, 2], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 0])
 
-    plotBGR(axs[1, 0], colors[0], size, flashRatios, rightEyeReflections[:, 2])
-    plotBGR(axs[1, 0], colors[2], size, flashRatios, leftEyeReflections[:, 2])
+    plotBGR(axs[1, 0], colors[0], 1, flashRatios, rightEyeReflections[:, 2])
+    plotBGR(axs[1, 0], colors[2], 1, flashRatios, leftEyeReflections[:, 2])
+    plotBGR(axs[1, 0], colors[3], 1, flashRatios, averageEyeReflections[:, 2])
 
-    plotBGR(axs[1, 1], colors[0], size, flashRatios, rightEyeReflections[:, 1])
-    plotBGR(axs[1, 1], colors[2], size, flashRatios, leftEyeReflections[:, 1])
+    plotBGR(axs[1, 1], colors[0], 1, flashRatios, rightEyeReflections[:, 1])
+    plotBGR(axs[1, 1], colors[2], 1, flashRatios, leftEyeReflections[:, 1])
+    plotBGR(axs[1, 1], colors[3], 1, flashRatios, averageEyeReflections[:, 1])
 
-    plotBGR(axs[1, 2], colors[0], size, flashRatios, rightEyeReflections[:, 0])
-    plotBGR(axs[1, 2], colors[2], size, flashRatios, leftEyeReflections[:, 0])
+    plotBGR(axs[1, 2], colors[0], 1, flashRatios, rightEyeReflections[:, 0])
+    plotBGR(axs[1, 2], colors[2], 1, flashRatios, leftEyeReflections[:, 0])
+    plotBGR(axs[1, 2], colors[3], 1, flashRatios, averageEyeReflections[:, 0])
 
     axs[0, 0].set_title('Red')
     axs[0, 1].set_title('Green')

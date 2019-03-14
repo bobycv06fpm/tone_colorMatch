@@ -24,7 +24,7 @@ def plot3d(points, xLabel, yLabel, zLabel):
 
 def getSaturation(point):
     [name, hsv, bgr] = point
-    return hsv[1]
+    return bgr[0]#hsv[1]
 
 with open('faceColors.json', 'r') as f:
     facesData = f.read()
@@ -78,8 +78,8 @@ else:
         #foreheadPointWB = foreheadPoint
         #medianBGR = np.median(np.array([leftPoint, rightPoint, chinPoint, foreheadPoint]), axis=0)
 
-        leftPointWB = colorTools.whitebalanceBGRPoints(leftPoint, leftReflection)
-        rightPointWB = colorTools.whitebalanceBGRPoints(rightPoint, rightReflection)
+        leftPointWB = colorTools.whitebalanceBGRPoints(leftPoint, averageReflection)
+        rightPointWB = colorTools.whitebalanceBGRPoints(rightPoint, averageReflection)
         chinPointWB = colorTools.whitebalanceBGRPoints(chinPoint, averageReflection)
         foreheadPointWB = colorTools.whitebalanceBGRPoints(foreheadPoint, averageReflection)
         medianBGR = np.median(np.array([leftPointWB, rightPointWB, chinPointWB, foreheadPointWB]), axis=0)
@@ -112,8 +112,8 @@ else:
 
     printPoints.sort(key=getSaturation)
     #print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
-    for printPoint in printPoints:
-        print('\t{} - MEDIANS -> HSV :: {} | BGR :: {}'.format(*printPoint))
+    for index, printPoint in enumerate(printPoints):
+        print('{}\t{} - MEDIANS -> HSV :: {} | BGR :: {}'.format(index, *printPoint))
 
     wbBGR = np.array(wbBGR)
     wbHSV = np.array(wbHSV)
@@ -125,8 +125,8 @@ else:
 
     #plot3d(wbBGR, 'Blue', 'Green', 'Red')
     #plot3d(wbHSV, 'Hue', 'Saturation', 'Value')
-    plot3d(medianBGRs, 'Blue', 'Green', 'Red')
-    plot3d(medianHSVs, 'Hue', 'Saturation', 'Value')
+    #plot3d(medianBGRs, 'Blue', 'Green', 'Red')
+    #plot3d(medianHSVs, 'Hue', 'Saturation', 'Value')
 
 
 
