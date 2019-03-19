@@ -24,7 +24,7 @@ def plot3d(points, xLabel, yLabel, zLabel):
 
 def getSaturation(point):
     [name, hsv, bgr] = point
-    return bgr[0]#hsv[1]
+    return hsv[1]
 
 with open('faceColors.json', 'r') as f:
     facesData = f.read()
@@ -123,10 +123,10 @@ else:
     medianHSVs = np.array(medianHSVs)
     medianHSVs[:, 0] = colorTools.rotateHue(medianHSVs[:, 0])
 
-    #plot3d(wbBGR, 'Blue', 'Green', 'Red')
-    #plot3d(wbHSV, 'Hue', 'Saturation', 'Value')
-    #plot3d(medianBGRs, 'Blue', 'Green', 'Red')
-    #plot3d(medianHSVs, 'Hue', 'Saturation', 'Value')
+    plot3d(wbBGR, 'Blue', 'Green', 'Red')
+    plot3d(wbHSV, 'Hue', 'Saturation', 'Value')
+    plot3d(medianBGRs, 'Blue', 'Green', 'Red')
+    plot3d(medianHSVs, 'Hue', 'Saturation', 'Value')
 
 
 
