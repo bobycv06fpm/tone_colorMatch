@@ -22,9 +22,13 @@ def plot3d(points, xLabel, yLabel, zLabel):
     ax.set_zlabel(zLabel)
     plt.show()
 
+def plotHist(values):
+    plt.hist(values, 20)
+    plt.show()
+
 def getSaturation(point):
-    [name, hsv, bgr] = point
-    return hsv[1]
+    [name, bestGuessSat, hsv, bgr] = point
+    return bestGuessSat
 
 with open('faceColors.json', 'r') as f:
     facesData = f.read()
@@ -43,7 +47,7 @@ for faceData in facesData:
     #for key in faceData['captures']:
         #print('CAPTURES {} -> {}'.format(key, faceData['captures'][key]))
 
-    medianDiffs.append([faceData['name'], faceData['medianDiffs']])
+    medianDiffs.append([faceData['name'], faceData['medianDiffs'], faceData['bestGuess']])
    # for key in faceData['medianDiffs']:
    #     print('MEDIAN DIFFS {} -> {}'.format(key, faceData['medianDiffs'][key]))
 
@@ -56,11 +60,12 @@ else:
 
     medianBGRs = []
     medianHSVs = []
+    bestGuessSats = []
     printPoints = []
 
     for medianDiff in medianDiffs:
         #print('Median Diff :: ' + str(medianDiff))
-        name, medianDiff = medianDiff
+        name, medianDiff, bestGuess = medianDiff
         leftReflection = np.array(medianDiff['reflections']['left'])
         rightReflection = np.array(medianDiff['reflections']['right'])
         averageReflection = (leftReflection + rightReflection) / 2
@@ -92,6 +97,11 @@ else:
         medianHSV = np.median(np.array([leftPointHSV, rightPointHSV, chinPointHSV, foreheadPointHSV]), axis=0)
         #medianHSV = chinPointHSV
 
+        bestGuessReflection, bestGuessFace = bestGuess
+        bestGuessFaceWB = colorTools.whitebalanceBGRPoints(np.array(bestGuessFace), np.array(bestGuessReflection))
+        bestGuessSat = (max(bestGuessFaceWB) - min(bestGuessFaceWB)) / max(bestGuessFaceWB)
+        bestGuessSats.append(bestGuessSat)
+
         wbBGR.append(leftPointWB)
         wbBGR.append(rightPointWB)
         wbBGR.append(chinPointWB)
@@ -107,13 +117,13 @@ else:
         #print('{}'.format(name))
         #print('\tBGR -> Median :: {} || Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(pts(medianBGR), pts(leftPointWB), pts(rightPointWB), pts(chinPointWB), pts(foreheadPointWB)))
         #print('\tHSV -> Median :: {} || Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(pts(medianHSV), pts(leftPointHSV), pts(rightPointHSV), pts(chinPointHSV), pts(foreheadPointHSV)))
-        printPoints.append([name, medianHSV, medianBGR])
+        printPoints.append([name, bestGuessSat, medianHSV, medianBGR])
         #print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
 
     printPoints.sort(key=getSaturation)
     #print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
     for index, printPoint in enumerate(printPoints):
-        print('{}\t{} - MEDIANS -> HSV :: {} | BGR :: {}'.format(index, *printPoint))
+        print('{}\t{} - MEDIANS ->BG SAT :: {} | HSV :: {} | BGR :: {}'.format(index, *printPoint))
 
     wbBGR = np.array(wbBGR)
     wbHSV = np.array(wbHSV)
@@ -123,10 +133,10 @@ else:
     medianHSVs = np.array(medianHSVs)
     medianHSVs[:, 0] = colorTools.rotateHue(medianHSVs[:, 0])
 
-    plot3d(wbBGR, 'Blue', 'Green', 'Red')
-    plot3d(wbHSV, 'Hue', 'Saturation', 'Value')
-    plot3d(medianBGRs, 'Blue', 'Green', 'Red')
-    plot3d(medianHSVs, 'Hue', 'Saturation', 'Value')
-
-
+    #plot3d(wbBGR, 'Blue', 'Green', 'Red')
+    #plot3d(wbHSV, 'Hue', 'Saturation', 'Value')
+    #plot3d(medianBGRs, 'Blue', 'Green', 'Red')
+    #plot3d(medianHSVs, 'Hue', 'Saturation', 'Value')
+    #plotHist(wbHSV[:, 1])
+    plotHist(bestGuessSats)
 

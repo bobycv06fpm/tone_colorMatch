@@ -179,8 +179,10 @@ def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
         raise NameError('Not enough clean non-clipped pixels in eye reflections')
 
     medianReflection = np.median(reflectionCrop, axis=(0,1))
+    sdReflection = np.std(reflectionCrop, axis=(0,1))
     print('MEDIAN REFLECTION :: {}'.format(medianReflection))
-    lowerBoundMask = np.any(reflectionCrop < medianReflection, axis=2)
+    print('SD REFLECTION :: {}'.format(sdReflection))
+    lowerBoundMask = np.any(reflectionCrop < (medianReflection - sdReflection), axis=2)
     reflectionMask = np.logical_or(lowerBoundMask, reflectionMask)
 
     #cv2.imshow('Crop', reflectionCrop)
@@ -311,100 +313,3 @@ def getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, s
 
     return [averageReflections[middleIndex], averageReflectionArea, wbLeftReflections, wbRightReflections]
 
-#def getAverageScreenReflectionColor(captures, saveStep):
-#    wb = captures[0].getAsShotWhiteBalance()
-#    isSpecialCase = [capture.isNoFlash for capture in captures]
-#
-#    leftEyeCoords = np.array([getLeftEyeCoords(capture) for capture in captures])
-#    leftEyeCrops = [getCrop(capture, coords) for capture, coords in zip(captures, leftEyeCoords)]
-#    leftEyeMasks = [getMask(capture, coords) for capture, coords in zip(captures, leftEyeCoords)]
-#
-#    rightEyeCoords = np.array([getRightEyeCoords(capture) for capture in captures])
-#    rightEyeCrops = [getCrop(capture, coords) for capture, coords in zip(captures, rightEyeCoords)]
-#    rightEyeMasks = [getMask(capture, coords) for capture, coords in zip(captures, rightEyeCoords)]
-#
-#    leftEyeCrops, leftEyeOffsets = alignImages.cropAndAlignEyes(leftEyeCrops, wb)
-#    rightEyeCrops, rightEyeOffsets = alignImages.cropAndAlignEyes(rightEyeCrops, wb)
-#
-#    leftEyeMasks, offsets = cropTools.cropImagesToOffsets(leftEyeMasks, leftEyeOffsets)
-#    rightEyeMasks, offsets = cropTools.cropImagesToOffsets(rightEyeMasks, rightEyeOffsets)
-#
-#    leftReflectionBB = maskReflectionBB(leftEyeCrops, wb)
-#    rightReflectionBB = maskReflectionBB(rightEyeCrops, wb)
-#
-#    leftEyeCoords[:, 0:2] += leftEyeOffsets
-#    rightEyeCoords[:, 0:2] += rightEyeOffsets
-#
-#    annotatedEyeStrips = [getAnnotatedEyeStrip(leftReflectionBB, leftEyeCoord, rightReflectionBB, rightEyeCoord, capture) for leftEyeCoord, rightEyeCoord, capture in zip(leftEyeCoords, rightEyeCoords, captures)]
-#
-#    stackedAnnotatedEyeStrips = np.vstack(annotatedEyeStrips)
-#    saveStep.saveReferenceImageLinearBGR(stackedAnnotatedEyeStrips, 'eyeStrips')
-#
-#    #leftEyeMasksShow = np.hstack(leftEyeMasks)
-#    #leftEyeCropsShow = np.hstack(leftEyeCrops).astype('uint8')
-#    #leftEyeCropsShow[leftEyeMasksShow] = [255, 255, 255]
-#
-#    #rightEyeMasksShow = np.hstack(rightEyeMasks)
-#    #rightEyeCropsShow = np.hstack(rightEyeCrops).astype('uint8')
-#    #rightEyeCropsShow[rightEyeMasksShow] = [255, 255, 255]
-#
-#    #cv2.imshow('Left Eye Crops', leftEyeCropsShow)
-#    #cv2.imshow('Right Eye Crops', rightEyeCropsShow)
-#    #cv2.waitKey(0)
-#
-#    leftReflectionStats = np.array([extractReflectionPoints(leftReflectionBB, eyeCrop, eyeMask, ignoreMask) for eyeCrop, eyeMask, ignoreMask in zip(leftEyeCrops, leftEyeMasks, isSpecialCase)])
-#    rightReflectionStats = np.array([extractReflectionPoints(rightReflectionBB, eyeCrop, eyeMask, ignoreMask) for eyeCrop, eyeMask, ignoreMask in zip(rightEyeCrops, rightEyeMasks, isSpecialCase)])
-#
-#    averageReflections = (leftReflectionStats[:, 0] + rightReflectionStats[:, 0]) / 2
-#
-#    averageReflections = [(averageReflection if np.all(averageReflection.astype('bool')) else (averageReflection + np.array([1, 1, 1]))) for averageReflection in averageReflections]
-#
-#    print('AVERAGE NO, HALF, FULL REFLECTION :: {}'.format(averageReflections))
-#
-#    #Whitebalance per flash and eye to get luminance levels... Maybe compare the average reflection values?
-#    #wbLeftReflections = np.vstack([colorTools.whitebalanceBGRPoints(leftReflection, averageReflection) for leftReflection, averageReflection in zip(leftReflectionStats[:, 0], averageReflections)])
-#    wbLeftReflections = np.vstack(leftReflectionStats[:, 0])
-#    #wbRightReflections = np.vstack([colorTools.whitebalanceBGRPoints(rightReflection, averageReflection) for rightReflection, averageReflection in zip(rightReflectionStats[:, 0], averageReflections)])
-#    wbRightReflections = np.vstack(rightReflectionStats[:, 0])
-#
-#    #GET Luminance in reflection per flash and eye
-#    leftReflectionLuminances = [colorTools.getRelativeLuminance([leftReflection])[0] for leftReflection in wbLeftReflections]
-#    rightReflectionLuminances = [colorTools.getRelativeLuminance([rightReflection])[0] for rightReflection in wbRightReflections]
-#
-#    eyeWidth = getEyeWidth(captures[0])
-#
-#    if eyeWidth == 0:
-#        raise NameError('Zero value Eye Width')
-#
-#    leftReflectionWidth, leftReflectionHeight = leftReflectionBB[2:4] / eyeWidth
-#    rightReflectionWidth, rightReflectionHeight = rightReflectionBB[2:4] / eyeWidth
-#
-#    leftReflectionArea = leftReflectionWidth * leftReflectionHeight
-#    rightReflectionArea = rightReflectionWidth * rightReflectionHeight
-#
-#    averageReflectionArea = (leftReflectionArea + rightReflectionArea) / 2
-#
-#    if min(leftReflectionWidth, rightReflectionWidth) == 0:
-#        raise NameError('Zero value reflection Width')
-#
-#    if min(leftReflectionHeight, rightReflectionHeight) == 0:
-#        raise NameError('Zero value reflection Height')
-#
-#    reflectionWidthRatio = max(leftReflectionWidth, rightReflectionWidth) / min(leftReflectionWidth, rightReflectionWidth)
-#    reflectionHeightRatio = max(leftReflectionHeight, rightReflectionHeight) / min(leftReflectionHeight, rightReflectionHeight)
-#
-#    if (reflectionWidthRatio > 1.5) or (reflectionHeightRatio > 1.25):
-#        raise NameError('Reflection Sizes are too different!')
-#
-#    middleIndex = math.floor(len(captures) / 2)
-#
-#    leftHalfReflectionLuminance = leftReflectionLuminances[middleIndex] * 2 #2x because we are using half
-#    rightHalfReflectionLuminance = rightReflectionLuminances[middleIndex] * 2 #2x because we are using half
-#
-#    leftFluxish = leftReflectionArea * leftHalfReflectionLuminance
-#    rightFluxish = rightReflectionArea * rightHalfReflectionLuminance
-#
-#    print('LEFT FLUXISH :: {} | AREA ::  {} | LUMINOSITY :: {}'.format(leftFluxish, leftReflectionArea, leftHalfReflectionLuminance))
-#    print('RIGHT FLUXISH :: {} | AREA ::  {} | LUMINOSITY :: {}'.format(rightFluxish, rightReflectionArea, rightHalfReflectionLuminance))
-#
-#    return [averageReflections[middleIndex], averageReflectionArea, wbLeftReflections, wbRightReflections]

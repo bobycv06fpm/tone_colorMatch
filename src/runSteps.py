@@ -159,12 +159,13 @@ def getReflectionMap(leftReflection, rightReflection):
 
     return value
 
-def getResponse(imageName, successful, captureSets=None, medianDiffSets=None):
+def getResponse(imageName, successful, captureSets=None, medianDiffSets=None, bestGuess=None):
     response = {}
     response['name'] = imageName
     response['successful'] = successful
     response['captures'] = {}
     response['medianDiffs'] = medianDiffSets
+    response['bestGuess'] = bestGuess
 
     if not successful:
         return response
@@ -221,22 +222,23 @@ def getDiffs(points):
 
 def plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
     captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
-    captureFaceRegionsDiffs = []
-    for region in range(0, captureFaceRegions.shape[1]):
-        diff = getDiffs(captureFaceRegions[:, region, :])
-        captureFaceRegionsDiffs.append(diff)
-
-    leftEyeDiffs = getDiffs(leftEyeReflections)
-    rightEyeDiffs = getDiffs(rightEyeReflections)
-
-    captureFaceRegionsDiffs = np.array(captureFaceRegionsDiffs)
-
-    print('PLOTTING: Region Median Diffs')
     flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
     numberOfRegions = captureFaceRegions.shape[1]
     numberOfCaptures = captureFaceRegions.shape[0]
 
-    #averageEyeReflections = (leftEyeReflections + rightEyeReflections) / 2
+    captureFaceRegionsDiffs = []
+    for region in range(0, captureFaceRegions.shape[1]):
+        diff = getDiffs(captureFaceRegions[:, region, :]) * (numberOfCaptures - 1)
+        captureFaceRegionsDiffs.append(diff)
+
+    leftEyeDiffs = getDiffs(leftEyeReflections) * (numberOfCaptures - 1)
+    rightEyeDiffs = getDiffs(rightEyeReflections) * (numberOfCaptures - 1)
+
+    captureFaceRegionsDiffs = np.array(captureFaceRegionsDiffs)
+
+    print('PLOTTING: Region Diffs')
+
+    ##averageEyeReflections = (leftEyeReflections + rightEyeReflections) / 2
 
     size=1
     colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1)]
@@ -263,11 +265,116 @@ def plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, sav
     axs[0, 2].set_title('Blue')
 
     axs[0, 0].set_xlabel('Screen Flash Ratio')
-    axs[0, 0].set_ylabel('Channel Mag')
+    axs[0, 0].set_ylabel('Channel Slope Mag')
 
     axs[1, 0].set_xlabel('Screen Flash Ratio')
-    axs[1, 0].set_ylabel('Measured Reflection Mag')
+    axs[1, 0].set_ylabel('Measured Reflection Slope Mag')
     saveStep.savePlot('RegionDiffs', plt)
+
+def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
+    print('PLOTTING: Region Scaled Linearity')
+    captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
+    flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
+    numberOfRegions = captureFaceRegions.shape[1]
+    numberOfCaptures = captureFaceRegions.shape[0]
+
+    #averageEyeReflections = (leftEyeReflections + rightEyeReflections) / 2
+
+    scaledCaptureFaceRegions = []
+
+    for regionIndex in range(0, numberOfRegions):
+        #print('Regions :: ' + str(captureFaceRegions[:, regionIndex]))
+        diff = getDiffs(captureFaceRegions[:, regionIndex, :])
+        #captureFaceRegion = captureFaceRegions[:, regionIndex, :]
+        #print('FACE REGION :: ' + str(captureFaceRegion[:, 2]))
+        scaledCaptureFaceRegion = diff / (np.ones(3) * np.reshape(diff[:, 2], (diff.shape[0], 1)))
+        #print('SCALED FACE REGION :: ' + str(scaledCaptureFaceRegion))
+        scaledCaptureFaceRegions.append(scaledCaptureFaceRegion)
+
+    scaledCaptureFaceRegions = np.vstack(scaledCaptureFaceRegions)
+    print('SCALED DIFFS CAPTURE FACE REGIONS :: ' + str(scaledCaptureFaceRegions))
+
+    leftEyeDiffs = getDiffs(leftEyeReflections)
+    rightEyeDiffs = getDiffs(rightEyeReflections)
+    leftEyeDiffs[:, 2][leftEyeDiffs[:, 2] == 0] = 0.001
+    rightEyeDiffs[:, 2][rightEyeDiffs[:, 2] == 0] = 0.001
+    scaledLeftEyeReflections = leftEyeDiffs / (np.ones(3) * np.reshape(leftEyeDiffs[:, 2], (leftEyeDiffs.shape[0], 1)))
+    scaledRightEyeReflections = rightEyeDiffs / (np.ones(3) * np.reshape(rightEyeDiffs[:, 2], (rightEyeDiffs.shape[0], 1)))
+
+    scaledDiffReflections = np.vstack((scaledLeftEyeReflections, scaledRightEyeReflections))
+    print('SCALED DIFFS REFLECTIONS :: ' + str(scaledDiffReflections))
+    #print('SCALED DIFFS LEFT REFLECTIONS :: ' + str(scaledLeftEyeReflections))
+    #print('SCALED DIFFS RIGHT REFLECTIONS:: ' + str(scaledRightEyeReflections))
+
+    medianScaledDiffFace = list(np.median(scaledCaptureFaceRegions, axis=0))
+    medianScaledDiffReflections = list(np.median(scaledDiffReflections, axis=0))
+    return [medianScaledDiffReflections, medianScaledDiffFace]
+
+
+    
+
+def plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
+    print('PLOTTING: Region Scaled Linearity')
+    captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
+    flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
+    numberOfRegions = captureFaceRegions.shape[1]
+    numberOfCaptures = captureFaceRegions.shape[0]
+
+    size=1
+    colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1)]
+
+    #fig, axs = plt.subplots(2, 3, sharex=True, sharey=True, tight_layout=True)
+    fig, axs = plt.subplots(2, 3, sharex=False, sharey=False, tight_layout=True)
+
+    for regionIndex in range(0, numberOfRegions):
+        #print('Regions :: ' + str(captureFaceRegions[:, regionIndex]))
+        diff = getDiffs(captureFaceRegions[:, regionIndex, :])
+        #captureFaceRegion = captureFaceRegions[:, regionIndex, :]
+        #print('FACE REGION :: ' + str(captureFaceRegion[:, 2]))
+        scaledCaptureFaceRegion = diff / (np.ones(3) * np.reshape(diff[:, 2], (diff.shape[0], 1)))
+        #print('SCALED FACE REGION :: ' + str(scaledCaptureFaceRegion))
+
+        #plotBGR(axs[0, 0], colors[regionIndex], size, flashRatios, scaledCaptureFaceRegion[:, 2])
+        #plotBGR(axs[0, 1], colors[regionIndex], size, flashRatios, scaledCaptureFaceRegion[:, 1])
+        #plotBGR(axs[0, 2], colors[regionIndex], size, flashRatios, scaledCaptureFaceRegion[:, 0])
+        axs[0, 0].plot(flashRatios[1:], scaledCaptureFaceRegion[:, 2], color=colors[regionIndex])
+        axs[0, 1].plot(flashRatios[1:], scaledCaptureFaceRegion[:, 1], color=colors[regionIndex])
+        axs[0, 2].plot(flashRatios[1:], scaledCaptureFaceRegion[:, 0], color=colors[regionIndex])
+
+
+    print('LEFT EYE REFLECTIONS :: ' + str(leftEyeReflections[:, 2]))
+    leftEyeDiffs = getDiffs(leftEyeReflections)
+    rightEyeDiffs = getDiffs(rightEyeReflections)
+    leftEyeDiffs[:, 2][leftEyeDiffs[:, 2] == 0] = 0.001
+    rightEyeDiffs[:, 2][rightEyeDiffs[:, 2] == 0] = 0.001
+    scaledLeftEyeReflections = leftEyeDiffs / (np.ones(3) * np.reshape(leftEyeDiffs[:, 2], (leftEyeDiffs.shape[0], 1)))
+    scaledRightEyeReflections = rightEyeDiffs / (np.ones(3) * np.reshape(rightEyeDiffs[:, 2], (rightEyeDiffs.shape[0], 1)))
+
+    #plotBGR(axs[1, 0], colors[0], 1, flashRatios, scaledRightEyeReflections[:, 2])
+    axs[1, 0].plot(flashRatios[1:], scaledRightEyeReflections[:, 2], color=colors[0])
+    #plotBGR(axs[1, 0], colors[2], 1, flashRatios, scaledLeftEyeReflections[:, 2])
+    axs[1, 0].plot(flashRatios[1:], scaledLeftEyeReflections[:, 2], color=colors[2])
+
+    #plotBGR(axs[1, 1], colors[0], 1, flashRatios, scaledRightEyeReflections[:, 1])
+    axs[1, 1].plot(flashRatios[1:], scaledRightEyeReflections[:, 1], color=colors[0])
+    #plotBGR(axs[1, 1], colors[2], 1, flashRatios, scaledLeftEyeReflections[:, 1])
+    axs[1, 1].plot(flashRatios[1:], scaledLeftEyeReflections[:, 1], color=colors[2])
+
+    #plotBGR(axs[1, 2], colors[0], 1, flashRatios, scaledRightEyeReflections[:, 0])
+    axs[1, 2].plot(flashRatios[1:], scaledRightEyeReflections[:, 0], color=colors[0])
+    #plotBGR(axs[1, 2], colors[2], 1, flashRatios, scaledLeftEyeReflections[:, 0])
+    axs[1, 2].plot(flashRatios[1:], scaledLeftEyeReflections[:, 0], color=colors[2])
+
+    axs[0, 0].set_title('Red')
+    axs[0, 1].set_title('Green')
+    axs[0, 2].set_title('Blue')
+
+    axs[0, 0].set_xlabel('Screen Flash Ratio')
+    axs[0, 0].set_ylabel('Scaled to Red Channel Mag')
+
+    axs[1, 0].set_xlabel('Screen Flash Ratio')
+    axs[1, 0].set_ylabel('Scaled to Red Reflection Mag')
+    saveStep.savePlot('ScaledRegionLinearity', plt)
 
 def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
     print('PLOTTING: Region Linearity')
@@ -276,7 +383,7 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
     numberOfRegions = captureFaceRegions.shape[1]
     numberOfCaptures = captureFaceRegions.shape[0]
 
-    averageEyeReflections = (leftEyeReflections + rightEyeReflections) / 2
+    #averageEyeReflections = (leftEyeReflections + rightEyeReflections) / 2
 
     size=1
     colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1)]
@@ -292,15 +399,15 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
 
     plotBGR(axs[1, 0], colors[0], 1, flashRatios, rightEyeReflections[:, 2])
     plotBGR(axs[1, 0], colors[2], 1, flashRatios, leftEyeReflections[:, 2])
-    plotBGR(axs[1, 0], colors[3], 1, flashRatios, averageEyeReflections[:, 2])
+    #plotBGR(axs[1, 0], colors[3], 1, flashRatios, averageEyeReflections[:, 2])
 
     plotBGR(axs[1, 1], colors[0], 1, flashRatios, rightEyeReflections[:, 1])
     plotBGR(axs[1, 1], colors[2], 1, flashRatios, leftEyeReflections[:, 1])
-    plotBGR(axs[1, 1], colors[3], 1, flashRatios, averageEyeReflections[:, 1])
+    #plotBGR(axs[1, 1], colors[3], 1, flashRatios, averageEyeReflections[:, 1])
 
     plotBGR(axs[1, 2], colors[0], 1, flashRatios, rightEyeReflections[:, 0])
     plotBGR(axs[1, 2], colors[2], 1, flashRatios, leftEyeReflections[:, 0])
-    plotBGR(axs[1, 2], colors[3], 1, flashRatios, averageEyeReflections[:, 0])
+    #plotBGR(axs[1, 2], colors[3], 1, flashRatios, averageEyeReflections[:, 0])
 
     axs[0, 0].set_title('Red')
     axs[0, 1].set_title('Green')
@@ -367,6 +474,60 @@ def getMedianDiff(points):
     return np.median(np.array(diffs), axis=0)
     #return np.median(np.array(diffs)[-6:-2], axis=0)
     #return np.mean(np.array(diffs)[-6:-2], axis=0)
+
+def getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions):
+    start = 2
+    end = -2
+
+    flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
+
+    leftEyeLinearFit = np.array([fitLine(flashRatios[start:end], leftEyeReflections[start:end, subPixel])[0] for subPixel in range(0, 3)])
+    #print('Left Eye Linear Fit :: ' + str(leftEyeLinearFit))
+    #leftEyeLinearFit /= (np.ones(3) * leftEyeLinearFit[2])
+    #print('Left Eye Linear Fit Scaled :: ' + str(leftEyeLinearFit))
+
+    rightEyeLinearFit = np.array([fitLine(flashRatios[start:end], rightEyeReflections[start:end, subPixel])[0] for subPixel in range(0, 3)])
+    #print('Right Eye Linear Fit :: ' + str(rightEyeLinearFit))
+    #rightEyeLinearFit /= (np.ones(3) * rightEyeLinearFit[2])
+    #print('Right Eye Linear Fit Scaled :: ' + str(rightEyeLinearFit))
+
+    captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
+    captureFaceRegionsLinearFit = []
+
+    for regionIndex in range(0, captureFaceRegions.shape[1]):
+        #linearFit = [fitLine(flashRatios[start:end], captureFaceRegions[start:end, regionIndex, subPixel])[0] for subPixel in range(0, 3)]
+        linearFit = [fitLine(flashRatios[1:-1], captureFaceRegions[1:-1, regionIndex, subPixel])[0] for subPixel in range(0, 3)]
+        #linearFit /= (np.ones(3) * linearFit[2])
+        captureFaceRegionsLinearFit.append(linearFit)
+
+
+    print('Left Eye Linear Fit :: ' + str(leftEyeLinearFit))
+    print('Right Eye Linear Fit :: ' + str(rightEyeLinearFit))
+    print('Face Regions Linear Fit :: ' + str(captureFaceRegionsLinearFit))
+
+    #leftEyeLinearFitHSV = colorTools.bgr_to_hsv(leftEyeLinearFit)
+    #rightEyeLinearFitHSV = colorTools.bgr_to_hsv(rightEyeLinearFit)
+    #captureFaceRegionsLinearFitHSV  = [colorTools.bgr_to_hsv(point) for point in  captureFaceRegionsLinearFit]
+
+    linearFits = {}
+    linearFits["reflections"] = {}
+    linearFits["reflections"]["left"] = list(leftEyeLinearFit)
+    linearFits["reflections"]["right"] = list(rightEyeLinearFit)
+
+    linearFits["regions"] = {}
+    linearFits["regions"]["left"] = list(captureFaceRegionsLinearFit[0])
+    linearFits["regions"]["right"] = list(captureFaceRegionsLinearFit[1])
+    linearFits["regions"]["chin"] = list(captureFaceRegionsLinearFit[2])
+    linearFits["regions"]["forehead"] = list(captureFaceRegionsLinearFit[3])
+
+    formatString = '\nLINEAR FITS :: {}\n\tEYES \n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\tFACE\n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\t\tCHIN \t\t{}\n\t\tFOREHEAD \t{}\n'
+    formatted = formatString.format('BGR', leftEyeLinearFit, rightEyeLinearFit, *captureFaceRegionsLinearFit)
+    print(formatted)
+
+    #formattedHSV = formatString.format('HSV', leftEyeLinearFitHSV, rightEyeLinearFitHSV, *captureFaceRegionsLinearFitHSV)
+    #print(formattedHSV)
+
+    return linearFits
 
 def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
     leftEyeDiffReflectionMedian = getMedianDiff(leftEyeReflections)
@@ -458,15 +619,23 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     saveStep.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')
 
     plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
-    #plotPerRegionPoints(faceRegions, saveStep)
-    #plotPerRegionDistribution(faceRegions, saveStep)
+    plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
     plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
     plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
 
-    captureSets = zip(faceRegions, leftEyeReflections, rightEyeReflections)
-    medianDiffSets = getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions)
-    print('Median Diff Sets :: ' + str(medianDiffSets))
+    #plotPerRegionPoints(faceRegions, saveStep)
+    #plotPerRegionDistribution(faceRegions, saveStep)
 
-    response = getResponse(imageName, True, captureSets, medianDiffSets)
+    captureSets = zip(faceRegions, leftEyeReflections, rightEyeReflections)
+    #medianDiffSets = getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions)
+    #print('Median Diff Sets :: ' + str(medianDiffSets))
+    linearFitSets = getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions)
+    print('Linear Fits :: ' + str(linearFitSets))
+
+    #reflectionBestGuess, faceBestGuess = getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections)
+    bestGuess = getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections)
+    print('BEST GUESS -> REFLECTION :: {} | FACE :: {}'.format(bestGuess[0], bestGuess[1]))
+
+    response = getResponse(imageName, True, captureSets, linearFitSets, bestGuess)
     return response
 
