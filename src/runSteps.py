@@ -284,7 +284,7 @@ def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
 
     for regionIndex in range(0, numberOfRegions):
         #print('Regions :: ' + str(captureFaceRegions[:, regionIndex]))
-        diff = getDiffs(captureFaceRegions[:, regionIndex, :])
+        diff = getDiffs(captureFaceRegions[1:-1, regionIndex, :])
         #captureFaceRegion = captureFaceRegions[:, regionIndex, :]
         #print('FACE REGION :: ' + str(captureFaceRegion[:, 2]))
         scaledCaptureFaceRegion = diff / (np.ones(3) * np.reshape(diff[:, 2], (diff.shape[0], 1)))
@@ -294,8 +294,8 @@ def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
     scaledCaptureFaceRegions = np.vstack(scaledCaptureFaceRegions)
     print('SCALED DIFFS CAPTURE FACE REGIONS :: ' + str(scaledCaptureFaceRegions))
 
-    leftEyeDiffs = getDiffs(leftEyeReflections)
-    rightEyeDiffs = getDiffs(rightEyeReflections)
+    leftEyeDiffs = getDiffs(leftEyeReflections[1:-1])
+    rightEyeDiffs = getDiffs(rightEyeReflections[1:-1])
     leftEyeDiffs[:, 2][leftEyeDiffs[:, 2] == 0] = 0.001
     rightEyeDiffs[:, 2][rightEyeDiffs[:, 2] == 0] = 0.001
     scaledLeftEyeReflections = leftEyeDiffs / (np.ones(3) * np.reshape(leftEyeDiffs[:, 2], (leftEyeDiffs.shape[0], 1)))
@@ -634,7 +634,17 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
 
     #reflectionBestGuess, faceBestGuess = getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections)
     bestGuess = getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections)
+
+    x = metadata[0]["whiteBalance"]["x"]
+    y = metadata[0]["whiteBalance"]["y"]
+    asShotBGR = colorTools.convert_CIE_xy_to_unscaledBGR(x, y)
+    targetBGR = colorTools.convert_CIE_xy_to_unscaledBGR(0.31271, 0.32902) #Illuminant D65
+    #bgrMultiplier = asShotBGR / targetBGR / asShotBGR
+    bgrMultiplier = targetBGR / asShotBGR
+    scaledBGR = bgrMultiplier / bgrMultiplier[2]
+    print('WB BGR vs Reflection :: ' + str(scaledBGR) + ' ' + str(bestGuess[0]))
     print('BEST GUESS -> REFLECTION :: {} | FACE :: {}'.format(bestGuess[0], bestGuess[1]))
+    bestGuess[0] = list(scaledBGR)
 
     response = getResponse(imageName, True, captureSets, linearFitSets, bestGuess)
     return response
