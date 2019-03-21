@@ -186,21 +186,26 @@ def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
     reflectionMask = np.logical_or(lowerBoundMask, reflectionMask)
 
     #cv2.imshow('Crop', reflectionCrop)
-    #cv2.imshow('Mask', reflectionMask.astype('uint8') * 255)
+    #cv2.imshow('Mask', np.stack([reflectionMask.astype('uint8'), reflectionMask.astype('uint8'), reflectionMask.astype('uint8')], axis=2) * 255)
+    #cv2.imshow('Reflections', stacked)
     #cv2.waitKey(0)
 
     if ignoreMask:
         reflectionMask.fill(False)
 
-    reflectionPoints = reflectionCrop[np.logical_not(reflectionMask)]
+    showMask = np.stack([reflectionMask.astype('uint8'), reflectionMask.astype('uint8'), reflectionMask.astype('uint8')], axis=2) * 255
+    maskedReflections = np.copy(reflectionCrop)
+    maskedReflections[reflectionMask] = [0, 0, 0]
+    stacked = np.vstack([np.clip(reflectionCrop * 255, 0, 255).astype('uint8'), showMask, np.clip(maskedReflections * 255, 0, 255).astype('uint8')])
 
+    reflectionPoints = reflectionCrop[np.logical_not(reflectionMask)]
 
     representativeReflectionPoint = calculateRepresentativeReflectionPoint(reflectionPoints)
 
 
     #if cleanPixelRatio < 0.8:
 
-    return [representativeReflectionPoint, cleanPixelRatio]
+    return [representativeReflectionPoint, cleanPixelRatio, stacked]
 
 def getEyeWidth(capture):
     [leftP1, leftP2] = capture.landmarks.getLeftEyeWidthPoints()
@@ -251,11 +256,19 @@ def getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, s
     annotatedEyeStrips = [annotatedEyeStrip[0:minHeight, 0:minWidth] for annotatedEyeStrip in annotatedEyeStrips]
 
     stackedAnnotatedEyeStrips = np.vstack(annotatedEyeStrips)
-    saveStep.saveReferenceImageLinearBGR(stackedAnnotatedEyeStrips, 'eyeStrips')
+    saveStep.saveReferenceImageBGR(stackedAnnotatedEyeStrips, 'eyeStrips')
 
     #RESULTS ARE LINEAR
     leftReflectionStats = np.array([extractReflectionPoints(leftReflectionBB, eyeCrop, eyeMask, ignoreMask) for eyeCrop, eyeMask, ignoreMask in zip(leftEyeCrops, leftEyeMasks, isSpecialCase)])
     rightReflectionStats = np.array([extractReflectionPoints(rightReflectionBB, eyeCrop, eyeMask, ignoreMask) for eyeCrop, eyeMask, ignoreMask in zip(rightEyeCrops, rightEyeMasks, isSpecialCase)])
+
+    leftReflectionImages = np.hstack(leftReflectionStats[:, 2])
+    rightReflectionImages = np.hstack(rightReflectionStats[:, 2])
+    saveStep.saveReferenceImageSBGR(leftReflectionImages, 'Left Reflections')
+    saveStep.saveReferenceImageSBGR(rightReflectionImages, 'Right Reflections')
+    #cv2.imshow('LEFT REFLECTIONS', leftReflectionImages)
+    #cv2.imshow('RIGHT REFLECTIONS', rightReflectionImages)
+    #cv2.waitKey(0)
 
     averageReflections = (leftReflectionStats[:, 0] + rightReflectionStats[:, 0]) / 2
 

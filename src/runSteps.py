@@ -635,16 +635,16 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #reflectionBestGuess, faceBestGuess = getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections)
     bestGuess = getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections)
 
-    x = metadata[0]["whiteBalance"]["x"]
-    y = metadata[0]["whiteBalance"]["y"]
-    asShotBGR = colorTools.convert_CIE_xy_to_unscaledBGR(x, y)
-    targetBGR = colorTools.convert_CIE_xy_to_unscaledBGR(0.31271, 0.32902) #Illuminant D65
-    #bgrMultiplier = asShotBGR / targetBGR / asShotBGR
-    bgrMultiplier = targetBGR / asShotBGR
-    scaledBGR = bgrMultiplier / bgrMultiplier[2]
-    print('WB BGR vs Reflection :: ' + str(scaledBGR) + ' ' + str(bestGuess[0]))
-    print('BEST GUESS -> REFLECTION :: {} | FACE :: {}'.format(bestGuess[0], bestGuess[1]))
-    bestGuess[0] = list(scaledBGR)
+    #x = metadata[0]["whiteBalance"]["x"]
+    #y = metadata[0]["whiteBalance"]["y"]
+    #asShotBGR = colorTools.convert_CIE_xy_to_unscaledBGR(x, y)
+    #targetBGR = colorTools.convert_CIE_xy_to_unscaledBGR(0.31271, 0.32902) #Illuminant D65
+    ##bgrMultiplier = asShotBGR / targetBGR / asShotBGR
+    #bgrMultiplier = targetBGR / asShotBGR
+    #scaledBGR = bgrMultiplier / bgrMultiplier[2]
+    #print('WB BGR vs Reflection :: ' + str(scaledBGR) + ' ' + str(bestGuess[0]))
+    #print('BEST GUESS -> REFLECTION :: {} | FACE :: {}'.format(bestGuess[0], bestGuess[1]))
+    #bestGuess[0] = list(scaledBGR)
 
     response = getResponse(imageName, True, captureSets, linearFitSets, bestGuess)
     return response
