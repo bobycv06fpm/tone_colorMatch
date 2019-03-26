@@ -284,7 +284,8 @@ def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
 
     for regionIndex in range(0, numberOfRegions):
         #print('Regions :: ' + str(captureFaceRegions[:, regionIndex]))
-        diff = getDiffs(captureFaceRegions[1:-1, regionIndex, :])
+        #diff = getDiffs(captureFaceRegions[1:-1, regionIndex, :])
+        diff = getDiffs(captureFaceRegions[3:-1, regionIndex, :])
         #captureFaceRegion = captureFaceRegions[:, regionIndex, :]
         #print('FACE REGION :: ' + str(captureFaceRegion[:, 2]))
         scaledCaptureFaceRegion = diff / (np.ones(3) * np.reshape(diff[:, 2], (diff.shape[0], 1)))
@@ -294,8 +295,10 @@ def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
     scaledCaptureFaceRegions = np.vstack(scaledCaptureFaceRegions)
     print('SCALED DIFFS CAPTURE FACE REGIONS :: ' + str(scaledCaptureFaceRegions))
 
-    leftEyeDiffs = getDiffs(leftEyeReflections[1:-1])
-    rightEyeDiffs = getDiffs(rightEyeReflections[1:-1])
+    leftEyeDiffs = getDiffs(leftEyeReflections[3:-1])
+    #leftEyeDiffs = getDiffs(leftEyeReflections[-4:-1])
+    rightEyeDiffs = getDiffs(rightEyeReflections[3:-1])
+    #rightEyeDiffs = getDiffs(rightEyeReflections[-4:-1])
     leftEyeDiffs[:, 2][leftEyeDiffs[:, 2] == 0] = 0.001
     rightEyeDiffs[:, 2][rightEyeDiffs[:, 2] == 0] = 0.001
     scaledLeftEyeReflections = leftEyeDiffs / (np.ones(3) * np.reshape(leftEyeDiffs[:, 2], (leftEyeDiffs.shape[0], 1)))

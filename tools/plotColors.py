@@ -15,12 +15,16 @@ colors = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
 
 sRGB_points = [[], [], []]
 linearRGB_points = [[], [], []]
+linearHSV_points = [[], [], []]
 luminance_points = [[], [], []]
 HSV_points = [[], [], []]
 HLS_points = [[], [], []]
 
 def plotHSV():
     for index, hsvPoints in enumerate(HSV_points):
+        if names[index] != 'Fenti':
+            continue
+
         hsvPoints = np.array(hsvPoints)
 
         colors = np.array(sRGB_points[index])
@@ -41,6 +45,33 @@ def plotHSV():
         plt.ylabel('Value')
 
         plt.suptitle("HSV " + names[index])
+        plt.show()
+
+def plotLinearHSV():
+    for index, hsvPoints in enumerate(linearHSV_points):
+        if names[index] != 'Fenti':
+            continue
+
+        hsvPoints = np.array(hsvPoints)
+
+        colors = np.array(sRGB_points[index])
+
+        plt.subplot(131)
+        plt.scatter(hsvPoints[:, 0], hsvPoints[:, 2], 50, colors)
+        plt.xlabel('Hue')
+        plt.ylabel('Value')
+
+        plt.subplot(132)
+        plt.scatter(hsvPoints[:, 0], list(hsvPoints[:, 1]), 50, colors)
+        plt.xlabel('Hue')
+        plt.ylabel('Saturation')
+
+        plt.subplot(133)
+        plt.scatter(hsvPoints[:, 1], list(hsvPoints[:, 2]), 50, colors)
+        plt.xlabel('Saturation')
+        plt.ylabel('Value')
+
+        plt.suptitle("Linear HSV " + names[index])
         plt.show()
 
 def plotHLS():
@@ -158,16 +189,19 @@ for index, path in enumerate(paths):
             #sRGB_point = np.array(sRGB_point)
             HSV_point = colorsys.rgb_to_hsv(*sRGB_point)
             HSV_points[index].append(np.array(HSV_point))
-            HSV_points[index][-1][2] = luminance_point
+            #HSV_points[index][-1][2] = luminance_point
 
+            linearHSV_point = colorsys.rgb_to_hsv(*linearRGB_point)
+            linearHSV_points[index].append(np.array(linearHSV_point))
 
             HLS_point = colorsys.rgb_to_hls(*sRGB_point)
             HLS_points[index].append(np.array(HLS_point))
 
             #luminance_points[index].append(luminance_point)
 
-plotRGB()
+#plotRGB()
 #plotLinearRGB()
 plotHSV()
+plotLinearHSV()
 #plotHLS()
 #plotLAB()
