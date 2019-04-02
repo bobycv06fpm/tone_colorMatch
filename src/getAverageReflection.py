@@ -69,19 +69,32 @@ def getReflectionBB(maskedImg):
     img = np.clip(maskedImg * 255, 0, 255).astype('uint8')
     im2, contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     areas = [cv2.contourArea(c) for c in contours]
+
     if not areas:
         print("NO REFLECTION FOUND")
         raise NameError('NO REFLECTION FOUND')
 
-    max_index = np.argmax(areas)
-    contour = contours[max_index]
+    bbs = [cv2.boundingRect(contour) for contour in contours]
+    bb_medians = np.array([np.median(maskedImg[bb[1]:bb[1] + bb[3], bb[0]:bb[0] + bb[2]]) for bb in bbs])
 
-    return cv2.boundingRect(contour)
+    areaScores = np.array(areas) * (bb_medians ** 2)
+    max_index = np.argmax(areaScores)
+
+    return np.array(bbs[max_index])
 
 def maskTopValues(img):
     median = np.median(img)
     std = np.std(img)
-    threshold = median + (3 * std)
+    #threshold = median + (3 * std)
+    threshold = median + (2.5 * std)
+    img[img < threshold] = 0
+    return img
+
+def maskBottomValues(img):
+    mean = np.mean(img)
+    #std = np.std(img)
+    #threshold = median + (3 * std)
+    threshold = mean
     img[img < threshold] = 0
     return img
 
@@ -103,12 +116,28 @@ def maskReflectionBB(eyes, wb):
 
     kernel = np.ones((3, 3), np.uint16)
     #Relient on second darkest reflection being AT LEAST 2x brighter than darkest
-    secondDarkestImage, darkestImage = [cv2.morphologyEx(img, cv2.MORPH_CROSS, kernel) for img in greyEyes[-2:]]
+    secondDarkestImage, darkestImage = [cv2.morphologyEx(img, cv2.MORPH_CROSS, kernel) for img in greyEyes[-4:-2]]
     externalReflections = np.clip((2 * darkestImage) - secondDarkestImage, 0, 10)
 
     brightestClean = np.clip(greyEyes[0] - externalReflections, 0, 10)
     brightestTopMask = maskTopValues(brightestClean)
-    reflectionBB = getReflectionBB(brightestTopMask)
+
+    x, y, w, h = getReflectionBB(brightestTopMask)
+
+    x = int(x - (0.5 * w))
+    y = int(y - (0.5 * h))
+    w = int(w * 2)
+    h = int(h * 2)
+
+    #brightestCleanCrop = greyEyes[0][y:y + h, x:x + w]
+    brightestCleanCrop = brightestClean[y:y + h, x:x + w]
+    maskedCropped = maskBottomValues(brightestCleanCrop)
+    #cv2.imshow('Cropped Brightest Clean', np.vstack([brightestCleanCrop, (maskedCropped * 255).astype('uint8')]))
+    #cv2.waitKey(0)
+
+    reflectionBB = getReflectionBB(maskedCropped)
+    reflectionBB[0] += x
+    reflectionBB[1] += y
 
     #x, y, w ,h = reflectionBB
     #crops = [eye[y:y + h, x:x + w] for eye in eyes]
