@@ -159,13 +159,14 @@ def getReflectionMap(leftReflection, rightReflection):
 
     return value
 
-def getResponse(imageName, successful, captureSets=None, medianDiffSets=None, bestGuess=None):
+def getResponse(imageName, successful, captureSets=None, medianDiffSets=None, bestGuess=None, averageReflectionArea=None):
     response = {}
     response['name'] = imageName
     response['successful'] = successful
     response['captures'] = {}
     response['medianDiffs'] = medianDiffSets
     response['bestGuess'] = bestGuess
+    response['reflectionArea'] = averageReflectionArea
 
     if not successful:
         return response
@@ -649,6 +650,6 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #print('BEST GUESS -> REFLECTION :: {} | FACE :: {}'.format(bestGuess[0], bestGuess[1]))
     #bestGuess[0] = list(scaledBGR)
 
-    response = getResponse(imageName, True, captureSets, linearFitSets, bestGuess)
+    response = getResponse(imageName, True, captureSets, linearFitSets, bestGuess, averageReflectionArea)
     return response
 

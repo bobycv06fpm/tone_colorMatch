@@ -168,6 +168,11 @@ class Landmarks:
 
         return np.array(landmarkPoints)
 
+    def bufferCoords(self, coords, margin=0.25):
+        sizeDiff = 1 + (2 * margin)
+        x, y, w, h = coords
+        return np.array([(x - int(margin * w)), y - int(margin * h), int(sizeDiff * w), int(sizeDiff * h)])
+
     def getRightEye(self):
         return np.array(self.landmarkPoints[19:25])
 
@@ -177,12 +182,18 @@ class Landmarks:
     def getRightEyeBB(self):
         return cv2.boundingRect(self.getRightEye())
 
+    def getRightEyeBBBuffered(self):
+        return self.bufferCoords(self.getRightEyeBB())
+
     def getRightEyeRegionBB(self):
         return cv2.boundingRect(self.getRightEyeRegion())
 
     def getRightEyeInnerBB(self):
         innerEyePoints = np.array(list(self.landmarkPoints[26:28]) + list(self.landmarkPoints[29:31]))
         return cv2.boundingRect(innerEyePoints)
+
+    def getRightEyeInnerBBBuffered(self):
+        return self.bufferCoords(self.getRightEyeInnerBB())
 
     def getLeftEye(self):
         return np.array(self.landmarkPoints[25:31])
@@ -193,12 +204,18 @@ class Landmarks:
     def getLeftEyeBB(self):
         return cv2.boundingRect(self.getLeftEye())
 
+    def getLeftEyeBBBuffered(self):
+        return self.bufferCoords(self.getLeftEyeBB())
+
     def getLeftEyeRegionBB(self):
         return cv2.boundingRect(self.getLeftEyeRegion())
 
     def getLeftEyeInnerBB(self):
         innerEyePoints = np.array(list(self.landmarkPoints[20:22]) + list(self.landmarkPoints[23:25]))
         return cv2.boundingRect(innerEyePoints)
+
+    def getLeftEyeInnerBBBuffered(self):
+        return self.bufferCoords(self.getLeftEyeInnerBB())
 
     def getMouth(self):
         return np.array(self.landmarkPoints[39:49])

@@ -23,10 +23,14 @@ def getRightEyeCrop(capture):
     return np.array([rightEye, rightEyeMask, [rx, ry]])
 
 def getRightEyeCoords(capture):
-    return np.array(capture.landmarks.getRightEyeBB())
+    #return np.array(capture.landmarks.getRightEyeBB())
+    #return np.array(capture.landmarks.getRightEyeInnerBBBuffered())
+    return np.array(capture.landmarks.getRightEyeBBBuffered())
 
 def getLeftEyeCoords(capture):
-    return np.array(capture.landmarks.getLeftEyeBB())
+    #return np.array(capture.landmarks.getLeftEyeBB())
+    #return np.array(capture.landmarks.getLeftEyeInnerBBBuffered())
+    return np.array(capture.landmarks.getLeftEyeBBBuffered())
 
 def getMask(capture, coords):
     [x, y, w, h] = coords
@@ -78,7 +82,11 @@ def getReflectionBB(maskedImg):
     bb_medians = np.array([np.median(maskedImg[bb[1]:bb[1] + bb[3], bb[0]:bb[0] + bb[2]]) for bb in bbs])
 
     areaScores = np.array(areas) * (bb_medians ** 2)
+    #print('Areas :: {}'.format(areas))
+    #print('Medians :: {}'.format(bb_medians))
+    #print('Area Scores :: {}'.format(areaScores))
     max_index = np.argmax(areaScores)
+    #print('Chosen :: {} | {} | {}'.format(areas[max_index], bb_medians[max_index], areaScores[max_index]))
 
     return np.array(bbs[max_index])
 
@@ -116,22 +124,44 @@ def maskReflectionBB(eyes, wb):
 
     kernel = np.ones((3, 3), np.uint16)
     #Relient on second darkest reflection being AT LEAST 2x brighter than darkest
-    secondDarkestImage, darkestImage = [cv2.morphologyEx(img, cv2.MORPH_CROSS, kernel) for img in greyEyes[-4:-2]]
+    secondDarkestImage, darkestImage = [cv2.morphologyEx(img, cv2.MORPH_CROSS, kernel) for img in greyEyes[-2:]]
     externalReflections = np.clip((2 * darkestImage) - secondDarkestImage, 0, 10)
 
     brightestClean = np.clip(greyEyes[0] - externalReflections, 0, 10)
     brightestTopMask = maskTopValues(brightestClean)
 
+    #cv2.imshow('Clean Masked', np.hstack([greyEyes[0], (brightestTopMask * 255).astype('uint8')]))
+    #cv2.waitKey(0)
+
+    reflectionBB = getReflectionBB(brightestTopMask)
     x, y, w, h = getReflectionBB(brightestTopMask)
 
-    x = int(x - (0.5 * w))
-    y = int(y - (0.5 * h))
-    w = int(w * 2)
-    h = int(h * 2)
+    print('REFLECTION BB :: ' + str(reflectionBB))
 
-    #brightestCleanCrop = greyEyes[0][y:y + h, x:x + w]
-    brightestCleanCrop = brightestClean[y:y + h, x:x + w]
+    widthDiff = int(0.5 * w)
+    heightDiff = int(0.5 * h)
+
+    cropHeight, cropWidth = brightestTopMask.shape
+
+    new_x = x - widthDiff if x > widthDiff else 0
+    new_y = y - heightDiff if y > heightDiff else 0 
+    new_w = (x - new_x) + w + widthDiff
+    new_h = (y - new_y) + h + heightDiff
+
+    if new_x + new_w > cropWidth:
+        new_w = cropWidth - new_x
+
+    if new_y + new_h > cropHeight:
+        new_h = cropHeight - new_y
+
+    x, y, w, h = [new_x, new_y, new_w, new_h]
+
+    print('NEW REFLECTION BB :: [{} {} {} {}]'.format(x, y, w, h))
+
+    brightestCleanCrop = greyEyes[0][y:y + h, x:x + w]
+    #brightestCleanCrop = brightestClean[y:y + h, x:x + w]
     maskedCropped = maskBottomValues(brightestCleanCrop)
+    print('Sizes :: {} | {}'.format(brightestCleanCrop.shape, maskedCropped.shape))
     #cv2.imshow('Cropped Brightest Clean', np.vstack([brightestCleanCrop, (maskedCropped * 255).astype('uint8')]))
     #cv2.waitKey(0)
 
@@ -139,8 +169,8 @@ def maskReflectionBB(eyes, wb):
     reflectionBB[0] += x
     reflectionBB[1] += y
 
-    #x, y, w ,h = reflectionBB
-    #crops = [eye[y:y + h, x:x + w] for eye in eyes]
+    x, y, w ,h = reflectionBB
+    crops = [eye[y:y + h, x:x + w] for eye in eyes]
     #cv2.imshow('eye Crops', np.hstack(crops))
     #cv2.waitKey(0)
 
