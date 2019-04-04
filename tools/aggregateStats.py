@@ -27,12 +27,16 @@ def plotHist(values):
     plt.show()
 
 def getSaturation(point):
-    [name, bestGuesses, hsv, bgr, bestGuessReflectionHS] = point
-    return bestGuesses[1]
+    [name, bestGuesses, hsv, bgr, bestGuessReflectionHSV, fluxish] = point
+    #return bestGuesses[1]
+    return fluxish
 
 #EXPECTS RED TO BE LARGEST VALUE
-def convertRatiosToHueSat(bgrRatios):
+def convertRatiosToHueSatValue(bgrRatios):
     bgrRatios = np.array(bgrRatios)
+    print('BGR RATIOS :: ' + str(bgrRatios))
+    v = max(bgrRatios)
+
     bgrRatios = bgrRatios / max(bgrRatios)
     delta = max(bgrRatios) - min(bgrRatios)
 
@@ -45,7 +49,7 @@ def convertRatiosToHueSat(bgrRatios):
     else:
         h = (1/6) * (((bgrRatios[1] - bgrRatios[0]) / delta) % 6)
 
-    return [h, s]
+    return [h, s, v]
 
 
 with open('faceColors.json', 'r') as f:
@@ -65,7 +69,7 @@ for faceData in facesData:
     #for key in faceData['captures']:
         #print('CAPTURES {} -> {}'.format(key, faceData['captures'][key]))
 
-    medianDiffs.append([faceData['name'], faceData['medianDiffs'], faceData['bestGuess']])
+    medianDiffs.append([faceData['name'], faceData['medianDiffs'], faceData['bestGuess'], faceData['reflectionArea']])
    # for key in faceData['medianDiffs']:
    #     print('MEDIAN DIFFS {} -> {}'.format(key, faceData['medianDiffs'][key]))
 
@@ -84,16 +88,16 @@ else:
 
     for medianDiff in medianDiffs:
         #print('Median Diff :: ' + str(medianDiff))
-        name, medianDiff, bestGuess = medianDiff
+        name, medianDiff, bestGuess, reflectionArea = medianDiff
         leftReflection = np.array(medianDiff['reflections']['left'])
         rightReflection = np.array(medianDiff['reflections']['right'])
         averageReflection = (leftReflection + rightReflection) / 2
 
         bestGuessReflection, bestGuessFace = bestGuess
-        bestGuessReflectionHS = convertRatiosToHueSat(bestGuessReflection)
-        averageReflectionHS = convertRatiosToHueSat(averageReflection)
+        bestGuessReflectionHSV = convertRatiosToHueSatValue(bestGuessReflection)
+        averageReflectionHSV = convertRatiosToHueSatValue(averageReflection)
 
-        print('Best Guess vs Average [Hue, Sat] :: {} vs {}'.format(bestGuessReflectionHS, averageReflectionHS))
+        print('Best Guess vs Average [Hue, Sat] :: {} vs {}'.format(bestGuessReflectionHSV, averageReflectionHSV))
 
         #print('L :: {} | R :: {} | A :: {}'.format(leftReflection, rightReflection, averageReflection))
         
@@ -123,9 +127,14 @@ else:
         #medianHSV = chinPointHSV
 
         bestGuessFaceWB = colorTools.whitebalanceBGRPoints(np.array(bestGuessFace), np.array(bestGuessReflection))
+        bestGuessReflectionWB = colorTools.whitebalanceBGRPoints(np.array(bestGuessReflection), np.array(bestGuessReflection))
+
+        fluxish = bestGuessReflectionWB[0] * reflectionArea
+        bestGuessFaceWBScaled = bestGuessFaceWB / fluxish
+
         #bestGuessFaceWB = bestGuessFace
-        bestGuessHue, bestGuessSat = convertRatiosToHueSat(bestGuessFaceWB)
-        bestGuesses.append([bestGuessHue, bestGuessSat, 0.9])
+        bestGuessHue, bestGuessSat, bestGuessValue = convertRatiosToHueSatValue(bestGuessFaceWBScaled)
+        bestGuesses.append([bestGuessHue, bestGuessSat, bestGuessValue])
 
         wbBGR.append(leftPointWB)
         wbBGR.append(rightPointWB)
@@ -142,13 +151,13 @@ else:
         #print('{}'.format(name))
         #print('\tBGR -> Median :: {} || Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(pts(medianBGR), pts(leftPointWB), pts(rightPointWB), pts(chinPointWB), pts(foreheadPointWB)))
         #print('\tHSV -> Median :: {} || Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(pts(medianHSV), pts(leftPointHSV), pts(rightPointHSV), pts(chinPointHSV), pts(foreheadPointHSV)))
-        printPoints.append([name, [bestGuessHue, bestGuessSat], medianHSV, medianBGR, bestGuessReflectionHS])
+        printPoints.append([name, [bestGuessHue, bestGuessSat, bestGuessValue], medianHSV, medianBGR, bestGuessReflectionHSV, fluxish])
         #print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
 
     printPoints.sort(key=getSaturation)
     #print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
     for index, printPoint in enumerate(printPoints):
-        print('{}\t{} - MEDIANS -> BG :: {} | HSV :: {} | BGR :: {} | BG R :: {}'.format(index, *printPoint))
+        print('{}\t{} - MEDIANS -> BG :: {} | HSV :: {} | BGR :: {} | BG R :: {} | Fluxish :: {}'.format(index, *printPoint))
 
     wbBGR = np.array(wbBGR)
     wbHSV = np.array(wbHSV)
@@ -164,5 +173,5 @@ else:
     #plot3d(medianBGRs, 'Blue', 'Green', 'Red')
     #plot3d(medianHSVs, 'Hue', 'Saturation', 'Value')
     #plotHist(wbHSV[:, 1])
-    plotHist(bestGuesses[:, 1])
+    plotHist(bestGuesses[:, 2])
 
