@@ -22,6 +22,12 @@ def plot3d(points, xLabel, yLabel, zLabel):
     ax.set_zlabel(zLabel)
     plt.show()
 
+def plot2d(points, xLabel, yLabel):
+    plt.scatter(points[:, 0], points[:, 1])
+    plt.xlabel(xLabel)
+    plt.ylabel(yLabel)
+    plt.show()
+
 def plotHist(values):
     plt.hist(values, 20)
     plt.show()
@@ -85,6 +91,7 @@ else:
     bestGuesses = []
     printPoints = []
     reflections = []
+    fluxishes = []
 
     for medianDiff in medianDiffs:
         #print('Median Diff :: ' + str(medianDiff))
@@ -130,7 +137,8 @@ else:
         bestGuessReflectionWB = colorTools.whitebalanceBGRPoints(np.array(bestGuessReflection), np.array(bestGuessReflection))
 
         fluxish = bestGuessReflectionWB[0] * reflectionArea
-        bestGuessFaceWBScaled = bestGuessFaceWB / fluxish
+        fluxishes.append(fluxish)
+        bestGuessFaceWBScaled = bestGuessFaceWB #/ fluxish
 
         #bestGuessFaceWB = bestGuessFace
         bestGuessHue, bestGuessSat, bestGuessValue = convertRatiosToHueSatValue(bestGuessFaceWBScaled)
@@ -173,5 +181,8 @@ else:
     #plot3d(medianBGRs, 'Blue', 'Green', 'Red')
     #plot3d(medianHSVs, 'Hue', 'Saturation', 'Value')
     #plotHist(wbHSV[:, 1])
+    valueVsFluxish = np.stack([bestGuesses[:, 2], fluxishes], axis=1)
+    print('Values vs Fluxishes :: ' + str(valueVsFluxish))
+    plot2d(valueVsFluxish, 'Value', 'Fluxish')
     plotHist(bestGuesses[:, 2])
 
