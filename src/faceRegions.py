@@ -51,6 +51,10 @@ class FaceRegions:
     def getRegionPoints(self):
         return np.array([self.linearLeftCheekPoints, self.linearRightCheekPoints, self.linearChinPoints, self.linearForeheadPoints])
 
+    def getNumPixelsPerRegion(self):
+        regionsPoints = self.getRegionPoints()
+        return [len(regionPoints) for regionPoints in regionsPoints]
+
     def getRegionMedians(self):
         return np.array([self.linearLeftCheekMedian, self.linearRightCheekMedian, self.linearChinMedian, self.linearForeheadMedian])
 

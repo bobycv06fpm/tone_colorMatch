@@ -16,7 +16,9 @@ class Capture:
         #self.image = image.astype('int32')
         #colorTools.whitebalance_from_asShot_to_d65(image.astype('uint16'), metadata['whiteBalance']['x'], metadata['whiteBalance']['y'])
         self.isGammaSBGR = metadata["imageTransforms"]["isGammaSBGR"]
-        self.image = image
+        #self.image = image
+        print('IMAGE :: ' + str(image))
+        self.faceImage, self.leftEyeImage, self.rightEyeImage = image
         #if metadata["imageTransforms"]["isGammaSBGR"] is False:
         #    self.image = colorTools.convert_sBGR_to_linearBGR_float_fast(image)
         #    print('{} :: sBGR -> Linear'.format(self.name))
@@ -31,8 +33,8 @@ class Capture:
         if mask is not None:
             self.mask = np.logical_or(self.mask, mask)
 
-    def getFormattedImage(self):
-        return np.clip(self.image * 255, 0, 255).astype('uint8')
+    #def getFormattedImage(self):
+    #    return np.clip(self.image * 255, 0, 255).astype('uint8')
 
     def getLargestValue(self):
         return np.max(self.getFormattedImage())
@@ -48,11 +50,15 @@ class Capture:
     #    self.image = self.image * (255 / value)
 
     def whiteBalanceImageToD65(self):
-        self.image = colorTools.whitebalance_from_asShot_to_d65(self.image, self.whiteBalance['x'], self.whiteBalance['y'])
+        self.faceImage = colorTools.whitebalance_from_asShot_to_d65(self.faceImage, self.whiteBalance['x'], self.whiteBalance['y'])
+        self.leftEyeImage = colorTools.whitebalance_from_asShot_to_d65(self.leftEyeImage, self.whiteBalance['x'], self.whiteBalance['y'])
+        self.rightEyeImage = colorTools.whitebalance_from_asShot_to_d65(self.rightEyeImage, self.whiteBalance['x'], self.whiteBalance['y'])
 
     def getWhiteBalancedImageToD65(self):
-        whiteBalanced = colorTools.whitebalance_from_asShot_to_d65(self.image, self.whiteBalance['x'], self.whiteBalance['y'])
-        return whiteBalanced#np.clip(whiteBalanced * 255, 0, 255).astype('uint8')
+        faceImageWB = colorTools.whitebalance_from_asShot_to_d65(self.faceImage, self.whiteBalance['x'], self.whiteBalance['y'])
+        leftEyeImageWB = colorTools.whitebalance_from_asShot_to_d65(self.leftEyeImage, self.whiteBalance['x'], self.whiteBalance['y'])
+        rightEyeImageWB = colorTools.whitebalance_from_asShot_to_d65(self.rightEyeImage, self.whiteBalance['x'], self.whiteBalance['y'])
+        return [faceImageWB, leftEyeImageWB, rightEyeImageWB]#np.clip(whiteBalanced * 255, 0, 255).astype('uint8')
 
     def getAsShotWhiteBalance(self):
         return [self.whiteBalance['x'], self.whiteBalance['y']]

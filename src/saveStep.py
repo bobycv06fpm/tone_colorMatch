@@ -287,7 +287,7 @@ class Save:
             if not "imageTransforms" in capture:
                 capture["imageTransforms"] = defaultImageTransforms
 
-        print("LOADING :: " + str(data))
+        #print("LOADING :: " + str(data))
 
         return data
 

@@ -495,6 +495,10 @@ def getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions):
     #rightEyeLinearFit /= (np.ones(3) * rightEyeLinearFit[2])
     #print('Right Eye Linear Fit Scaled :: ' + str(rightEyeLinearFit))
 
+
+    #for faceRegion in faceRegions:
+    #    print('Pixels per region {}'.format(faceRegion.getNumPixelsPerRegion()))
+
     captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
     captureFaceRegionsLinearFit = []
 
@@ -574,6 +578,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     saveStep.resetLogFile()
     saveStep.deleteReference()
     images = loadImages(username, imageName)
+    print('shape :: ' + str(images.shape))
 
     metadata = saveStep.getMetadata()
 

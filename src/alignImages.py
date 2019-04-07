@@ -169,6 +169,7 @@ def getOffsetMagnitude(offsets, imageShape):
     return (XOffsetMagnitude**2 + YOffsetMagnitude**2) ** 0.5
 
 def getLandmarkOffsetMagnitude(captures, landmarkIndex):
+    print('LANDMARK Index :: ' + str(landmarkIndex))
     offsetsFromZero = np.array([capture.landmarks.landmarkPoints[landmarkIndex] for capture in captures])
     offsets = offsetsFromZero - offsetsFromZero[0]#[minXOffset, minYOffset]
     return getOffsetMagnitude(offsets, captures[0].image.shape)
