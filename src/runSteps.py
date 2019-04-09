@@ -629,7 +629,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
 
     plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
     plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
-    plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
+    #plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
     plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
 
     #plotPerRegionPoints(faceRegions, saveStep)

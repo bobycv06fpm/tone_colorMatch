@@ -14,10 +14,10 @@ class FaceRegions:
         self.chinPolygon = capture.landmarks.getChinPoints()
         self.foreheadPolygon = capture.landmarks.getForeheadPoints()
 
-        self.leftCheekPoints, self.leftCheekCleanRatio = extractMask.extractPolygonPoints(capture.image, capture.mask, self.leftCheekPolygon)
-        self.rightCheekPoints, self.rightCheekCleanRatio = extractMask.extractPolygonPoints(capture.image, capture.mask, self.rightCheekPolygon)
-        self.chinPoints, self.chinCleanRatio = extractMask.extractPolygonPoints(capture.image, capture.mask, self.chinPolygon)
-        self.foreheadPoints, self.foreheadCleanRatio = extractMask.extractPolygonPoints(capture.image, capture.mask, self.foreheadPolygon)
+        self.leftCheekPoints, self.leftCheekCleanRatio = extractMask.extractPolygonPoints(capture.faceImage, capture.faceMask, self.leftCheekPolygon)
+        self.rightCheekPoints, self.rightCheekCleanRatio = extractMask.extractPolygonPoints(capture.faceImage, capture.faceMask, self.rightCheekPolygon)
+        self.chinPoints, self.chinCleanRatio = extractMask.extractPolygonPoints(capture.faceImage, capture.faceMask, self.chinPolygon)
+        self.foreheadPoints, self.foreheadCleanRatio = extractMask.extractPolygonPoints(capture.faceImage, capture.faceMask, self.foreheadPolygon)
 
         print('{} - Converting Face Regions to Linear -'.format(capture.name), end="")
         self.linearLeftCheekPoints = colorTools.convert_sBGR_to_linearBGR_float_fast(self.leftCheekPoints)
@@ -46,7 +46,7 @@ class FaceRegions:
         return np.max([np.max(region) for region in [self.linearLeftCheekPoints, self.linearRightCheekPoints, self.linearChinPoints, self.linearForeheadPoints]])
 
     def getMaskedImage(self):
-        return extractMask.getMaskedImage(self.capture.image, self.capture.mask, [self.leftCheekPolygon, self.rightCheekPolygon, self.chinPolygon, self.foreheadPolygon])
+        return extractMask.getMaskedImage(self.capture.faceImage, self.capture.faceMask, [self.leftCheekPolygon, self.rightCheekPolygon, self.chinPolygon, self.foreheadPolygon])
 
     def getRegionPoints(self):
         return np.array([self.linearLeftCheekPoints, self.linearRightCheekPoints, self.linearChinPoints, self.linearForeheadPoints])

@@ -203,7 +203,7 @@ def getAnnotatedEyeStrip2(leftReflectionBB, leftEyeCrop, rightReflectionBB, righ
     originLeft_Y_start = math.floor((canvasShape[0] - leftEyeCropCopy.shape[0]) / 2) #Center vertically
     originLeft_Y_end =  -1 * math.ceil((canvasShape[0] - leftEyeCropCopy.shape[0]) / 2) #Center vertically
     originLeft_Y_end = originLeft_Y_end if originLeft_Y_end != 0 else leftEyeCropCopy.shape[0]
-    originLeft_X = canvasShape[1] - leftEyeCropCopy.shape[1]
+    originLeft_X = leftEyeCropCopy.shape[1]
 
     originRight_Y_start = math.floor((canvasShape[0] - rightEyeCropCopy.shape[0]) / 2) #Center vertically
     originRight_Y_end = -1 * math.ceil((canvasShape[0] - rightEyeCropCopy.shape[0]) / 2) #Center vertically
@@ -213,7 +213,7 @@ def getAnnotatedEyeStrip2(leftReflectionBB, leftEyeCrop, rightReflectionBB, righ
     leftEyeCanvas = np.zeros(canvasShape, dtype='uint8')
     rightEyeCanvas = np.zeros(canvasShape, dtype='uint8')
 
-    leftEyeCanvas[originLeft_Y_start:originLeft_Y_end, 0:] = leftEyeCropCopy
+    leftEyeCanvas[originLeft_Y_start:originLeft_Y_end, 0:originLeft_X] = leftEyeCropCopy
     rightEyeCanvas[originRight_Y_start:originRight_Y_end, originRight_X:] = rightEyeCropCopy
 
     eyeStrip = np.hstack([rightEyeCanvas, leftEyeCanvas]) #Backwards because left refers to the user's left eye
