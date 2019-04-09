@@ -50,7 +50,7 @@ class Landmarks:
     #sourceLandmarkPoints = []
     landmarkPoints = []
     
-    def __init__(self, source, landmarkPoints, imageSize):
+    def __init__(self, source, landmarkPoints, eyeBB, imageSize):
         #self.sourceLandmarkPoints = np.array(landmarkPoints)
         self.source = source
         if source == 'apple':

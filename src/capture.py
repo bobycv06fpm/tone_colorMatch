@@ -16,8 +16,9 @@ class Capture:
         #self.image = image.astype('int32')
         #colorTools.whitebalance_from_asShot_to_d65(image.astype('uint16'), metadata['whiteBalance']['x'], metadata['whiteBalance']['y'])
         self.isGammaSBGR = metadata["imageTransforms"]["isGammaSBGR"]
+        self.scaleRatio = metadata["imageTransforms"]["scaleRatio"] if "scaleRatio" in metadata["imageTransforms"] else 1
+        print("Scale Ratio :: {}".format(self.scaleRatio))
         #self.image = image
-        print('IMAGE :: ' + str(image))
         self.faceImage, self.leftEyeImage, self.rightEyeImage = image
         #if metadata["imageTransforms"]["isGammaSBGR"] is False:
         #    self.image = colorTools.convert_sBGR_to_linearBGR_float_fast(image)
@@ -26,8 +27,16 @@ class Capture:
         #    self.image = image / 255
 
         self.metadata = metadata
-        self.landmarks = Landmarks(self.metadata['faceLandmarksSource'], self.metadata['faceLandmarks'], image.shape)
-        self.mask = thresholdMask.getClippedMask(image)
+        
+        self.leftEyeBB = np.array(self.metadata['leftEyeBB']) if 'leftEyeBB' in self.metadata else None
+        self.rightEyeBB = np.array(self.metadata['rightEyeBB']) if 'rightEyeBB' in self.metadata else None
+
+        self.landmarks = Landmarks(self.metadata['faceLandmarksSource'], self.metadata['faceLandmarks'], [self.leftEyeBB, self.rightEyeBB], self.faceImage.shape)
+
+        self.faceMask = thresholdMask.getClippedMask(self.faceImage)
+        self.leftEyeMask = thresholdMask.getClippedMask(self.leftEyeImage)
+        self.rightEyeMask = thresholdMask.getClippedMask(self.rightEyeImage)
+
         self.whiteBalance = self.metadata['whiteBalance']
 
         if mask is not None:

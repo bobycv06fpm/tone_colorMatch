@@ -1,7 +1,7 @@
 from loadImages import loadImages
 #from detectFace import detectFace
 import alignImages
-from getAverageReflection import getAverageScreenReflectionColor
+from getAverageReflection import getAverageScreenReflectionColor2
 from saveStep import Save
 from getPolygons import getPolygons, getFullFacePolygon
 #from extractMask import extractMask
@@ -591,7 +591,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     #Brightest is index 0, dimmest is last
 
     try:
-        leftEyeOffsets, rightEyeOffsets, averageOffsets = alignImages.getCaptureEyeOffsets(captures)
+        leftEyeCropOffsets, rightEyeCropOffsets, faceCropOffsets = alignImages.getCaptureEyeOffsets2(captures)
     except Exception as err:
         if failOnError:
             raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
@@ -599,16 +599,16 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
             print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
             return getResponse(imageName, False)
 
-    leftEyeOffsets -= averageOffsets #Need offsets relative to averageOffset now that we are aligned
-    rightEyeOffsets -= averageOffsets #Need offsets relative to averageOffset
+    #leftEyeOffsets -= averageOffsets #Need offsets relative to averageOffset now that we are aligned
+    #rightEyeOffsets -= averageOffsets #Need offsets relative to averageOffset
 
-    updatedAverageOffset = cropTools.cropCapturesToOffsets(captures, averageOffsets)
+    updatedAverageOffset = cropTools.cropCapturesToOffsets(captures, faceCropOffsets)
     #All offsets are relative to capture[0]
     for capture in captures:
         capture.landmarks = captures[0].landmarks
 
     try:
-        averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections = getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, saveStep)
+        averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections = getAverageScreenReflectionColor2(captures, leftEyeCropOffsets, rightEyeCropOffsets, saveStep)
     except Exception as err:
         if failOnError:
             raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
