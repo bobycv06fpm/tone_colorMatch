@@ -333,8 +333,10 @@ def plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflec
     for regionIndex in range(0, numberOfRegions):
         #print('Regions :: ' + str(captureFaceRegions[:, regionIndex]))
         diff = getDiffs(captureFaceRegions[:, regionIndex, :])
+        print("Diffs :: {}".format(diff))
         #captureFaceRegion = captureFaceRegions[:, regionIndex, :]
         #print('FACE REGION :: ' + str(captureFaceRegion[:, 2]))
+        diff[diff == 0] = 0.0001 #Kinda shitty work around for divide by 0. Still makes the divide by zero stand out on the chart
         scaledCaptureFaceRegion = diff / (np.ones(3) * np.reshape(diff[:, 2], (diff.shape[0], 1)))
         #print('SCALED FACE REGION :: ' + str(scaledCaptureFaceRegion))
 
