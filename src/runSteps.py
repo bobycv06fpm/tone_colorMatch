@@ -588,6 +588,7 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
 
     #numImages = len(images)
     captures = [Capture(image, meta) for image, meta in zip(images, metadata)]
+    #captures[0].showImageWithLandmarks()
     #Brightest is index 0, dimmest is last
 
     try:

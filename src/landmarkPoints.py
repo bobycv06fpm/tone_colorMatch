@@ -103,8 +103,9 @@ class Landmarks:
 
         #Flip X and Y coordinates... Indexed off of Bottom Right, not Top Left..
         landmarkPoints = np.array(landmarkPoints)
-        landmarkPoints[:, 1] = imageSize[0] - landmarkPoints[:, 1]
-        landmarkPoints[:, 0] = imageSize[1] - landmarkPoints[:, 0]
+        temp = np.copy(landmarkPoints[:, 1])
+        landmarkPoints[:, 1] = landmarkPoints[:, 0]
+        landmarkPoints[:, 0] = temp
 
         return landmarkPoints
 

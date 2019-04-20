@@ -15,8 +15,8 @@ class Capture:
         #self.image = np.clip(image, 0, 255).astype('uint8')
         #self.image = image.astype('int32')
         #colorTools.whitebalance_from_asShot_to_d65(image.astype('uint16'), metadata['whiteBalance']['x'], metadata['whiteBalance']['y'])
-        self.isGammaSBGR = metadata["imageTransforms"]["isGammaSBGR"]
-        self.scaleRatio = metadata["imageTransforms"]["scaleRatio"] if "scaleRatio" in metadata["imageTransforms"] else 1
+        self.isGammaSBGR = True#metadata['faceImageTransforms']["isGammaSBGR"]
+        self.scaleRatio = metadata['faceImageTransforms']["scaleRatio"] if "scaleRatio" in metadata['faceImageTransforms'] else 1
         print("Scale Ratio :: {}".format(self.scaleRatio))
         #self.image = image
         self.faceImage, self.leftEyeImage, self.rightEyeImage = image
@@ -28,10 +28,12 @@ class Capture:
 
         self.metadata = metadata
         
-        self.leftEyeBB = np.array(self.metadata['leftEyeBB']) if 'leftEyeBB' in self.metadata else None
-        self.rightEyeBB = np.array(self.metadata['rightEyeBB']) if 'rightEyeBB' in self.metadata else None
+        self.leftEyeBB = np.array(self.metadata['leftEyeImageTransforms']['bbInParent']) if 'bbInParent' in self.metadata['leftEyeImageTransforms'] else None
+        print("Scale Ratio :: {}".format(self.leftEyeBB))
+        self.rightEyeBB = np.array(self.metadata['rightEyeImageTransforms']['bbInParent']) if 'bbInParent' in self.metadata['rightEyeImageTransforms'] else None
+        print("Scale Ratio :: {}".format(self.rightEyeBB))
 
-        self.landmarks = Landmarks(self.metadata['faceLandmarksSource'], self.metadata['faceLandmarks'], [self.leftEyeBB, self.rightEyeBB], self.faceImage.shape)
+        self.landmarks = Landmarks(self.metadata['faceLandmarksSource'], self.metadata['faceImageTransforms']['landmarks'], [self.leftEyeBB, self.rightEyeBB], self.faceImage.shape)
 
         self.faceMask = thresholdMask.getClippedMask(self.faceImage)
         self.leftEyeMask = thresholdMask.getClippedMask(self.leftEyeImage)
@@ -42,8 +44,8 @@ class Capture:
         if mask is not None:
             self.mask = np.logical_or(self.mask, mask)
 
-    #def getFormattedImage(self):
-    #    return np.clip(self.image * 255, 0, 255).astype('uint8')
+    def getFormattedFaceImage(self):
+        return np.clip(self.faceImage, 0, 255).astype('uint8')
 
     def getLargestValue(self):
         return np.max(self.getFormattedImage())
@@ -108,14 +110,15 @@ class Capture:
         self.show(wait, masked)
 
     def showImageWithLandmarks(self, wait=True, tag=''):
-        img = self.getFormattedImage()
+        img = self.getFormattedFaceImage()
         for point in self.landmarks.landmarkPoints:
-            cv2.circle(img, (point[0], point[1]), 5, (0, 0, 255), -1)
+            print("POINT :: {}".format(point))
+            cv2.circle(img, (int(point[0]), int(point[1])), 5, (0, 0, 255), -1)
 
-        ratio = 3
-        smallImage = cv2.resize(img, (0, 0), fx=1/ratio, fy=1/ratio)
+        #ratio = 3
+        #smallImage = cv2.resize(img, (0, 0), fx=1/ratio, fy=1/ratio)
 
-        cv2.imshow(self.name + tag, smallImage)
+        cv2.imshow(self.name + tag, img)
         if wait:
             cv2.waitKey(0)
 
