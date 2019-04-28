@@ -40,6 +40,7 @@ class Capture:
         self.rightEyeMask = thresholdMask.getClippedMask(self.rightEyeImage)
 
         self.whiteBalance = self.metadata['whiteBalance']
+        self.isBlurry = False
 
         if mask is not None:
             self.mask = np.logical_or(self.mask, mask)

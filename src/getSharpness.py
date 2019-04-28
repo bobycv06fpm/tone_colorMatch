@@ -22,9 +22,9 @@ def stretchHistogram(gray, mask=None):
 
     median = np.median(grayPoints)
     sd = np.std(grayPoints)
-    lower = median - (3 * sd)
+    lower = median - (2 * sd)
     lower = lower if lower > lowerBound else lowerBound
-    upper = median + (3 * sd)
+    upper = median + (10 * sd)
     upper = upper if upper < upperBound else upperBound
 
     bounds = np.copy(gray)
@@ -37,15 +37,33 @@ def stretchHistogram(gray, mask=None):
     #stretched = np.clip(stretched * 255, 0, 255)
     return stretched
 
-def getSharpnessScore(gray):
-    return 0.0
 
 def labelSharpestCaptures(captures):
     leftEyeCrops = [capture.leftEyeImage for capture in captures]
     rightEyeCrops = [capture.rightEyeImage for capture in captures]
 
-    greyLeftEyeCrops = [np.mean(leftEyeCrop) for leftEyeCrop in leftEyeCrops]
-    leftEyes = np.hstack(greyLeftEyeCrops)
-    cv2.imshow('left eyes', leftEyes)
-    cv2.waitKey(0)
+    leftEyeCropsLinear = [colorTools.convert_sBGR_to_linearBGR_float_fast(leftEyeCrop) for leftEyeCrop in leftEyeCrops]
+    greyLeftEyeCropsLinear = [np.mean(linearLeftEyeCrop, axis=2) for linearLeftEyeCrop in leftEyeCropsLinear]
+    greyLeftEyeCropsLinearStretched = [stretchHistogram(greyLeftEyeCropLinear) for greyLeftEyeCropLinear in greyLeftEyeCropsLinear]
+    greyLeftEyeCropsLinearStretchedFFT = [np.fft.fft2(greyLeftEyeCropLinearStretched) for greyLeftEyeCropLinearStretched in greyLeftEyeCropsLinearStretched]
+    greyLeftEyeCropsLinearStretchedFFTShifted = [np.abs(np.fft.fftshift(greyLeftEyeCropLinearStretchedFFT)) for greyLeftEyeCropLinearStretchedFFT in greyLeftEyeCropsLinearStretchedFFT]
+    greyLeftEyeCropsLinearStretchedFFTShiftedMeans = [np.mean(leftEyeFFT) for leftEyeFFT in greyLeftEyeCropsLinearStretchedFFTShifted]
+    print('LEFT SCORE :: ' + str(greyLeftEyeCropsLinearStretchedFFTShiftedMeans))
+
+    rightEyeCropsLinear = [colorTools.convert_sBGR_to_linearBGR_float_fast(rightEyeCrop) for rightEyeCrop in rightEyeCrops]
+    greyRightEyeCropsLinear = [np.mean(linearRightEyeCrop, axis=2) for linearRightEyeCrop in rightEyeCropsLinear]
+    greyRightEyeCropsLinearStretched = [stretchHistogram(greyRightEyeCropLinear) for greyRightEyeCropLinear in greyRightEyeCropsLinear]
+    greyRightEyeCropsLinearStretchedFFT = [np.fft.fft2(greyRightEyeCropLinearStretched) for greyRightEyeCropLinearStretched in greyRightEyeCropsLinearStretched]
+    greyRightEyeCropsLinearStretchedFFTShifted = [np.abs(np.fft.fftshift(greyRightEyeCropLinearStretchedFFT)) for greyRightEyeCropLinearStretchedFFT in greyRightEyeCropsLinearStretchedFFT]
+    greyRightEyeCropsLinearStretchedFFTShiftedMeans = [np.mean(rightEyeFFT) for rightEyeFFT in greyRightEyeCropsLinearStretchedFFTShifted]
+    print('RIGHT SCORE :: ' + str(greyRightEyeCropsLinearStretchedFFTShiftedMeans))
+
+    scores = [(left + right) / 2 for (left, right) in zip(greyLeftEyeCropsLinearStretchedFFTShiftedMeans, greyRightEyeCropsLinearStretchedFFTShiftedMeans)]
+    sortedScores = sorted(scores)
+
+    print('SCORES :: ' + str(scores))
+
+    for score, capture in zip(scores, captures):
+        if (score == sortedScores[0]) or (score == sortedScores[1]):
+            capture.isBlurry = True
 
