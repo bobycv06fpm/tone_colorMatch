@@ -16,6 +16,7 @@ import math
 #from scipy import ndimage
 import matplotlib.pyplot as plt
 import cropTools
+import getSharpness
 #import landmarkPoints
 from capture import Capture 
 from faceRegions import FaceRegions
@@ -592,6 +593,8 @@ def run(username, imageName, fast=False, saveStats=False, failOnError=False):
     captures = [Capture(image, meta) for image, meta in zip(images, metadata)]
     #captures[0].showImageWithLandmarks()
     #Brightest is index 0, dimmest is last
+
+    getSharpness.labelSharpestCaptures(captures)
 
     try:
         leftEyeCropOffsets, rightEyeCropOffsets, faceCropOffsets = alignImages.getCaptureEyeOffsets2(captures)
