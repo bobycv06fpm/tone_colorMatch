@@ -28,14 +28,15 @@ def plot2d(points, xLabel, yLabel):
     plt.ylabel(yLabel)
     plt.show()
 
-def plotHist(values):
-    plt.hist(values, 20)
+def plotHist(values, bins=20):
+    plt.hist(values, bins)
     plt.show()
 
 def sortOnValue(point):
-    [name, hsv, bgr, fluxish] = point
+    [name, hsv, hsv_scaled, bgr, bgr_scaled, fluxish] = point
     #return bestGuesses[1]
-    return fluxish
+    #return fluxish
+    return hsv[2]
 
 #EXPECTS RED TO BE LARGEST VALUE
 def convertRatiosToHueSatValue(bgrRatios):
@@ -90,6 +91,8 @@ else:
     linearFitBGRs = []
     #medianHSVs = []
     linearFitHSVs = []
+    linearFitBGRScaled = []
+    linearFitHSVScaled = []
     #bestGuesses = []
     printPoints = []
     #reflections = []
@@ -126,18 +129,19 @@ else:
         #foreheadPointWB = foreheadPoint
         #medianBGR = np.median(np.array([leftPoint, rightPoint, chinPoint, foreheadPoint]), axis=0)
 
-        leftPointWB = colorTools.whitebalanceBGRPoints(leftPoint, averageReflection)
-        rightPointWB = colorTools.whitebalanceBGRPoints(rightPoint, averageReflection)
+        leftPointWB = colorTools.whitebalanceBGRPoints(leftPoint, leftReflection) #Not sure if we should use the average color or the per side... Color diff might be cause by off axis angles?
+        rightPointWB = colorTools.whitebalanceBGRPoints(rightPoint, rightReflection)
         chinPointWB = colorTools.whitebalanceBGRPoints(chinPoint, averageReflection)
         foreheadPointWB = colorTools.whitebalanceBGRPoints(foreheadPoint, averageReflection)
-        linearFitWB_BGR = np.median(np.array([leftPointWB, rightPointWB, chinPointWB, foreheadPointWB]), axis=0)
+
+        linearFitWB_BGR = np.mean(np.array([leftPointWB, rightPointWB, chinPointWB, foreheadPointWB]), axis=0)
         #medianBGR = chinPointWB
 
         leftPointWB_HSV = colorTools.bgr_to_hsv(leftPointWB)
         rightPointWB_HSV = colorTools.bgr_to_hsv(rightPointWB)
         chinPointWB_HSV = colorTools.bgr_to_hsv(chinPointWB)
         foreheadPointWB_HSV = colorTools.bgr_to_hsv(foreheadPointWB)
-        linearFitWB_HSV = np.median(np.array([leftPointWB_HSV, rightPointWB_HSV, chinPointWB_HSV, foreheadPointWB_HSV]), axis=0)
+        linearFitWB_HSV = np.mean(np.array([leftPointWB_HSV, rightPointWB_HSV, chinPointWB_HSV, foreheadPointWB_HSV]), axis=0)
         #medianHSV = chinPointHSV
 
         #bestGuessFaceWB = colorTools.whitebalanceBGRPoints(np.array(bestGuessFace), np.array(bestGuessReflection))
@@ -152,10 +156,13 @@ else:
 
         fluxish = linearFitReflectionValue * reflectionArea
         fluxishes.append(fluxish)
-#        bestGuessFaceWBScaled = bestGuessFaceWB #/ fluxish
+
+        linearFitWBScaled_BGR = linearFitWB_BGR / fluxish
+        linearFitBGRScaled.append(linearFitWBScaled_BGR)
 #
 #        #bestGuessFaceWB = bestGuessFace
-#        #bestGuessHue, bestGuessSat, bestGuessValue = #convertRatiosToHueSatValue(bestGuessFaceWBScaled)
+        linearFitWBScaled_HSV = convertRatiosToHueSatValue(linearFitWBScaled_BGR)
+        linearFitHSVScaled.append(linearFitWBScaled_HSV)
 #        bestGuesses.append([bestGuessHue, bestGuessSat, bestGuessValue])
 #
 #        wbBGR.append(leftPointWB)
@@ -173,13 +180,13 @@ else:
 #        #print('{}'.format(name))
 #        #print('\tBGR -> Median :: {} || Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(pts(medianBGR), pts(leftPointWB), pts(rightPointWB), pts(chinPointWB), pts(foreheadPointWB)))
 #        #print('\tHSV -> Median :: {} || Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(pts(medianHSV), pts(leftPointHSV), pts(rightPointHSV), pts(chinPointHSV), pts(foreheadPointHSV)))
-        printPoints.append([name, linearFitWB_HSV, linearFitWB_BGR, fluxish])
+        printPoints.append([name, linearFitWB_HSV, linearFitWBScaled_HSV, linearFitWB_BGR, linearFitWBScaled_BGR, fluxish])
         #print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
 
     printPoints.sort(key=sortOnValue)
     #print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
     for index, printPoint in enumerate(printPoints):
-        print('{}\t{} - MEDIANS -> LF HSV :: {} | LF BGR :: {} | Fluxish :: {}'.format(index, *printPoint))
+        print('{}\t{} - (Set Median) (Linear Fits) -> HSV :: {} | HSV Scaled :: {} | BGR :: {} | BGR Scaled :: {} | Fluxish :: {}'.format(index, *printPoint))
 
     #wbBGR = np.array(wbBGR)
     #wbHSV = np.array(wbHSV)
@@ -187,10 +194,13 @@ else:
 
     #medianBGRs = np.array(medianBGRs)
     linearFitBGRs = np.array(linearFitBGRs)
+    linearFitBGRScaled = np.array(linearFitBGRScaled)
     #medianHSVs = np.array(medianHSVs)
     linearFitHSVs = np.array(linearFitHSVs)
+    linearFitHSVScaled = np.array(linearFitHSVScaled)
     #bestGuesses = np.array(bestGuesses)
     linearFitHSVs[:, 0] = colorTools.rotateHue(linearFitHSVs[:, 0])
+    linearFitHSVScaled[:, 0] = colorTools.rotateHue(linearFitHSVScaled[:, 0])
 
     #plot3d(wbBGR, 'Blue', 'Green', 'Red')
     #plot3d(wbHSV, 'Hue', 'Saturation', 'Value')
@@ -202,6 +212,8 @@ else:
     #print('Values vs Fluxishes :: ' + str(valueVsFluxish))
     print('Fluxishes vs Values :: ' + str(fluxishVsValue))
     plot2d(fluxishVsValue, 'Fluxish', 'Value')
+    print('Linear Fit HSV Scaled :: ' + str(linearFitHSVScaled))
     plotHist(linearFitHSVs[:, 2]) #Pretty sure the target for this is a distribution with a range of ~0.1? Would pretty accuately place it in the spectrum?
+    plotHist(linearFitHSVScaled[:, 2]) #Pretty sure the target for this is a distribution with a range of ~0.1? Would pretty accuately place it in the spectrum?
 
 

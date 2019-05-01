@@ -20,7 +20,7 @@ minDirectory = 196
 #minDirectory = 240
 
 #userDirectories = [(os.path.join(userPath, o), o) for o in os.listdir(userPath) if os.path.isdir(os.path.join(userPath, o))]
-userDirectories = [o for o in os.listdir(userPath) if os.path.isdir(os.path.join(userPath, o))]
+userDirectories = [o for o in os.listdir(userPath) if os.path.isdir(os.path.join(userPath, o)) if o.startswith(user)]
 
 filteredUserDirectories = [o for o in userDirectories if int(re.search( r'[0-9]+$', o, re.M|re.I).group()) >= minDirectory]
 

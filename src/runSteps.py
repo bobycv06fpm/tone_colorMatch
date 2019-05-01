@@ -410,6 +410,8 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
 
     for regionIndex in range(0, numberOfRegions):
         #print('Regions :: ' + str(captureFaceRegions[:, regionIndex]))
+        #tempBlurryMask = np.zeros(len(blurryMask)).astype('bool')
+        #tempBlurryMask = blurryMask
         plotBGR(axs[0, 0], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 2], blurryMask)
         plotBGR(axs[0, 1], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 1], blurryMask)
         plotBGR(axs[0, 2], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 0], blurryMask)
