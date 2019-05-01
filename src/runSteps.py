@@ -169,12 +169,12 @@ def getReflectionMap(leftReflection, rightReflection):
 
     return value
 
-def getResponse(imageName, successful, captureSets=None, medianDiffSets=None, bestGuess=None, averageReflectionArea=None):
+def getResponse(imageName, successful, captureSets=None, linearFits=None, bestGuess=None, averageReflectionArea=None):
     response = {}
     response['name'] = imageName
     response['successful'] = successful
     response['captures'] = {}
-    response['medianDiffs'] = medianDiffSets
+    response['linearFits'] = linearFits
     response['bestGuess'] = bestGuess
     response['reflectionArea'] = averageReflectionArea
 
