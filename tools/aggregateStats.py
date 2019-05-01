@@ -184,5 +184,6 @@ else:
     valueVsFluxish = np.stack([bestGuesses[:, 2], fluxishes], axis=1)
     print('Values vs Fluxishes :: ' + str(valueVsFluxish))
     plot2d(valueVsFluxish, 'Value', 'Fluxish')
-    plotHist(bestGuesses[:, 2])
+    plotHist(bestGuesses[:, 2]) #Pretty sure the target for this is a distribution with a range of ~0.1? Would pretty accuately place it in the spectrum?
+
 

@@ -88,7 +88,16 @@ def cropImagesToAxis(images, offsets, axis):
     return croppedImages[:, 0], croppedImages[:, 1]
 
 def cropImagesToOffsets(images, offsets):
-    images = np.array(images)
+
+    imageDimensions = np.array([image.shape for image in images])
+    minHeight = np.min(imageDimensions[:, 0])
+    minWidth = np.min(imageDimensions[:, 1])
+    print('Min Width :: {}, Min Height :: {}'.format(minHeight, minWidth))
+
+    #Occasionally there is data that is 1 px smaller. Probably a rounding issue on the cropping app side. On todo list...
+    images = np.array([image[0:minHeight, 0:minWidth] for image in images])
+
+    #images = np.array(images)
     offsets = np.array(offsets)
     updatedOffsets = np.copy(offsets)
     images, xOffsets = cropImagesToAxis(images, offsets[:, X], X)
