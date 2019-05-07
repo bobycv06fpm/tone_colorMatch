@@ -113,6 +113,38 @@ def extractBBMask(img, BB):
     img[mask] = 0
     return img
 
+def stretchHistogram(gray, mask=None):
+    upperBound = 1
+    lowerBound = 0
+
+    if mask is not None:
+        clippedHigh = gray != upperBound
+        clippedLow = gray != lowerBound
+
+        mask = np.logical_and(mask, clippedHigh)
+        mask = np.logical_and(mask, clippedLow)
+
+        grayPoints = gray[mask]
+    else:
+        grayPoints = gray.flatten()
+
+    median = np.median(grayPoints)
+    sd = np.std(grayPoints)
+    lower = median - (2 * sd)
+    lower = lower if lower > lowerBound else lowerBound
+    upper = median + (10 * sd)
+    upper = upper if upper < upperBound else upperBound
+
+    bounds = np.copy(gray)
+    bounds[bounds < lower] = lower
+    bounds[bounds > upper] = upper
+
+    numerator = bounds - lower
+    denominator = upper - lower
+    stretched = (numerator / denominator)
+    #stretched = np.clip(stretched * 255, 0, 255)
+    return stretched
+
 def maskReflectionBB(eyes, wb):
     for index, eye in enumerate(eyes):
         if eye.shape[0] * eye.shape[1] == 0:
@@ -121,6 +153,25 @@ def maskReflectionBB(eyes, wb):
     eyes = [colorTools.convert_sBGR_to_linearBGR_float_fast(eye) for eye in eyes]
     eyes = [colorTools.whitebalance_from_asShot_to_d65(eye, *wb) for eye in eyes]
     greyEyes = [np.mean(eye, axis=2) for eye in eyes]
+    croppedGreyEyes = [img[int(0.25 * img.shape[0]):int(0.75 * img.shape[0]), int(0.33 * img.shape[1]):int(0.66 * img.shape[1])] for img in greyEyes]
+
+    stackedEyes = np.vstack(croppedGreyEyes)
+
+    cv2.imshow('eyes', stackedEyes)
+
+    #eyeDiffs = np.clip((greyEyes[1:] - greyEyes[:-1]) * 255 * 10, 0, 255).astype('uint8')
+    eyeLap = [cv2.Laplacian(stretchHistogram(img), cv2.CV_64F) for img in croppedGreyEyes]
+    #kernel = np.ones((5, 5), np.uint8)
+    #eyeLapFiltered = [cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel) for img in eyeLap]
+    #eyeLapFiltered = [cv2.dilate(img, kernel, iterations=1) for img in eyeLap]
+
+    #greyEyesFFT = [np.fft.fft2(greyEye) for greyEye in greyEyes]
+    #greyEyesFFTShifted = [np.log(np.abs(np.fft.fftshift(greyEyeFFT))) for greyEyeFFT in greyEyesFFT]
+    #greyEyesFFTShiftedScaled = [(img / np.max(img)) * 255 for img in greyEyesFFTShifted]
+
+    stackedEyeDiffs = np.vstack(eyeLap)
+    cv2.imshow('eyes Laplacian', stackedEyeDiffs * 10)
+    cv2.waitKey(0)
 
     kernel = np.ones((3, 3), np.uint16)
     #Relient on second darkest reflection being AT LEAST 2x brighter than darkest
