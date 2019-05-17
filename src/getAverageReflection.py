@@ -503,16 +503,13 @@ def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, 
     leftReflectionStats = np.array([extractReflectionPoints(leftReflectionBB, eyeCrop, eyeMask, ignoreMask) for eyeCrop, eyeMask, ignoreMask in zip(leftEyeCrops, leftEyeMasks, isSpecialCase)])
     rightReflectionStats = np.array([extractReflectionPoints(rightReflectionBB, eyeCrop, eyeMask, ignoreMask) for eyeCrop, eyeMask, ignoreMask in zip(rightEyeCrops, rightEyeMasks, isSpecialCase)])
 
-    refinedLeftReflectionBBs = leftReflectionStats[:, 3]
-    refinedRightReflectionBBs = rightReflectionStats[:, 3]
+    refinedLeftReflectionBBs = np.vstack(leftReflectionStats[:, 3])
+    refinedRightReflectionBBs = np.vstack(rightReflectionStats[:, 3])
 
     annotatedEyeStrips = [getAnnotatedEyeStrip2(leftReflectionBBrefined, leftEyeCrop, rightReflectionBBrefined, rightEyeCrop) for leftEyeCrop, rightEyeCrop, leftReflectionBBrefined, rightReflectionBBrefined in zip(leftEyeCrops, rightEyeCrops, refinedLeftReflectionBBs, refinedRightReflectionBBs)]
 
     stackedAnnotatedEyeStrips = np.vstack(annotatedEyeStrips)
     saveStep.saveReferenceImageBGR(stackedAnnotatedEyeStrips, 'eyeStrips')
-
-
-
 
     leftReflectionImages = np.hstack(leftReflectionStats[:, 2])
     rightReflectionImages = np.hstack(rightReflectionStats[:, 2])
@@ -545,8 +542,13 @@ def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, 
     if eyeWidth == 0:
         raise NameError('Zero value Eye Width')
 
-    leftReflectionWidth, leftReflectionHeight = leftReflectionBB[2:4] / eyeWidth
-    rightReflectionWidth, rightReflectionHeight = rightReflectionBB[2:4] / eyeWidth
+    #leftReflectionWidth, leftReflectionHeight = leftReflectionBB[2:4] / eyeWidth
+    leftReflectionWidth, leftReflectionHeight = np.mean(refinedLeftReflectionBBs[:, 2:4], axis=0) / eyeWidth
+    #rightReflectionWidth, rightReflectionHeight = rightReflectionBB[2:4] / eyeWidth
+    rightReflectionWidth, rightReflectionHeight = np.mean(refinedRightReflectionBBs[:, 2:4], axis=0) / eyeWidth
+
+    print('Left Width, Left Height :: {}, {}'.format(leftReflectionWidth, leftReflectionHeight))
+    print('Right Width, Right Height :: {}, {}'.format(rightReflectionWidth, rightReflectionHeight))
 
     leftReflectionArea = leftReflectionWidth * leftReflectionHeight
     rightReflectionArea = rightReflectionWidth * rightReflectionHeight
