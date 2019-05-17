@@ -307,16 +307,61 @@ def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
     if cleanPixelRatio < 0.8:
         raise NameError('Not enough clean non-clipped pixels in eye reflections')
 
-    fullMedianReflection = np.median(reflectionCrop, axis=(0,1))
+    #greyValues = np.sum(reflectionCrop, axis=2).flatten()
+    #greyValues = greyValues * (1 / np.max(greyValues))
+    #plt.hist(greyValues, bins=50)
+    #plt.show()
 
-    brighter = reflectionCrop[reflectionCrop > fullMedianReflection]
+    #stretchedReflectionCrop = np.copy(reflectionCrop)
+    #fig, axs = plt.subplots(3, 1, sharey=False, tight_layout=True)
 
-    medianReflection = np.median(brighter)
-    sdReflection = np.std(brighter)
-    print('MEDIAN REFLECTION :: {}'.format(medianReflection))
-    print('SD REFLECTION :: {}'.format(sdReflection))
-    lowerBoundMask = np.any(reflectionCrop < (medianReflection - sdReflection), axis=2)
-    reflectionMask = np.logical_or(lowerBoundMask, reflectionMask)
+    stretchedBlueReflectionCrop = (reflectionCrop[:, :, 0] - np.min(reflectionCrop[:, :, 0])) * (1 / (np.max(reflectionCrop[:, :, 0]) - np.min(reflectionCrop[:, :, 0]))) 
+
+
+    #threshold = 20 / 255
+    threshold = 1/4 #1/5
+
+    blueMask = stretchedBlueReflectionCrop > threshold
+   # bins = int(round(255 / 4))
+
+   # blueValues = stretchedBlueReflectionCrop.flatten()
+   # blueBins = np.clip(round(max(blueValues) * 255) / 3, 0, 255).astype('uint8')
+   # axs[0].hist(blueValues, bins=bins)
+
+    stretchedGreenReflectionCrop = (reflectionCrop[:, :, 1] - np.min(reflectionCrop[:, :, 1])) * (1 / (np.max(reflectionCrop[:, :, 1]) - np.min(reflectionCrop[:, :, 1]))) 
+
+    greenMask = stretchedGreenReflectionCrop > threshold
+   # greenValues = stretchedGreenReflectionCrop.flatten()
+   # greenBins = np.clip(round(max(greenValues) * 255) / 3, 0, 255).astype('uint8')
+   # axs[1].hist(greenValues, bins=bins)
+
+    stretchedRedReflectionCrop = (reflectionCrop[:, :, 2] - np.min(reflectionCrop[:, :, 2])) * (1 / (np.max(reflectionCrop[:, :, 2]) - np.min(reflectionCrop[:, :, 2]))) 
+
+    redMask = stretchedRedReflectionCrop > threshold
+   # redValues = stretchedRedReflectionCrop.flatten()
+   # redBins = np.clip(round(max(redValues) * 255) / 3, 0, 255).astype('uint8')
+   # axs[2].hist(redValues, bins=bins)
+
+    reflectionMask = np.logical_not(np.logical_or(np.logical_or(blueMask, greenMask), redMask))
+
+
+    #stackedChannels = np.hstack([stretchedBlueReflectionCrop, stretchedGreenReflectionCrop, stretchedRedReflectionCrop])
+    #cv2.imshow('masked', combined.astype('uint8') * 255)
+    #cv2.imshow('stacked channels', stackedChannels)
+    #cv2.waitKey(0)
+
+    #plt.show()
+
+    #fullMedianReflection = np.median(reflectionCrop, axis=(0,1))
+
+    #brighter = reflectionCrop[reflectionCrop > fullMedianReflection]
+
+    #medianReflection = np.median(brighter)
+    #sdReflection = np.std(brighter)
+    #print('MEDIAN REFLECTION :: {}'.format(medianReflection))
+    #print('SD REFLECTION :: {}'.format(sdReflection))
+    #lowerBoundMask = np.any(reflectionCrop < (medianReflection - sdReflection), axis=2)
+    #reflectionMask = np.logical_or(lowerBoundMask, reflectionMask)
 
     inv_reflectionMask = np.logical_not(reflectionMask)
     im2, contours, hierarchy = cv2.findContours(inv_reflectionMask.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
