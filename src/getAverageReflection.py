@@ -152,80 +152,59 @@ def maskReflectionBB(eyes, wb):
 
     eyes = [colorTools.convert_sBGR_to_linearBGR_float_fast(eye) for eye in eyes]
     eyes = [colorTools.whitebalance_from_asShot_to_d65(eye, *wb) for eye in eyes]
-    greyEyes = [np.mean(eye, axis=2) for eye in eyes]
-    croppedGreyEyes = [img[int(0.25 * img.shape[0]):int(0.75 * img.shape[0]), int(0.33 * img.shape[1]):int(0.66 * img.shape[1])] for img in greyEyes]
+    #greyEyes = np.array([np.mean(eye, axis=2) for eye in eyes])
+    greyEyes = np.array([np.mean(eye[:, :, 0:2], axis=2) for eye in eyes])
 
-    stackedEyes = np.vstack(croppedGreyEyes)
+    eyeCropY1 = int(0.15 * greyEyes[0].shape[0])
+    eyeCropY2 = int(0.85 * greyEyes[0].shape[0])
 
-    cv2.imshow('eyes', stackedEyes)
+    eyeCropX1 = int(0.25 * greyEyes[0].shape[1])
+    eyeCropX2 = int(0.75 * greyEyes[0].shape[1])
 
-    #eyeDiffs = np.clip((greyEyes[1:] - greyEyes[:-1]) * 255 * 10, 0, 255).astype('uint8')
+    croppedGreyEyes = np.array([img[eyeCropY1:eyeCropY2, eyeCropX1:eyeCropX2] for img in greyEyes])
+
+    totalChange = np.sum(croppedGreyEyes[:-1] - croppedGreyEyes[1:], axis=0)
+    totalChange = totalChange / np.max(totalChange)
+    kernel = np.ones((9, 9), np.uint8)
+
+    totalChangeMask = totalChange > (np.median(totalChange) + np.std(totalChange))
+    totalChangeMaskEroded = cv2.erode(totalChangeMask.astype('uint8'), kernel, iterations=1)
+    totalChangeMaskOpened = cv2.dilate(totalChangeMaskEroded.astype('uint8'), kernel, iterations=1)
+
+    totalChangeMaskOpenedDilated = cv2.dilate(totalChangeMaskOpened.astype('uint8'), kernel, iterations=1)
+
     eyeLap = [cv2.Laplacian(stretchHistogram(img), cv2.CV_64F) for img in croppedGreyEyes]
-    #kernel = np.ones((5, 5), np.uint8)
-    #eyeLapFiltered = [cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel) for img in eyeLap]
-    #eyeLapFiltered = [cv2.dilate(img, kernel, iterations=1) for img in eyeLap]
+    eyeLap = eyeLap / np.max(eyeLap)
 
-    #greyEyesFFT = [np.fft.fft2(greyEye) for greyEye in greyEyes]
-    #greyEyesFFTShifted = [np.log(np.abs(np.fft.fftshift(greyEyeFFT))) for greyEyeFFT in greyEyesFFT]
-    #greyEyesFFTShiftedScaled = [(img / np.max(img)) * 255 for img in greyEyesFFTShifted]
+    totalChangeLap = cv2.Laplacian(totalChange, cv2.CV_64F)
+    totalChangeLap = totalChangeLap / np.max(totalChangeLap)
 
-    stackedEyeDiffs = np.vstack(eyeLap)
-    cv2.imshow('eyes Laplacian', stackedEyeDiffs * 10)
-    cv2.waitKey(0)
+    im2, contours, hierarchy = cv2.findContours(totalChangeMaskOpenedDilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    areas = [cv2.contourArea(c) for c in contours]
 
-    kernel = np.ones((3, 3), np.uint16)
-    #Relient on second darkest reflection being AT LEAST 2x brighter than darkest
-    secondDarkestImage, darkestImage = [cv2.morphologyEx(img, cv2.MORPH_CROSS, kernel) for img in greyEyes[-2:]]
-    externalReflections = np.clip((2 * darkestImage) - secondDarkestImage, 0, 10)
+    highScore = 0
+    eyeReflectionBB = None
+    for index, contour in enumerate(contours):
+        target = np.zeros(totalChangeMaskOpenedDilated.shape, dtype='uint8')
+        drawn =  cv2.drawContours(target, contours, index, 255, cv2.FILLED)
+        drawn = cv2.morphologyEx(drawn, cv2.MORPH_GRADIENT, kernel)
 
-    brightestClean = np.clip(greyEyes[0] - externalReflections, 0, 10)
-    brightestTopMask = maskTopValues(brightestClean)
+        borderPoints = totalChangeLap[drawn.astype('bool')]
 
-    #cv2.imshow('Clean Masked', np.hstack([greyEyes[0], (brightestTopMask * 255).astype('uint8')]))
-    #cv2.waitKey(0)
+        if len(borderPoints) > 10:
+            borderPointsMedian = np.median(np.sort(borderPoints)[-10:])
 
-    reflectionBB = getReflectionBB(brightestTopMask)
-    x, y, w, h = getReflectionBB(brightestTopMask)
+            if borderPointsMedian > highScore:
+                highScore = borderPointsMedian
+                eyeReflectionBB = list(cv2.boundingRect(contour))
 
-    print('REFLECTION BB :: ' + str(reflectionBB))
+    if eyeReflectionBB is None:
+        raise NameError('Could Not Find Reflection BB')
 
-    widthDiff = int(0.5 * w)
-    heightDiff = int(0.5 * h)
-
-    cropHeight, cropWidth = brightestTopMask.shape
-
-    new_x = x - widthDiff if x > widthDiff else 0
-    new_y = y - heightDiff if y > heightDiff else 0 
-    new_w = (x - new_x) + w + widthDiff
-    new_h = (y - new_y) + h + heightDiff
-
-    if new_x + new_w > cropWidth:
-        new_w = cropWidth - new_x
-
-    if new_y + new_h > cropHeight:
-        new_h = cropHeight - new_y
-
-    x, y, w, h = [new_x, new_y, new_w, new_h]
-
-    print('NEW REFLECTION BB :: [{} {} {} {}]'.format(x, y, w, h))
-
-    brightestCleanCrop = greyEyes[0][y:y + h, x:x + w]
-    #brightestCleanCrop = brightestClean[y:y + h, x:x + w]
-    maskedCropped = maskBottomValues(brightestCleanCrop)
-    print('Sizes :: {} | {}'.format(brightestCleanCrop.shape, maskedCropped.shape))
-    #cv2.imshow('Cropped Brightest Clean', np.vstack([brightestCleanCrop, (maskedCropped * 255).astype('uint8')]))
-    #cv2.waitKey(0)
-
-    reflectionBB = getReflectionBB(maskedCropped)
-    reflectionBB[0] += x
-    reflectionBB[1] += y
-
-    x, y, w ,h = reflectionBB
-    crops = [eye[y:y + h, x:x + w] for eye in eyes]
-    #cv2.imshow('eye Crops', np.hstack(crops))
-    #cv2.waitKey(0)
-
-    return reflectionBB
+    print('Eye Reflection BB :: ' + str(eyeReflectionBB))
+    eyeReflectionBB[0] += eyeCropX1
+    eyeReflectionBB[1] += eyeCropY1
+    return np.array(eyeReflectionBB)
 
 def cropToBB(image, bb):
     [x, y, w, h] = bb
@@ -271,34 +250,34 @@ def getAnnotatedEyeStrip2(leftReflectionBB, leftEyeCrop, rightReflectionBB, righ
 
     return eyeStrip
 
-def getAnnotatedEyeStrip(leftReflectionBB, leftOffsetCoords, rightReflectionBB, rightOffsetCoords, capture):
-    eyeStripBB = np.array(capture.landmarks.getEyeStripBB())
-
-    eyeWidthPoints = np.append(capture.landmarks.getLeftEyeWidthPoints(), capture.landmarks.getRightEyeWidthPoints(), axis=0)
-
-    eyeWidthPoints -= eyeStripBB[0:2]
-    leftOffsetCoords[0:2] -= eyeStripBB[0:2]
-    rightOffsetCoords[0:2] -= eyeStripBB[0:2]
-
-    leftReflectionP1 = leftOffsetCoords[0:2] + leftReflectionBB[0:2]
-    leftReflectionP2 = leftReflectionP1 + leftReflectionBB[2:4]
-    leftReflectionP1 = tuple(leftReflectionP1)
-    leftReflectionP2 = tuple(leftReflectionP2)
-
-    rightReflectionP1 = rightOffsetCoords[0:2] + rightReflectionBB[0:2]
-    rightReflectionP2 = rightReflectionP1 + rightReflectionBB[2:4]
-    rightReflectionP1 = tuple(rightReflectionP1)
-    rightReflectionP2 = tuple(rightReflectionP2)
-
-    eyeStrip = np.copy(cropToBB(capture.image, eyeStripBB))
-
-    for [x, y] in eyeWidthPoints:
-        cv2.circle(eyeStrip, (x, y), 5, (0, 255, 0), -1)
-
-    cv2.rectangle(eyeStrip, leftReflectionP1, leftReflectionP2, (0, 0, 255), 1)
-    cv2.rectangle(eyeStrip, rightReflectionP1, rightReflectionP2, (0, 0, 255), 1)
-
-    return eyeStrip
+#def getAnnotatedEyeStrip(leftReflectionBB, leftOffsetCoords, rightReflectionBB, rightOffsetCoords, capture):
+#    eyeStripBB = np.array(capture.landmarks.getEyeStripBB())
+#
+#    eyeWidthPoints = np.append(capture.landmarks.getLeftEyeWidthPoints(), capture.landmarks.getRightEyeWidthPoints(), axis=0)
+#
+#    eyeWidthPoints -= eyeStripBB[0:2]
+#    leftOffsetCoords[0:2] -= eyeStripBB[0:2]
+#    rightOffsetCoords[0:2] -= eyeStripBB[0:2]
+#
+#    leftReflectionP1 = leftOffsetCoords[0:2] + leftReflectionBB[0:2]
+#    leftReflectionP2 = leftReflectionP1 + leftReflectionBB[2:4]
+#    leftReflectionP1 = tuple(leftReflectionP1)
+#    leftReflectionP2 = tuple(leftReflectionP2)
+#
+#    rightReflectionP1 = rightOffsetCoords[0:2] + rightReflectionBB[0:2]
+#    rightReflectionP2 = rightReflectionP1 + rightReflectionBB[2:4]
+#    rightReflectionP1 = tuple(rightReflectionP1)
+#    rightReflectionP2 = tuple(rightReflectionP2)
+#
+#    eyeStrip = np.copy(cropToBB(capture.image, eyeStripBB))
+#
+#    for [x, y] in eyeWidthPoints:
+#        cv2.circle(eyeStrip, (x, y), 5, (0, 255, 0), -1)
+#
+#    cv2.rectangle(eyeStrip, leftReflectionP1, leftReflectionP2, (0, 0, 255), 1)
+#    cv2.rectangle(eyeStrip, rightReflectionP1, rightReflectionP2, (0, 0, 255), 1)
+#
+#    return eyeStrip
 
 #Note: both parent and child offsets should originally be measured to the same origin
 def calculateRelativeOffset(parentOffset, childOffset):
@@ -328,12 +307,22 @@ def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
     if cleanPixelRatio < 0.8:
         raise NameError('Not enough clean non-clipped pixels in eye reflections')
 
-    medianReflection = np.median(reflectionCrop, axis=(0,1))
-    sdReflection = np.std(reflectionCrop, axis=(0,1))
+    fullMedianReflection = np.median(reflectionCrop, axis=(0,1))
+
+    brighter = reflectionCrop[reflectionCrop > fullMedianReflection]
+
+    medianReflection = np.median(brighter)
+    sdReflection = np.std(brighter)
     print('MEDIAN REFLECTION :: {}'.format(medianReflection))
     print('SD REFLECTION :: {}'.format(sdReflection))
     lowerBoundMask = np.any(reflectionCrop < (medianReflection - sdReflection), axis=2)
     reflectionMask = np.logical_or(lowerBoundMask, reflectionMask)
+
+    inv_reflectionMask = np.logical_not(reflectionMask)
+    im2, contours, hierarchy = cv2.findContours(inv_reflectionMask.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    boundingRectangle = np.array(list(cv2.boundingRect(contours[0])))
+    boundingRectangle[0] += reflectionBB[0]
+    boundingRectangle[1] += reflectionBB[1]
 
     #cv2.imshow('Crop', reflectionCrop)
     #cv2.imshow('Mask', np.stack([reflectionMask.astype('uint8'), reflectionMask.astype('uint8'), reflectionMask.astype('uint8')], axis=2) * 255)
@@ -355,7 +344,7 @@ def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
 
     #if cleanPixelRatio < 0.8:
 
-    return [representativeReflectionPoint, cleanPixelRatio, stacked]
+    return [representativeReflectionPoint, cleanPixelRatio, stacked, boundingRectangle]
 
 def getEyeWidth(capture):
     [leftP1, leftP2] = capture.landmarks.getLeftEyeWidthPoints()
@@ -366,115 +355,115 @@ def getEyeWidth(capture):
 
     return (leftEyeWidth + rightEyeWidth) / 2
 
-def getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, saveStep):
-    wb = captures[0].getAsShotWhiteBalance()
-    isSpecialCase = [capture.isNoFlash for capture in captures]
-
-    leftEyeCoords = np.array([getLeftEyeCoords(capture) for capture in captures])
-    minLeftWidth = np.min(leftEyeCoords[:, 2])
-    minLeftHeight = np.min(leftEyeCoords[:, 3])
-    leftEyeCoords = np.array([[x, y, minLeftWidth, minLeftHeight] for x, y, w, h, in leftEyeCoords])
-
-    leftEyeCrops = [getCrop(capture, coords) for capture, coords in zip(captures, leftEyeCoords)]
-    leftEyeMasks = [getMask(capture, coords) for capture, coords in zip(captures, leftEyeCoords)]
-
-    leftEyeCrops, leftOffsets = cropTools.cropImagesToOffsets(leftEyeCrops, leftEyeOffsets)
-    leftEyeMasks, offsets = cropTools.cropImagesToOffsets(leftEyeMasks, leftEyeOffsets)
-
-    rightEyeCoords = np.array([getRightEyeCoords(capture) for capture in captures])
-    minRightWidth = np.min(rightEyeCoords[:, 2])
-    minRightHeight = np.min(rightEyeCoords[:, 3])
-    rightEyeCoords = np.array([[x, y, minRightWidth, minRightHeight] for x, y, w, h, in rightEyeCoords])
-
-    rightEyeCrops = [getCrop(capture, coords) for capture, coords in zip(captures, rightEyeCoords)]
-    rightEyeMasks = [getMask(capture, coords) for capture, coords in zip(captures, rightEyeCoords)]
-
-    rightEyeCrops, rightOffsets = cropTools.cropImagesToOffsets(rightEyeCrops, rightEyeOffsets)
-    rightEyeMasks, offsets = cropTools.cropImagesToOffsets(rightEyeMasks, rightEyeOffsets)
-
-    leftReflectionBB = maskReflectionBB(leftEyeCrops, wb)
-    rightReflectionBB = maskReflectionBB(rightEyeCrops, wb)
-
-    leftEyeCoords[:, 0:2] += leftOffsets
-    rightEyeCoords[:, 0:2] += rightOffsets
-
-    annotatedEyeStrips = [getAnnotatedEyeStrip(leftReflectionBB, leftEyeCoord, rightReflectionBB, rightEyeCoord, capture) for leftEyeCoord, rightEyeCoord, capture in zip(leftEyeCoords, rightEyeCoords, captures)]
-
-    minWidth = min([annotatedEyeStrip.shape[1] for annotatedEyeStrip in annotatedEyeStrips])
-    minHeight = min([annotatedEyeStrip.shape[0] for annotatedEyeStrip in annotatedEyeStrips])
-
-    annotatedEyeStrips = [annotatedEyeStrip[0:minHeight, 0:minWidth] for annotatedEyeStrip in annotatedEyeStrips]
-
-    stackedAnnotatedEyeStrips = np.vstack(annotatedEyeStrips)
-    saveStep.saveReferenceImageBGR(stackedAnnotatedEyeStrips, 'eyeStrips')
-
-    #RESULTS ARE LINEAR
-    leftReflectionStats = np.array([extractReflectionPoints(leftReflectionBB, eyeCrop, eyeMask, ignoreMask) for eyeCrop, eyeMask, ignoreMask in zip(leftEyeCrops, leftEyeMasks, isSpecialCase)])
-    rightReflectionStats = np.array([extractReflectionPoints(rightReflectionBB, eyeCrop, eyeMask, ignoreMask) for eyeCrop, eyeMask, ignoreMask in zip(rightEyeCrops, rightEyeMasks, isSpecialCase)])
-
-    leftReflectionImages = np.hstack(leftReflectionStats[:, 2])
-    rightReflectionImages = np.hstack(rightReflectionStats[:, 2])
-    saveStep.saveReferenceImageSBGR(leftReflectionImages, 'Left Reflections')
-    saveStep.saveReferenceImageSBGR(rightReflectionImages, 'Right Reflections')
-    #cv2.imshow('LEFT REFLECTIONS', leftReflectionImages)
-    #cv2.imshow('RIGHT REFLECTIONS', rightReflectionImages)
-    #cv2.waitKey(0)
-
-    averageReflections = (leftReflectionStats[:, 0] + rightReflectionStats[:, 0]) / 2
-
-    averageReflections = [(averageReflection if np.all(averageReflection.astype('bool')) else (averageReflection + np.array([1, 1, 1]))) for averageReflection in averageReflections]
-
-    print('AVERAGE NO, HALF, FULL REFLECTION :: {}'.format(averageReflections))
-
-    #Whitebalance per flash and eye to get luminance levels... Maybe compare the average reflection values?
-    #wbLeftReflections = np.vstack([colorTools.whitebalanceBGRPoints(leftReflection, averageReflection) for leftReflection, averageReflection in zip(leftReflectionStats[:, 0], averageReflections)])
-    print('Left Reflections :: ' + str(leftReflectionStats[:, 0]))
-    wbLeftReflections = np.vstack(leftReflectionStats[:, 0])
-    #wbRightReflections = np.vstack([colorTools.whitebalanceBGRPoints(rightReflection, averageReflection) for rightReflection, averageReflection in zip(rightReflectionStats[:, 0], averageReflections)])
-    print('Right Reflections :: ' + str(rightReflectionStats[:, 0]))
-    wbRightReflections = np.vstack(rightReflectionStats[:, 0])
-
-    #GET Luminance in reflection per flash and eye
-    leftReflectionLuminances = [colorTools.getRelativeLuminance([leftReflection])[0] for leftReflection in wbLeftReflections]
-    rightReflectionLuminances = [colorTools.getRelativeLuminance([rightReflection])[0] for rightReflection in wbRightReflections]
-
-    eyeWidth = getEyeWidth(captures[0])
-
-    if eyeWidth == 0:
-        raise NameError('Zero value Eye Width')
-
-    leftReflectionWidth, leftReflectionHeight = leftReflectionBB[2:4] / eyeWidth
-    rightReflectionWidth, rightReflectionHeight = rightReflectionBB[2:4] / eyeWidth
-
-    leftReflectionArea = leftReflectionWidth * leftReflectionHeight
-    rightReflectionArea = rightReflectionWidth * rightReflectionHeight
-
-    averageReflectionArea = (leftReflectionArea + rightReflectionArea) / 2
-
-    if min(leftReflectionWidth, rightReflectionWidth) == 0:
-        raise NameError('Zero value reflection Width')
-
-    if min(leftReflectionHeight, rightReflectionHeight) == 0:
-        raise NameError('Zero value reflection Height')
-
-    reflectionWidthRatio = max(leftReflectionWidth, rightReflectionWidth) / min(leftReflectionWidth, rightReflectionWidth)
-    reflectionHeightRatio = max(leftReflectionHeight, rightReflectionHeight) / min(leftReflectionHeight, rightReflectionHeight)
-
-    if (reflectionWidthRatio > 1.5) or (reflectionHeightRatio > 1.25):
-        raise NameError('Reflection Sizes are too different!')
-
-    middleIndex = math.floor(len(captures) / 2)
-
-    leftHalfReflectionLuminance = leftReflectionLuminances[middleIndex] * 2 #2x because we are using half
-    rightHalfReflectionLuminance = rightReflectionLuminances[middleIndex] * 2 #2x because we are using half
-
-    leftFluxish = leftReflectionArea * leftHalfReflectionLuminance
-    rightFluxish = rightReflectionArea * rightHalfReflectionLuminance
-
-    print('LEFT FLUXISH :: {} | AREA ::  {} | LUMINOSITY :: {}'.format(leftFluxish, leftReflectionArea, leftHalfReflectionLuminance))
-    print('RIGHT FLUXISH :: {} | AREA ::  {} | LUMINOSITY :: {}'.format(rightFluxish, rightReflectionArea, rightHalfReflectionLuminance))
-
-    return [averageReflections[middleIndex], averageReflectionArea, wbLeftReflections, wbRightReflections]
+#def getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, saveStep):
+#    wb = captures[0].getAsShotWhiteBalance()
+#    isSpecialCase = [capture.isNoFlash for capture in captures]
+#
+#    leftEyeCoords = np.array([getLeftEyeCoords(capture) for capture in captures])
+#    minLeftWidth = np.min(leftEyeCoords[:, 2])
+#    minLeftHeight = np.min(leftEyeCoords[:, 3])
+#    leftEyeCoords = np.array([[x, y, minLeftWidth, minLeftHeight] for x, y, w, h, in leftEyeCoords])
+#
+#    leftEyeCrops = [getCrop(capture, coords) for capture, coords in zip(captures, leftEyeCoords)]
+#    leftEyeMasks = [getMask(capture, coords) for capture, coords in zip(captures, leftEyeCoords)]
+#
+#    leftEyeCrops, leftOffsets = cropTools.cropImagesToOffsets(leftEyeCrops, leftEyeOffsets)
+#    leftEyeMasks, offsets = cropTools.cropImagesToOffsets(leftEyeMasks, leftEyeOffsets)
+#
+#    rightEyeCoords = np.array([getRightEyeCoords(capture) for capture in captures])
+#    minRightWidth = np.min(rightEyeCoords[:, 2])
+#    minRightHeight = np.min(rightEyeCoords[:, 3])
+#    rightEyeCoords = np.array([[x, y, minRightWidth, minRightHeight] for x, y, w, h, in rightEyeCoords])
+#
+#    rightEyeCrops = [getCrop(capture, coords) for capture, coords in zip(captures, rightEyeCoords)]
+#    rightEyeMasks = [getMask(capture, coords) for capture, coords in zip(captures, rightEyeCoords)]
+#
+#    rightEyeCrops, rightOffsets = cropTools.cropImagesToOffsets(rightEyeCrops, rightEyeOffsets)
+#    rightEyeMasks, offsets = cropTools.cropImagesToOffsets(rightEyeMasks, rightEyeOffsets)
+#
+#    leftReflectionBB = maskReflectionBB(leftEyeCrops, wb)
+#    rightReflectionBB = maskReflectionBB(rightEyeCrops, wb)
+#
+#    leftEyeCoords[:, 0:2] += leftOffsets
+#    rightEyeCoords[:, 0:2] += rightOffsets
+#
+#    annotatedEyeStrips = [getAnnotatedEyeStrip(leftReflectionBB, leftEyeCoord, rightReflectionBB, rightEyeCoord, capture) for leftEyeCoord, rightEyeCoord, capture in zip(leftEyeCoords, rightEyeCoords, captures)]
+#
+#    minWidth = min([annotatedEyeStrip.shape[1] for annotatedEyeStrip in annotatedEyeStrips])
+#    minHeight = min([annotatedEyeStrip.shape[0] for annotatedEyeStrip in annotatedEyeStrips])
+#
+#    annotatedEyeStrips = [annotatedEyeStrip[0:minHeight, 0:minWidth] for annotatedEyeStrip in annotatedEyeStrips]
+#
+#    stackedAnnotatedEyeStrips = np.vstack(annotatedEyeStrips)
+#    saveStep.saveReferenceImageBGR(stackedAnnotatedEyeStrips, 'eyeStrips')
+#
+#    #RESULTS ARE LINEAR
+#    leftReflectionStats = np.array([extractReflectionPoints(leftReflectionBB, eyeCrop, eyeMask, ignoreMask) for eyeCrop, eyeMask, ignoreMask in zip(leftEyeCrops, leftEyeMasks, isSpecialCase)])
+#    rightReflectionStats = np.array([extractReflectionPoints(rightReflectionBB, eyeCrop, eyeMask, ignoreMask) for eyeCrop, eyeMask, ignoreMask in zip(rightEyeCrops, rightEyeMasks, isSpecialCase)])
+#
+#    leftReflectionImages = np.hstack(leftReflectionStats[:, 2])
+#    rightReflectionImages = np.hstack(rightReflectionStats[:, 2])
+#    saveStep.saveReferenceImageSBGR(leftReflectionImages, 'Left Reflections')
+#    saveStep.saveReferenceImageSBGR(rightReflectionImages, 'Right Reflections')
+#    #cv2.imshow('LEFT REFLECTIONS', leftReflectionImages)
+#    #cv2.imshow('RIGHT REFLECTIONS', rightReflectionImages)
+#    #cv2.waitKey(0)
+#
+#    averageReflections = (leftReflectionStats[:, 0] + rightReflectionStats[:, 0]) / 2
+#
+#    averageReflections = [(averageReflection if np.all(averageReflection.astype('bool')) else (averageReflection + np.array([1, 1, 1]))) for averageReflection in averageReflections]
+#
+#    print('AVERAGE NO, HALF, FULL REFLECTION :: {}'.format(averageReflections))
+#
+#    #Whitebalance per flash and eye to get luminance levels... Maybe compare the average reflection values?
+#    #wbLeftReflections = np.vstack([colorTools.whitebalanceBGRPoints(leftReflection, averageReflection) for leftReflection, averageReflection in zip(leftReflectionStats[:, 0], averageReflections)])
+#    print('Left Reflections :: ' + str(leftReflectionStats[:, 0]))
+#    wbLeftReflections = np.vstack(leftReflectionStats[:, 0])
+#    #wbRightReflections = np.vstack([colorTools.whitebalanceBGRPoints(rightReflection, averageReflection) for rightReflection, averageReflection in zip(rightReflectionStats[:, 0], averageReflections)])
+#    print('Right Reflections :: ' + str(rightReflectionStats[:, 0]))
+#    wbRightReflections = np.vstack(rightReflectionStats[:, 0])
+#
+#    #GET Luminance in reflection per flash and eye
+#    leftReflectionLuminances = [colorTools.getRelativeLuminance([leftReflection])[0] for leftReflection in wbLeftReflections]
+#    rightReflectionLuminances = [colorTools.getRelativeLuminance([rightReflection])[0] for rightReflection in wbRightReflections]
+#
+#    eyeWidth = getEyeWidth(captures[0])
+#
+#    if eyeWidth == 0:
+#        raise NameError('Zero value Eye Width')
+#
+#    leftReflectionWidth, leftReflectionHeight = leftReflectionBB[2:4] / eyeWidth
+#    rightReflectionWidth, rightReflectionHeight = rightReflectionBB[2:4] / eyeWidth
+#
+#    leftReflectionArea = leftReflectionWidth * leftReflectionHeight
+#    rightReflectionArea = rightReflectionWidth * rightReflectionHeight
+#
+#    averageReflectionArea = (leftReflectionArea + rightReflectionArea) / 2
+#
+#    if min(leftReflectionWidth, rightReflectionWidth) == 0:
+#        raise NameError('Zero value reflection Width')
+#
+#    if min(leftReflectionHeight, rightReflectionHeight) == 0:
+#        raise NameError('Zero value reflection Height')
+#
+#    reflectionWidthRatio = max(leftReflectionWidth, rightReflectionWidth) / min(leftReflectionWidth, rightReflectionWidth)
+#    reflectionHeightRatio = max(leftReflectionHeight, rightReflectionHeight) / min(leftReflectionHeight, rightReflectionHeight)
+#
+#    if (reflectionWidthRatio > 1.5) or (reflectionHeightRatio > 1.25):
+#        raise NameError('Reflection Sizes are too different!')
+#
+#    middleIndex = math.floor(len(captures) / 2)
+#
+#    leftHalfReflectionLuminance = leftReflectionLuminances[middleIndex] * 2 #2x because we are using half
+#    rightHalfReflectionLuminance = rightReflectionLuminances[middleIndex] * 2 #2x because we are using half
+#
+#    leftFluxish = leftReflectionArea * leftHalfReflectionLuminance
+#    rightFluxish = rightReflectionArea * rightHalfReflectionLuminance
+#
+#    print('LEFT FLUXISH :: {} | AREA ::  {} | LUMINOSITY :: {}'.format(leftFluxish, leftReflectionArea, leftHalfReflectionLuminance))
+#    print('RIGHT FLUXISH :: {} | AREA ::  {} | LUMINOSITY :: {}'.format(rightFluxish, rightReflectionArea, rightHalfReflectionLuminance))
+#
+#    return [averageReflections[middleIndex], averageReflectionArea, wbLeftReflections, wbRightReflections]
 
 def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, saveStep):
     wb = captures[0].getAsShotWhiteBalance()
@@ -505,14 +494,21 @@ def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, 
     #leftEyeCoords[:, 0:2] += leftOffsets
     #rightEyeCoords[:, 0:2] += rightOffsets
 
-    annotatedEyeStrips = [getAnnotatedEyeStrip2(leftReflectionBB, leftEyeCrop, rightReflectionBB, rightEyeCrop) for leftEyeCrop, rightEyeCrop in zip(leftEyeCrops, rightEyeCrops)]
-
-    stackedAnnotatedEyeStrips = np.vstack(annotatedEyeStrips)
-    saveStep.saveReferenceImageBGR(stackedAnnotatedEyeStrips, 'eyeStrips')
 
     #RESULTS ARE LINEAR
     leftReflectionStats = np.array([extractReflectionPoints(leftReflectionBB, eyeCrop, eyeMask, ignoreMask) for eyeCrop, eyeMask, ignoreMask in zip(leftEyeCrops, leftEyeMasks, isSpecialCase)])
     rightReflectionStats = np.array([extractReflectionPoints(rightReflectionBB, eyeCrop, eyeMask, ignoreMask) for eyeCrop, eyeMask, ignoreMask in zip(rightEyeCrops, rightEyeMasks, isSpecialCase)])
+
+    refinedLeftReflectionBBs = leftReflectionStats[:, 3]
+    refinedRightReflectionBBs = rightReflectionStats[:, 3]
+
+    annotatedEyeStrips = [getAnnotatedEyeStrip2(leftReflectionBBrefined, leftEyeCrop, rightReflectionBBrefined, rightEyeCrop) for leftEyeCrop, rightEyeCrop, leftReflectionBBrefined, rightReflectionBBrefined in zip(leftEyeCrops, rightEyeCrops, refinedLeftReflectionBBs, refinedRightReflectionBBs)]
+
+    stackedAnnotatedEyeStrips = np.vstack(annotatedEyeStrips)
+    saveStep.saveReferenceImageBGR(stackedAnnotatedEyeStrips, 'eyeStrips')
+
+
+
 
     leftReflectionImages = np.hstack(leftReflectionStats[:, 2])
     rightReflectionImages = np.hstack(rightReflectionStats[:, 2])
