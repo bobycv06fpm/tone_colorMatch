@@ -320,7 +320,11 @@ def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
 
     inv_reflectionMask = np.logical_not(reflectionMask)
     im2, contours, hierarchy = cv2.findContours(inv_reflectionMask.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    boundingRectangle = np.array(list(cv2.boundingRect(contours[0])))
+    
+    areas = [cv2.contourArea(c) for c in contours]
+    max_index = np.argmax(areas)
+
+    boundingRectangle = np.array(list(cv2.boundingRect(contours[max_index])))
     boundingRectangle[0] += reflectionBB[0]
     boundingRectangle[1] += reflectionBB[1]
 
