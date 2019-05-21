@@ -11,13 +11,14 @@ import json
 
 root = '../../'
 path = root + 'images/'
-user = 'doug'
+#user = 'doug'
+user = 'halyna'
 userPath = path + user
 hsvCount_path = 'steps/4.csv'
 imageStat_path = 'reference/imageStats.csv'
 
-minDirectory = 196
-#minDirectory = 240
+#minDirectory = 196
+minDirectory = 0
 
 #userDirectories = [(os.path.join(userPath, o), o) for o in os.listdir(userPath) if os.path.isdir(os.path.join(userPath, o))]
 userDirectories = [o for o in os.listdir(userPath) if os.path.isdir(os.path.join(userPath, o)) if o.startswith(user)]

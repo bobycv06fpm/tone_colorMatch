@@ -35,8 +35,8 @@ def plotHist(values, bins=20):
 def sortOnValue(point):
     [name, hsv, hsv_scaled, bgr, bgr_scaled, fluxish] = point
     #return bestGuesses[1]
-    #return fluxish
-    return hsv[2]
+    return fluxish
+    #return hsv[2]
 
 #EXPECTS RED TO BE LARGEST VALUE
 def convertRatiosToHueSatValue(bgrRatios):

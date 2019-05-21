@@ -473,6 +473,11 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
 def isMetadataValid(metadata):
     expectedISO = metadata[0]["iso"]
     expectedExposure = metadata[0]["exposureTime"]
+
+    if not 'faceImageTransforms' in metadata[0]:
+        print('No Face Image Transforms')
+        return False
+
     expectedWB = metadata[0]["whiteBalance"]
 
     for captureMetadata in metadata:

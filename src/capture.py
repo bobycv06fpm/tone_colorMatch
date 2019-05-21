@@ -16,6 +16,7 @@ class Capture:
         #self.image = image.astype('int32')
         #colorTools.whitebalance_from_asShot_to_d65(image.astype('uint16'), metadata['whiteBalance']['x'], metadata['whiteBalance']['y'])
         self.isGammaSBGR = True#metadata['faceImageTransforms']["isGammaSBGR"]
+
         self.scaleRatio = metadata['faceImageTransforms']["scaleRatio"] if "scaleRatio" in metadata['faceImageTransforms'] else 1
         print("Scale Ratio :: {}".format(self.scaleRatio))
         #self.image = image
