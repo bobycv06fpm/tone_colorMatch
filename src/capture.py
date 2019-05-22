@@ -17,6 +17,18 @@ class Capture:
         #colorTools.whitebalance_from_asShot_to_d65(image.astype('uint16'), metadata['whiteBalance']['x'], metadata['whiteBalance']['y'])
         self.isGammaSBGR = True#metadata['faceImageTransforms']["isGammaSBGR"]
 
+        #if "exposurePoint" in metadata:
+        #    exposurePoint = metadata["exposurePoint"]
+        #    print('Image Size :: ' + str(image[0].shape))
+        #    exposurePoint *= np.array([image[0].shape[1], image[0].shape[0]])
+        #    exposurePoint = exposurePoint.astype('int32')
+        #    print("Exposure Point :: {}".format(exposurePoint))
+
+        #    copy = np.copy(image[0])
+        #    cv2.circle(copy, (int(exposurePoint[0]), int(exposurePoint[1])), 5, (0, 0, 255), -1)
+        #    cv2.imshow('exposure point', copy)
+        #    cv2.waitKey(0)
+
         self.scaleRatio = metadata['faceImageTransforms']["scaleRatio"] if "scaleRatio" in metadata['faceImageTransforms'] else 1
         print("Scale Ratio :: {}".format(self.scaleRatio))
         #self.image = image
