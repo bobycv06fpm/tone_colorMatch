@@ -9,10 +9,15 @@ import re
 import multiprocessing as mp
 import json
 
+ap = argparse.ArgumentParser()
+ap.add_argument("-u", "--user", required=True, default="false", help="The Users user name...")
+args = vars(ap.parse_args())
+user = args["user"]
+
 root = '../../'
 path = root + 'images/'
 #user = 'doug'
-user = 'halyna'
+#user = 'halyna'
 userPath = path + user
 hsvCount_path = 'steps/4.csv'
 imageStat_path = 'reference/imageStats.csv'
@@ -41,6 +46,7 @@ print('filted user directories :: ' + str(filteredUserDirectories))
 
 allImageArgs = [(user, imageName) for imageName in filteredUserDirectories]
 
+outputFile = 'faceColors-{}.json'.format(user)
 errors = []
 with mp.Pool() as pool:
     faceColors = pool.starmap_async(runSteps.run, allImageArgs)
@@ -52,7 +58,7 @@ with mp.Pool() as pool:
     else:
         faceColorsJson = json.dumps(results)
         
-        with open('faceColors.json', 'w') as f:
+        with open(outputFile, 'w') as f:
             f.write(faceColorsJson)
         
-        os.chmod('faceColors.json', 0o777)
+        os.chmod(outputFile, 0o777)

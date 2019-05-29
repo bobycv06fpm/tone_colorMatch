@@ -284,7 +284,19 @@ def calculateRelativeOffset(parentOffset, childOffset):
     return childOffset[0:2] - parentOffset[0:2]
 
 def calculateRepresentativeReflectionPoint(reflectionPoints):
-    return np.median(reflectionPoints, axis=0) # Maybe change to only take median of top 10% of brightnesses?
+    #return np.median(reflectionPoints, axis=0) # Maybe change to only take median of top 10% of brightnesses?
+    old = np.median(reflectionPoints, axis=0) # Maybe change to only take median of top 10% of brightnesses?
+    numPoints = reflectionPoints.shape[0]
+
+    oneTenth = int(numPoints / 10) * -1
+
+    topMedianBlue = np.median(np.array(sorted(reflectionPoints[:, 0]))[oneTenth:])
+    topMedianGreen = np.median(np.array(sorted(reflectionPoints[:, 1]))[oneTenth:])
+    topMedianRed = np.median(np.array(sorted(reflectionPoints[:, 2]))[oneTenth:])
+
+    newRepValue = [topMedianBlue, topMedianGreen, topMedianRed]
+    print('Old :: {} | New :: {}'.format(old, newRepValue))
+    return np.array(newRepValue)
 
 def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
 
@@ -292,19 +304,27 @@ def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
 
     reflectionCrop = eyeCrop[y:y+h, x:x+w]
     reflectionCrop = colorTools.convert_sBGR_to_linearBGR_float_fast(reflectionCrop)
-    reflectionMask = eyeMask[y:y+h, x:x+w]
+    #reflectionMask = eyeMask[y:y+h, x:x+w]
 
-    reflectionMask.fill(False)
+    #reflectionMask = reflectionMask == 1.0#.fill(False)
 
-    if (reflectionMask.shape[0] == 0) or (reflectionMask.shape[1] == 0):
+    #Add together each subpixel mask for each pixel. if the value is greater than 0, one of the subpixels was clipping
+    #Just mask = isClipping(Red) or isClipping(Green) or isClipping(Blue)
+    clippingMask = np.sum(reflectionCrop == 1.0, axis=2) > 0
+
+    #reflectionCrop == 1.0
+    #print('reflection Crop :: ' + str(reflectionCrop))
+
+
+    if (reflectionCrop.shape[0] == 0) or (reflectionCrop.shape[1] == 0):
         raise NameError('Zero width eye reflection')
 
-    cleanPixels = np.sum(np.logical_not(reflectionMask).astype('uint8'))
-    cleanPixelRatio = cleanPixels / (reflectionMask.shape[0] * reflectionMask.shape[1])
+    cleanPixels = np.sum(np.logical_not(clippingMask).astype('uint8'))
+    cleanPixelRatio = cleanPixels / (clippingMask.shape[0] * clippingMask.shape[1])
 
     print('CLEAN PIXEL RATIO :: ' + str(cleanPixelRatio))
 
-    if cleanPixelRatio < 0.8:
+    if cleanPixelRatio < 0.95:
         raise NameError('Not enough clean non-clipped pixels in eye reflections')
 
     #greyValues = np.sum(reflectionCrop, axis=2).flatten()

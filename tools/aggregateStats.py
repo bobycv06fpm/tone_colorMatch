@@ -8,6 +8,12 @@ from mpl_toolkits.mplot3d import Axes3D
 from copy import deepcopy
 import colorTools
 import math
+import argparse
+
+ap = argparse.ArgumentParser()
+ap.add_argument("-u", "--user", required=True, default="false", help="The Users user name...")
+args = vars(ap.parse_args())
+user = args["user"]
 
 #Point to String
 def pts(point):
@@ -33,15 +39,18 @@ def plotHist(values, bins=20):
     plt.show()
 
 def sortOnValue(point):
-    [name, hsv, hsv_scaled, bgr, bgr_scaled, fluxish] = point
+    [name, bgr_noWB, bgr, bgr_scaled, hsv, hsv_scaled, fluxish] = point
     #return bestGuesses[1]
-    return fluxish
-    #return hsv[2]
+    #return fluxish
+    return hsv[2]
+    #return hsv_scaled[2]
+    #return fluxish
+    #return hsv_scaled[1]
 
 #EXPECTS RED TO BE LARGEST VALUE
 def convertRatiosToHueSatValue(bgrRatios):
     bgrRatios = np.array(bgrRatios)
-    print('BGR RATIOS :: ' + str(bgrRatios))
+    #print('BGR RATIOS :: ' + str(bgrRatios))
     v = max(bgrRatios)
 
     bgrRatios = bgrRatios / max(bgrRatios)
@@ -59,7 +68,7 @@ def convertRatiosToHueSatValue(bgrRatios):
     return [h, s, v]
 
 
-with open('faceColors.json', 'r') as f:
+with open('faceColors-{}.json'.format(user), 'r') as f:
     facesData = f.read()
     facesData = json.loads(facesData)
 
@@ -88,6 +97,7 @@ else:
     wbHSV = []
 
     #medianBGRs = []
+    linearFitBGRNoWB = []
     linearFitBGRs = []
     #medianHSVs = []
     linearFitHSVs = []
@@ -105,14 +115,14 @@ else:
         rightReflection = np.array(linearFit['reflections']['right'])
         averageReflection = (leftReflection + rightReflection) / 2
 
-        print('----------')
-        print('BEST GUESS :: ' + str(bestGuess))
-        print('LINEAR FIT :: ' + str(linearFit))
-        print('AVERAGE REFLECTION BGR :: ' + str(averageReflection))
+        #print('----------')
+        #print('BEST GUESS :: ' + str(bestGuess))
+        #print('LINEAR FIT :: ' + str(linearFit))
+        #print('AVERAGE REFLECTION BGR :: ' + str(averageReflection))
         #bestGuessReflection, bestGuessFace = bestGuess
         #bestGuessReflectionHSV = convertRatiosToHueSatValue(bestGuessReflection)
         averageReflectionHSV = convertRatiosToHueSatValue(averageReflection)
-        print('AVERAGE REFLECTION HSV :: ' + str(averageReflectionHSV))
+        #print('AVERAGE REFLECTION HSV :: ' + str(averageReflectionHSV))
 
         #print('Best Guess vs Average [Hue, Sat] :: {} vs {}'.format(bestGuessReflectionHSV, averageReflectionHSV))
 
@@ -122,6 +132,9 @@ else:
         rightPoint = np.array(linearFit['regions']['right'])
         chinPoint = np.array(linearFit['regions']['chin'])
         foreheadPoint = np.array(linearFit['regions']['forehead'])
+
+        linearFitNoWB_BGR = np.mean(np.array([leftPoint, rightPoint, chinPoint, foreheadPoint]), axis=0)
+        linearFitBGRNoWB.append(linearFitNoWB_BGR)
 
         #leftPointWB = leftPoint
         #rightPointWB = rightPoint
@@ -180,13 +193,13 @@ else:
 #        #print('{}'.format(name))
 #        #print('\tBGR -> Median :: {} || Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(pts(medianBGR), pts(leftPointWB), pts(rightPointWB), pts(chinPointWB), pts(foreheadPointWB)))
 #        #print('\tHSV -> Median :: {} || Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(pts(medianHSV), pts(leftPointHSV), pts(rightPointHSV), pts(chinPointHSV), pts(foreheadPointHSV)))
-        printPoints.append([name, linearFitWB_HSV, linearFitWBScaled_HSV, linearFitWB_BGR, linearFitWBScaled_BGR, fluxish])
+        printPoints.append([name, linearFitNoWB_BGR, linearFitWB_BGR, linearFitWBScaled_BGR, linearFitWB_HSV, linearFitWBScaled_HSV, fluxish])
         #print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
 
     printPoints.sort(key=sortOnValue)
     #print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
     for index, printPoint in enumerate(printPoints):
-        print('{}\t{} - (Set Median) (Linear Fits) -> HSV :: {} | HSV Scaled :: {} | BGR :: {} | BGR Scaled :: {} | Fluxish :: {}'.format(index, *printPoint))
+        print('({}) {} - \n\tBGR No WB\t:: {} \n\tBGR\t\t:: {} \n\tBGR Scaled\t:: {} \n\tHSV\t\t:: {} \n\tHSV Scaled\t:: {} \n\tFluxish\t\t:: {}'.format(index, *printPoint))
 
     #wbBGR = np.array(wbBGR)
     #wbHSV = np.array(wbHSV)
@@ -210,10 +223,35 @@ else:
     #valueVsFluxish = np.stack([linearFitHSVs[:, 2], fluxishes], axis=1)
     fluxishVsValue = np.stack([fluxishes, linearFitHSVs[:, 2]], axis=1)
     #print('Values vs Fluxishes :: ' + str(valueVsFluxish))
-    print('Fluxishes vs Values :: ' + str(fluxishVsValue))
+    #print('Fluxishes vs Values :: ' + str(fluxishVsValue))
+    print('\n---------------\n')
+    statsTemplate = '\tMedian\t:: {}\n\tStd\t:: {}'
+    print('Scatter Plot - Fluxish vs Value')
     plot2d(fluxishVsValue, 'Fluxish', 'Value')
-    print('Linear Fit HSV Scaled :: ' + str(linearFitHSVScaled))
+    #print('Linear Fit HSV Scaled :: ' + str(linearFitHSVScaled))
+
+    print('Histogram - Unscaled Values')
+    unscaledMedian = np.median(linearFitHSVs[:, 2])
+    unscaledSD = np.std(linearFitHSVs[:, 2])
+    print(statsTemplate.format(unscaledMedian, unscaledSD))
     plotHist(linearFitHSVs[:, 2]) #Pretty sure the target for this is a distribution with a range of ~0.1? Would pretty accuately place it in the spectrum?
+
+    print('Histogram - Scaled Values')
+    scaledMedian = np.median(linearFitHSVScaled[:, 2])
+    scaledSD = np.std(linearFitHSVScaled[:, 2])
+    print(statsTemplate.format(scaledMedian, scaledSD))
     plotHist(linearFitHSVScaled[:, 2]) #Pretty sure the target for this is a distribution with a range of ~0.1? Would pretty accuately place it in the spectrum?
+
+    print('Histogram - Fluxish Values')
+    fluxishesMedian = np.median(fluxishes)
+    fluxishesSD = np.std(fluxishes)
+    print(statsTemplate.format(fluxishesMedian, fluxishesSD))
+    plotHist(fluxishes) #Pretty sure the target for this is a distribution with a range of ~0.1? Would pretty accuately place it in the spectrum?
+
+    print('Histogram - Scaled Saturation Values')
+    scaledMedian = np.median(linearFitHSVScaled[:, 1])
+    scaledSD = np.std(linearFitHSVScaled[:, 1])
+    print(statsTemplate.format(scaledMedian, scaledSD))
+    plotHist(linearFitHSVScaled[:, 1]) #Pretty sure the target for this is a distribution with a range of ~0.1? Would pretty accuately place it in the spectrum?
 
 
