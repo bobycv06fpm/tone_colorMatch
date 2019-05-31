@@ -39,13 +39,14 @@ def plotHist(values, bins=20):
     plt.show()
 
 def sortOnValue(point):
-    [name, bgr_noWB, bgr, bgr_scaled, hsv, hsv_scaled, fluxish] = point
+    [name, bgr_noWB, bgr, bgr_scaled, hsv, hsv_scaled, fluxish, reflectionScore, regionScore] = point
     #return bestGuesses[1]
     #return fluxish
-    return hsv[2]
+    #return hsv[2]
     #return hsv_scaled[2]
     #return fluxish
     #return hsv_scaled[1]
+    return reflectionScore[0]
 
 #EXPECTS RED TO BE LARGEST VALUE
 def convertRatiosToHueSatValue(bgrRatios):
@@ -107,13 +108,19 @@ else:
     printPoints = []
     #reflections = []
     fluxishes = []
+    reflectionScores = []
+    regionScores = []
 
     for linearFit in linearFits:
         #print('Median Diff :: ' + str(medianDiff))
         name, linearFit, bestGuess, reflectionArea = linearFit
         leftReflection = np.array(linearFit['reflections']['left'])
+        print('left reflection :: ' + str(leftReflection))
         rightReflection = np.array(linearFit['reflections']['right'])
+        reflectionScore = np.array(linearFit['reflections']['linearityScore'])
         averageReflection = (leftReflection + rightReflection) / 2
+
+        reflectionScores.append(reflectionScore)
 
         #print('----------')
         #print('BEST GUESS :: ' + str(bestGuess))
@@ -132,6 +139,11 @@ else:
         rightPoint = np.array(linearFit['regions']['right'])
         chinPoint = np.array(linearFit['regions']['chin'])
         foreheadPoint = np.array(linearFit['regions']['forehead'])
+        regionScore = np.array(linearFit['regions']['linearityScore'])
+
+        regionScores.append(regionScore)
+
+        print('Scores :: {} | {}'.format(reflectionScore, regionScore))
 
         linearFitNoWB_BGR = np.mean(np.array([leftPoint, rightPoint, chinPoint, foreheadPoint]), axis=0)
         linearFitBGRNoWB.append(linearFitNoWB_BGR)
@@ -193,13 +205,13 @@ else:
 #        #print('{}'.format(name))
 #        #print('\tBGR -> Median :: {} || Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(pts(medianBGR), pts(leftPointWB), pts(rightPointWB), pts(chinPointWB), pts(foreheadPointWB)))
 #        #print('\tHSV -> Median :: {} || Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(pts(medianHSV), pts(leftPointHSV), pts(rightPointHSV), pts(chinPointHSV), pts(foreheadPointHSV)))
-        printPoints.append([name, linearFitNoWB_BGR, linearFitWB_BGR, linearFitWBScaled_BGR, linearFitWB_HSV, linearFitWBScaled_HSV, fluxish])
+        printPoints.append([name, linearFitNoWB_BGR, linearFitWB_BGR, linearFitWBScaled_BGR, linearFitWB_HSV, linearFitWBScaled_HSV, fluxish, reflectionScore, regionScore])
         #print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
 
     printPoints.sort(key=sortOnValue)
     #print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
     for index, printPoint in enumerate(printPoints):
-        print('({}) {} - \n\tBGR No WB\t:: {} \n\tBGR\t\t:: {} \n\tBGR Scaled\t:: {} \n\tHSV\t\t:: {} \n\tHSV Scaled\t:: {} \n\tFluxish\t\t:: {}'.format(index, *printPoint))
+        print('({}) {} - \n\tBGR No WB\t:: {} \n\tBGR\t\t:: {} \n\tBGR Scaled\t:: {} \n\tHSV\t\t:: {} \n\tHSV Scaled\t:: {} \n\tFluxish\t\t:: {}\n\tRefl Score\t:: {}\n\tRegion Score\t:: {}'.format(index, *printPoint))
 
     #wbBGR = np.array(wbBGR)
     #wbHSV = np.array(wbHSV)

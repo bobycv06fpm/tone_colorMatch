@@ -285,7 +285,7 @@ def calculateRelativeOffset(parentOffset, childOffset):
 
 def calculateRepresentativeReflectionPoint(reflectionPoints):
     #return np.median(reflectionPoints, axis=0) # Maybe change to only take median of top 10% of brightnesses?
-    old = np.median(reflectionPoints, axis=0) # Maybe change to only take median of top 10% of brightnesses?
+    #old = np.median(reflectionPoints, axis=0) # Maybe change to only take median of top 10% of brightnesses?
     numPoints = reflectionPoints.shape[0]
 
     oneTenth = int(numPoints / 10) * -1
@@ -295,7 +295,7 @@ def calculateRepresentativeReflectionPoint(reflectionPoints):
     topMedianRed = np.median(np.array(sorted(reflectionPoints[:, 2]))[oneTenth:])
 
     newRepValue = [topMedianBlue, topMedianGreen, topMedianRed]
-    print('Old :: {} | New :: {}'.format(old, newRepValue))
+    #print('Old :: {} | New :: {}'.format(old, newRepValue))
     return np.array(newRepValue)
 
 def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
@@ -322,7 +322,7 @@ def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
     cleanPixels = np.sum(np.logical_not(clippingMask).astype('uint8'))
     cleanPixelRatio = cleanPixels / (clippingMask.shape[0] * clippingMask.shape[1])
 
-    print('CLEAN PIXEL RATIO :: ' + str(cleanPixelRatio))
+    #print('CLEAN PIXEL RATIO :: ' + str(cleanPixelRatio))
 
     if cleanPixelRatio < 0.95:
         raise NameError('Not enough clean non-clipped pixels in eye reflections')
