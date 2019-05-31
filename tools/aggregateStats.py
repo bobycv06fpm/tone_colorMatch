@@ -19,6 +19,14 @@ user = args["user"]
 def pts(point):
     return '({:.3}, {:.3}, {:.3})'.format(*[float(value) for value in point])
 
+def prettyHist(title, data):
+    statsTemplate = '\tMedian\t:: {}\n\tStd\t:: {}'
+    print('Histogram - {}'.format(title))
+    median = np.median(data)
+    SD = np.std(data)
+    print(statsTemplate.format(median, SD))
+    plotHist(data)
+
 def plot3d(points, xLabel, yLabel, zLabel):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -28,8 +36,33 @@ def plot3d(points, xLabel, yLabel, zLabel):
     ax.set_zlabel(zLabel)
     plt.show()
 
-def plot2d(points, xLabel, yLabel):
-    plt.scatter(points[:, 0], points[:, 1])
+def plot2d(title, points, xLabel, yLabel, rankColumn=False):
+    print('Scatter Plot - {}'.format(title))
+    colors = np.arange(points.shape[0] * 3).reshape(points.shape[0], 3)
+    colors[:] = [0, 0, 1]
+
+
+    if rankColumn:
+        colors[points[:, 2] > 0.2] = [1, 0, 0]
+
+        #ceiling = 0.2
+
+        #colorsRank = points[:, 2]
+        #colorsRank[colorsRank > ceiling] = ceiling
+
+        #minColor = min(colorsRank)
+        #maxColor = max(colorsRank)
+
+        #colorsRank = (colorsRank - minColor) / (maxColor - minColor)
+        #medianRank = np.median(colorsRank)
+
+        #greenChannel= 1 - colorsRank
+        #blueChannel = 1 - np.clip(np.abs(colorsRank - medianRank), 0, ceiling) / ceiling
+        #redChannel= colorsRank
+
+        #colors = np.stack([redChannel, greenChannel, blueChannel], axis=1)
+
+    plt.scatter(points[:, 0], points[:, 1], 25, colors)
     plt.xlabel(xLabel)
     plt.ylabel(yLabel)
     plt.show()
@@ -39,14 +72,18 @@ def plotHist(values, bins=20):
     plt.show()
 
 def sortOnValue(point):
-    [name, bgr_noWB, bgr, bgr_scaled, hsv, hsv_scaled, fluxish, reflectionScore, regionScore] = point
+    [name, bgr_noWB, bgr, bgr_scaled, hsv, hsv_scaled, fluxish, reflectionScore, regionScore, combinedScore, reflectionScores_worst, combinedScore_worst] = point
     #return bestGuesses[1]
     #return fluxish
-    #return hsv[2]
+    return hsv[2]
     #return hsv_scaled[2]
     #return fluxish
     #return hsv_scaled[1]
-    return reflectionScore[0]
+    #return reflectionScore[0]
+    #return regionScore[0]
+    #return combinedScore
+    #return reflectionScores_worst
+    #return combinedScore_worst
 
 #EXPECTS RED TO BE LARGEST VALUE
 def convertRatiosToHueSatValue(bgrRatios):
@@ -83,12 +120,7 @@ for faceData in facesData:
     if not faceData['successful']:
         continue
 
-    #for key in faceData['captures']:
-        #print('CAPTURES {} -> {}'.format(key, faceData['captures'][key]))
-
     linearFits.append([faceData['name'], faceData['linearFits'], faceData['bestGuess'], faceData['reflectionArea']])
-   # for key in faceData['medianDiffs']:
-   #     print('MEDIAN DIFFS {} -> {}'.format(key, faceData['medianDiffs'][key]))
 
 
 if len(linearFits) == 0:
@@ -110,30 +142,20 @@ else:
     fluxishes = []
     reflectionScores = []
     regionScores = []
+    combinedScores = []
+    reflectionScores_worst = []
+    combinedScores_worst = []
 
     for linearFit in linearFits:
-        #print('Median Diff :: ' + str(medianDiff))
         name, linearFit, bestGuess, reflectionArea = linearFit
         leftReflection = np.array(linearFit['reflections']['left'])
-        print('left reflection :: ' + str(leftReflection))
         rightReflection = np.array(linearFit['reflections']['right'])
         reflectionScore = np.array(linearFit['reflections']['linearityScore'])
         averageReflection = (leftReflection + rightReflection) / 2
 
         reflectionScores.append(reflectionScore)
 
-        #print('----------')
-        #print('BEST GUESS :: ' + str(bestGuess))
-        #print('LINEAR FIT :: ' + str(linearFit))
-        #print('AVERAGE REFLECTION BGR :: ' + str(averageReflection))
-        #bestGuessReflection, bestGuessFace = bestGuess
-        #bestGuessReflectionHSV = convertRatiosToHueSatValue(bestGuessReflection)
         averageReflectionHSV = convertRatiosToHueSatValue(averageReflection)
-        #print('AVERAGE REFLECTION HSV :: ' + str(averageReflectionHSV))
-
-        #print('Best Guess vs Average [Hue, Sat] :: {} vs {}'.format(bestGuessReflectionHSV, averageReflectionHSV))
-
-        #print('L :: {} | R :: {} | A :: {}'.format(leftReflection, rightReflection, averageReflection))
         
         leftPoint = np.array(linearFit['regions']['left'])
         rightPoint = np.array(linearFit['regions']['right'])
@@ -143,16 +165,16 @@ else:
 
         regionScores.append(regionScore)
 
-        print('Scores :: {} | {}'.format(reflectionScore, regionScore))
+        combinedScore = np.mean([reflectionScore, regionScore])
+        combinedScore_worst = np.max(reflectionScore) + np.max(regionScore)
+        reflectionScore_worst = np.max(reflectionScore)
+
+        combinedScores.append(combinedScore)
+        reflectionScores_worst.append(reflectionScore_worst)
+        combinedScores_worst.append(combinedScore_worst)
 
         linearFitNoWB_BGR = np.mean(np.array([leftPoint, rightPoint, chinPoint, foreheadPoint]), axis=0)
         linearFitBGRNoWB.append(linearFitNoWB_BGR)
-
-        #leftPointWB = leftPoint
-        #rightPointWB = rightPoint
-        #chinPointWB = chinPoint
-        #foreheadPointWB = foreheadPoint
-        #medianBGR = np.median(np.array([leftPoint, rightPoint, chinPoint, foreheadPoint]), axis=0)
 
         leftPointWB = colorTools.whitebalanceBGRPoints(leftPoint, leftReflection) #Not sure if we should use the average color or the per side... Color diff might be cause by off axis angles?
         rightPointWB = colorTools.whitebalanceBGRPoints(rightPoint, rightReflection)
@@ -167,55 +189,30 @@ else:
         chinPointWB_HSV = colorTools.bgr_to_hsv(chinPointWB)
         foreheadPointWB_HSV = colorTools.bgr_to_hsv(foreheadPointWB)
         linearFitWB_HSV = np.mean(np.array([leftPointWB_HSV, rightPointWB_HSV, chinPointWB_HSV, foreheadPointWB_HSV]), axis=0)
-        #medianHSV = chinPointHSV
-
-        #bestGuessFaceWB = colorTools.whitebalanceBGRPoints(np.array(bestGuessFace), np.array(bestGuessReflection))
-        #bestGuessFaceWB = colorTools.whitebalanceBGRPoints(np.array(bestGuessFace), np.array(bestGuessReflection))
-        #bestGuessReflectionWB = colorTools.whitebalanceBGRPoints(np.array(bestGuessReflection), np.array(bestGuessReflection))
 
         #Just so we can get the brightness value (if we change how we whitebalance down the line [unlikely...])
         linearFitReflectionWB = colorTools.whitebalanceBGRPoints(np.array(averageReflection), np.array(averageReflection))
         linearFitReflectionValue = linearFitReflectionWB[0]
-        #print('BEST GUESS WB FROM LINEAR FIT :: {}'.format(bestGuessReflectionWB))
-
 
         fluxish = linearFitReflectionValue * reflectionArea
         fluxishes.append(fluxish)
 
         linearFitWBScaled_BGR = linearFitWB_BGR / fluxish
         linearFitBGRScaled.append(linearFitWBScaled_BGR)
-#
-#        #bestGuessFaceWB = bestGuessFace
+
         linearFitWBScaled_HSV = convertRatiosToHueSatValue(linearFitWBScaled_BGR)
         linearFitHSVScaled.append(linearFitWBScaled_HSV)
-#        bestGuesses.append([bestGuessHue, bestGuessSat, bestGuessValue])
-#
-#        wbBGR.append(leftPointWB)
-#        wbBGR.append(rightPointWB)
-#        wbBGR.append(chinPointWB)
-#        wbBGR.append(foreheadPointWB)
+
         linearFitBGRs.append(linearFitWB_BGR)
-#
-#        wbHSV.append(leftPointHSV)
-#        wbHSV.append(rightPointHSV)
-#        wbHSV.append(chinPointHSV)
-#        wbHSV.append(foreheadPointHSV)
         linearFitHSVs.append(linearFitWB_HSV)
 #
-#        #print('{}'.format(name))
-#        #print('\tBGR -> Median :: {} || Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(pts(medianBGR), pts(leftPointWB), pts(rightPointWB), pts(chinPointWB), pts(foreheadPointWB)))
-#        #print('\tHSV -> Median :: {} || Left :: {} | Right :: {} | Chin :: {} | Forehead :: {}'.format(pts(medianHSV), pts(leftPointHSV), pts(rightPointHSV), pts(chinPointHSV), pts(foreheadPointHSV)))
-        printPoints.append([name, linearFitNoWB_BGR, linearFitWB_BGR, linearFitWBScaled_BGR, linearFitWB_HSV, linearFitWBScaled_HSV, fluxish, reflectionScore, regionScore])
-        #print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
+        printPoints.append([name, linearFitNoWB_BGR, linearFitWB_BGR, linearFitWBScaled_BGR, linearFitWB_HSV, linearFitWBScaled_HSV, fluxish, reflectionScore, regionScore, combinedScore, reflectionScore_worst, combinedScore_worst])
 
     printPoints.sort(key=sortOnValue)
     #print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
     for index, printPoint in enumerate(printPoints):
-        print('({}) {} - \n\tBGR No WB\t:: {} \n\tBGR\t\t:: {} \n\tBGR Scaled\t:: {} \n\tHSV\t\t:: {} \n\tHSV Scaled\t:: {} \n\tFluxish\t\t:: {}\n\tRefl Score\t:: {}\n\tRegion Score\t:: {}'.format(index, *printPoint))
+        print('({}) {} - \n\tBGR No WB\t:: {} \n\tBGR\t\t:: {} \n\tBGR Scaled\t:: {} \n\tHSV\t\t:: {} \n\tHSV Scaled\t:: {} \n\tFluxish\t\t:: {}\n\tRef Score\t:: {}\n\tRegion Score\t:: {}\n\tCombined Score\t:: {}\n\tWorst Ref Score\t:: {}\n\tComb Worst Score:: {}'.format(index, *printPoint))
 
-    #wbBGR = np.array(wbBGR)
-    #wbHSV = np.array(wbHSV)
-    #wbHSV[:, 0] = colorTools.rotateHue(wbHSV[:, 0])
 
     #medianBGRs = np.array(medianBGRs)
     linearFitBGRs = np.array(linearFitBGRs)
@@ -223,47 +220,42 @@ else:
     #medianHSVs = np.array(medianHSVs)
     linearFitHSVs = np.array(linearFitHSVs)
     linearFitHSVScaled = np.array(linearFitHSVScaled)
-    #bestGuesses = np.array(bestGuesses)
+
+    reflectionScores = np.array(reflectionScores)
+    meanChannelReflectionScores = np.mean(reflectionScores, axis=1)
+
+    regionScores = np.array(regionScores)
+    meanChannelRegionScores = np.mean(regionScores, axis=1)
+
+    combinedScores = np.array(combinedScores)
+    reflectionScores_worst = np.array(reflectionScores_worst)
+
     linearFitHSVs[:, 0] = colorTools.rotateHue(linearFitHSVs[:, 0])
     linearFitHSVScaled[:, 0] = colorTools.rotateHue(linearFitHSVScaled[:, 0])
 
-    #plot3d(wbBGR, 'Blue', 'Green', 'Red')
-    #plot3d(wbHSV, 'Hue', 'Saturation', 'Value')
-    #plot3d(medianBGRs, 'Blue', 'Green', 'Red')
-    #plot3d(medianHSVs, 'Hue', 'Saturation', 'Value')
-    #plotHist(wbHSV[:, 1])
-    #valueVsFluxish = np.stack([linearFitHSVs[:, 2], fluxishes], axis=1)
-    fluxishVsValue = np.stack([fluxishes, linearFitHSVs[:, 2]], axis=1)
-    #print('Values vs Fluxishes :: ' + str(valueVsFluxish))
-    #print('Fluxishes vs Values :: ' + str(fluxishVsValue))
+    #fluxishVsValue = np.stack([fluxishes, linearFitHSVs[:, 2], combinedScores], axis=1)
+    #fluxishVsValue = np.stack([fluxishes, linearFitHSVs[:, 2], meanChannelRegionScores], axis=1)
+    #fluxishVsValue = np.stack([fluxishes, linearFitHSVs[:, 2], reflectionScores_worst], axis=1)
+    fluxishVsValue = np.stack([fluxishes, linearFitHSVs[:, 2], combinedScores_worst], axis=1)
+
     print('\n---------------\n')
-    statsTemplate = '\tMedian\t:: {}\n\tStd\t:: {}'
-    print('Scatter Plot - Fluxish vs Value')
-    plot2d(fluxishVsValue, 'Fluxish', 'Value')
-    #print('Linear Fit HSV Scaled :: ' + str(linearFitHSVScaled))
+    plot2d('Fluxish vs Value', fluxishVsValue, 'Fluxish', 'Value', True)
 
-    print('Histogram - Unscaled Values')
-    unscaledMedian = np.median(linearFitHSVs[:, 2])
-    unscaledSD = np.std(linearFitHSVs[:, 2])
-    print(statsTemplate.format(unscaledMedian, unscaledSD))
-    plotHist(linearFitHSVs[:, 2]) #Pretty sure the target for this is a distribution with a range of ~0.1? Would pretty accuately place it in the spectrum?
+    prettyHist('Unscaled Values', linearFitHSVs[:, 2])
+    prettyHist('Scaled Values', linearFitHSVScaled[:, 2])
+    prettyHist('Fluxish Values', fluxishes)
+    prettyHist('Scaled Saturation Values', linearFitHSVScaled[:, 1])
+    #prettyHist('Mean Channel REFLECTION Scores', meanChannelReflectionScores)
+    #prettyHist('Mean Channel REGION Scores', meanChannelRegionScores)
 
-    print('Histogram - Scaled Values')
-    scaledMedian = np.median(linearFitHSVScaled[:, 2])
-    scaledSD = np.std(linearFitHSVScaled[:, 2])
-    print(statsTemplate.format(scaledMedian, scaledSD))
-    plotHist(linearFitHSVScaled[:, 2]) #Pretty sure the target for this is a distribution with a range of ~0.1? Would pretty accuately place it in the spectrum?
+    #scoresSets = np.stack([meanChannelReflectionScores, meanChannelRegionScores], axis=1)
+    #plot2d('REFLECTION vs REGION', scoresSets, 'Reflection', 'Region')
 
-    print('Histogram - Fluxish Values')
-    fluxishesMedian = np.median(fluxishes)
-    fluxishesSD = np.std(fluxishes)
-    print(statsTemplate.format(fluxishesMedian, fluxishesSD))
-    plotHist(fluxishes) #Pretty sure the target for this is a distribution with a range of ~0.1? Would pretty accuately place it in the spectrum?
+    prettyHist('COMBINED Scores', combinedScores)
+    prettyHist('COMBINED WORST REFLECTION Scores', reflectionScores_worst)
+    prettyHist('COMBINED WORST Scores', combinedScores_worst)
 
-    print('Histogram - Scaled Saturation Values')
-    scaledMedian = np.median(linearFitHSVScaled[:, 1])
-    scaledSD = np.std(linearFitHSVScaled[:, 1])
-    print(statsTemplate.format(scaledMedian, scaledSD))
-    plotHist(linearFitHSVScaled[:, 1]) #Pretty sure the target for this is a distribution with a range of ~0.1? Would pretty accuately place it in the spectrum?
-
+    #Trying to figure out if the worst offenders in the reflections will stand out in the combined... It seems to.
+    #scoresSets = np.stack([combinedScores, reflectionScores_worst], axis=1)
+    #plot2d('COMBINED vs REFLECTION WORST CASE', scoresSets, 'Combined', 'Reflection Worst Case')
 
