@@ -15,6 +15,30 @@ ap.add_argument("-u", "--user", required=True, default="false", help="The Users 
 args = vars(ap.parse_args())
 user = args["user"]
 
+def fitLine(points):
+    A = points[:, 0]
+    B = points[:, 1]
+    A_prepped = np.vstack([A, np.ones(len(A))]).T
+    return np.linalg.lstsq(A_prepped, B, rcond=None)[0]
+
+def getDistanceToLine(point, line):
+    x, y = point[0:2]
+    slope, const = line
+
+    perpSlope = (-1) / slope
+    perpConst = ((1 / slope) * x) + y
+
+    intersectX = (perpConst - const) / (slope - perpSlope)
+    intersectY = (slope * intersectX) + const
+    
+    distance = (((x - intersectX) ** 2) + ((y - intersectY) ** 2)) ** (1/2)
+
+    return distance
+
+def getResiduals(points):
+    line = fitLine(points)
+    return [getDistanceToLine(point, line) for point in points]
+
 #Point to String
 def pts(point):
     return '({:.3}, {:.3}, {:.3})'.format(*[float(value) for value in point])
@@ -41,10 +65,26 @@ def plot2d(title, points, xLabel, yLabel, rankColumn=False):
     colors = np.arange(points.shape[0] * 3).reshape(points.shape[0], 3)
     colors[:] = [0, 0, 1]
 
-
     if rankColumn:
-        colors[points[:, 2] > 0.2] = [1, 0, 0]
+       colorsRank = points[:, 2]
 
+       minColor = min(colorsRank)
+       maxColor = max(colorsRank)
+
+       print('MIN :: {}  MAX :: {}'.format(minColor, maxColor))
+
+       colorsRank = (colorsRank - minColor) / (maxColor - minColor)
+
+       greenChannel= np.zeros(len(colorsRank))
+       blueChannel = np.ones(len(colorsRank)) - colorsRank
+       redChannel= colorsRank
+
+       colors = np.stack([redChannel, greenChannel, blueChannel], axis=1)
+
+    #if rankColumn:
+    #    colors[points[:, 2] > 0.2] = [1, 0, 0]
+
+    #if rankColumn:
         #ceiling = 0.2
 
         #colorsRank = points[:, 2]
@@ -62,7 +102,18 @@ def plot2d(title, points, xLabel, yLabel, rankColumn=False):
 
         #colors = np.stack([redChannel, greenChannel, blueChannel], axis=1)
 
-    plt.scatter(points[:, 0], points[:, 1], 25, colors)
+    #cutoff = sorted(points[:, 2])[-5]
+    cutoff = 1.0 
+
+    m, c = fitLine(points[points[:, 2] < cutoff])
+    minX = min(points[:, 0])
+    maxX = max(points[:, 0])
+    minY = minX * m + c
+    maxY = maxX * m + c
+
+
+    plt.scatter(points[:, 0], points[:, 1], 100, colors)
+    plt.plot([minX, maxX], [minY, maxY], 'g-')
     plt.xlabel(xLabel)
     plt.ylabel(yLabel)
     plt.show()
@@ -72,10 +123,10 @@ def plotHist(values, bins=20):
     plt.show()
 
 def sortOnValue(point):
-    [name, bgr_noWB, bgr, bgr_scaled, hsv, hsv_scaled, fluxish, reflectionScore, regionScore, combinedScore, reflectionScores_worst, combinedScore_worst] = point
+    [name, bgr_noWB, bgr, bgr_scaled, hsv, hsv_scaled, fluxish, reflectionScore, regionScore, combinedScore, reflectionScores_worst, combinedScore_worst, residual] = point
     #return bestGuesses[1]
     #return fluxish
-    return hsv[2]
+    #return hsv[2]
     #return hsv_scaled[2]
     #return fluxish
     #return hsv_scaled[1]
@@ -84,6 +135,7 @@ def sortOnValue(point):
     #return combinedScore
     #return reflectionScores_worst
     #return combinedScore_worst
+    return residual
 
 #EXPECTS RED TO BE LARGEST VALUE
 def convertRatiosToHueSatValue(bgrRatios):
@@ -208,10 +260,6 @@ else:
 #
         printPoints.append([name, linearFitNoWB_BGR, linearFitWB_BGR, linearFitWBScaled_BGR, linearFitWB_HSV, linearFitWBScaled_HSV, fluxish, reflectionScore, regionScore, combinedScore, reflectionScore_worst, combinedScore_worst])
 
-    printPoints.sort(key=sortOnValue)
-    #print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
-    for index, printPoint in enumerate(printPoints):
-        print('({}) {} - \n\tBGR No WB\t:: {} \n\tBGR\t\t:: {} \n\tBGR Scaled\t:: {} \n\tHSV\t\t:: {} \n\tHSV Scaled\t:: {} \n\tFluxish\t\t:: {}\n\tRef Score\t:: {}\n\tRegion Score\t:: {}\n\tCombined Score\t:: {}\n\tWorst Ref Score\t:: {}\n\tComb Worst Score:: {}'.format(index, *printPoint))
 
 
     #medianBGRs = np.array(medianBGRs)
@@ -233,10 +281,22 @@ else:
     linearFitHSVs[:, 0] = colorTools.rotateHue(linearFitHSVs[:, 0])
     linearFitHSVScaled[:, 0] = colorTools.rotateHue(linearFitHSVScaled[:, 0])
 
+    fluxishVsValue = np.stack([fluxishes, linearFitHSVs[:, 2]], axis=1)
     #fluxishVsValue = np.stack([fluxishes, linearFitHSVs[:, 2], combinedScores], axis=1)
     #fluxishVsValue = np.stack([fluxishes, linearFitHSVs[:, 2], meanChannelRegionScores], axis=1)
     #fluxishVsValue = np.stack([fluxishes, linearFitHSVs[:, 2], reflectionScores_worst], axis=1)
-    fluxishVsValue = np.stack([fluxishes, linearFitHSVs[:, 2], combinedScores_worst], axis=1)
+    #fluxishVsValue = np.stack([fluxishes, linearFitHSVs[:, 2], combinedScores_worst], axis=1)
+    residuals = getResiduals(fluxishVsValue)
+    fluxishVsValue = np.stack([fluxishes, linearFitHSVs[:, 2], residuals], axis=1)
+    print('residuals :: ' + str(residuals))
+
+
+    printPoints = [[*printPoint, residual] for printPoint, residual in zip(printPoints, residuals)]
+
+    printPoints.sort(key=sortOnValue)
+    #print('\t{} - HSV -> Median :: {}'.format(name, pts(medianHSV)))
+    for index, printPoint in enumerate(printPoints):
+        print('({}) {} - \n\tBGR No WB\t:: {} \n\tBGR\t\t:: {} \n\tBGR Scaled\t:: {} \n\tHSV\t\t:: {} \n\tHSV Scaled\t:: {} \n\tFluxish\t\t:: {}\n\tRef Score\t:: {}\n\tRegion Score\t:: {}\n\tCombined Score\t:: {}\n\tWorst Ref Score\t:: {}\n\tComb Worst Score:: {}\n\tResidual\t:: {}'.format(index, *printPoint))
 
     print('\n---------------\n')
     plot2d('Fluxish vs Value', fluxishVsValue, 'Fluxish', 'Value', True)
