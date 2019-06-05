@@ -54,6 +54,7 @@ class Capture:
 
         self.whiteBalance = self.metadata['whiteBalance']
         self.isBlurry = False
+        self.isSharpest = False
 
         if mask is not None:
             self.mask = np.logical_or(self.mask, mask)

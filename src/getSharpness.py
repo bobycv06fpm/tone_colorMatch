@@ -67,3 +67,6 @@ def labelSharpestCaptures(captures):
         if (score == sortedScores[0]) or (score == sortedScores[1]):
             capture.isBlurry = True
 
+        if (score == sortedScores[-1]):
+            capture.isSharpest = True
+

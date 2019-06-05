@@ -109,7 +109,63 @@ def getPreparedEye(gray):
     prepped = cv2.Sobel(gray, cv2.CV_16S, 1, 1, ksize=5)
     return np.float32(prepped)
 
-def getEyeOffsets(eyes, wb=None):
+
+
+###EXPERIMENT....MIGHT BE SUPER SLOW
+#primes = [2, 3, 5, 7, 11, 13, 17, 19]
+#memoizedDistances = {}
+
+def getPathKey(path):
+    #key = 1
+    #for node in path:
+    #    key *= primes[node]
+    key = ''
+    for node in path:
+        key += '{}'.format(node)
+    return key
+
+def getDistance(path, edgeLengths):
+    distance = 0
+    lastNode = path[0]
+    for nextNode in path[1:]:
+        distance += edgeLengths[lastNode, nextNode]
+        lastNode = nextNode
+
+    return distance
+
+def getDistances(start, end, edgeLengths, currentPath, possibleNodes, memoizedDistances):
+    distances = []
+    for index, node in enumerate(possibleNodes):
+        tempPath = currentPath + [node]
+
+        if node == end:
+            key = getPathKey(tempPath)
+            if key in memoizedDistances:
+                distances.append(memoizedDistances[key])
+            else:
+                distance = getDistance(tempPath, edgeLengths)
+                memoizedDistances[key] = distance
+                distances.append(distance)
+        else:
+            newPossibleNodes = possibleNodes.copy()
+            newPossibleNodes.remove(node)
+            distances += getDistances(start, end, edgeLengths, tempPath, newPossibleNodes, memoizedDistances)
+
+    return distances
+
+
+def getAllDistancesBetweenNodes(start, end, edgeLengths, memoizedDistances):
+    possibleNodes = list(np.arange(edgeLengths.shape[0]))
+    possibleNodes.remove(start)
+    #print('possible nodes :: ' + str(possibleNodes))
+
+    currentPath = [start]
+
+    return np.median(getDistances(start, end, edgeLengths, currentPath, possibleNodes, memoizedDistances))
+
+####END EXPERIMENT
+
+def getEyeOffsets(eyes, sharpestIndex, wb=None):
     #originalEyes = np.copy(eyes)
 
     eyes = [colorTools.convert_sBGR_to_linearBGR_float_fast(eye) for eye in eyes]
@@ -125,14 +181,80 @@ def getEyeOffsets(eyes, wb=None):
     #cv2.imshow('prepped', np.vstack((stretched, prepped)))
     #cv2.waitKey(0)
 
-    relativeEyeOffsets = [calculateOffset(preparedEye, preparedEyes[index - 1 if index > 0 else 0]) for index, preparedEye in enumerate(preparedEyes)]
+    ###BEGIN TEST SUPER SLOW UNSUPRISINGLY
 
-    eyeOffsets = [relativeEyeOffsets[0]]
-    for relativeEyeOffset in relativeEyeOffsets[1:]:
-        eyeOffsets.append(eyeOffsets[-1] + relativeEyeOffset)
+    #sideLength = len(preparedEyes)
+    #offsetX = np.zeros(sideLength ** 2).reshape(sideLength, sideLength)
+    #offsetY = np.zeros(sideLength ** 2).reshape(sideLength, sideLength)
+
+    #for primaryIdx, preparedEye in enumerate(preparedEyes[:-1]):
+    #    for secondaryIdx, offsetEye in enumerate(preparedEyes[primaryIdx + 1:]):
+    #        offset = calculateOffset(preparedEye, offsetEye)
+
+    #        offsetX[primaryIdx, secondaryIdx + primaryIdx + 1] = offset[0]
+    #        offsetY[primaryIdx, secondaryIdx + primaryIdx + 1] = offset[1]
+
+    #        offsetX[secondaryIdx + primaryIdx + 1, primaryIdx] = -1 * offset[0]
+    #        offsetY[secondaryIdx + primaryIdx + 1, primaryIdx] = -1 * offset[1]
+    #    
+    #print('offset X :: \n' + str(offsetX))
+    #print('offset Y :: \n' + str(offsetY))
+
+    #memoizedXDistances = {}
+    #memoizedYDistances = {}
+    ##allPossible = getAllDistancesBetweenNodes(1, 2, offsetX)
+    ##print('All Possible :: {} vs {}'.format(np.median(allPossible), offsetX[1, 2]))
+    ##allPossibleRev = getAllDistancesBetweenNodes(2, 1, offsetX)
+    ##print('All Possible Rev :: {} vs {}'.format(np.median(allPossibleRev), offsetX[2, 1]))
+
+    #medianOffsetsX = np.zeros(sideLength ** 2).reshape(sideLength, sideLength)
+    #medianOffsetsY = np.zeros(sideLength ** 2).reshape(sideLength, sideLength)
+
+    #for primaryIdx, preparedEye in enumerate(preparedEyes[:-1]):
+    #    for secondaryIdx, offsetEye in enumerate(preparedEyes[primaryIdx + 1:]):
+    #        medianOffsetX = getAllDistancesBetweenNodes(primaryIdx, secondaryIdx + primaryIdx + 1, offsetX, memoizedXDistances)
+    #        medianOffsetY = getAllDistancesBetweenNodes(primaryIdx, secondaryIdx + primaryIdx + 1, offsetY, memoizedYDistances)
+
+    #        #offset = calculateOffset(preparedEye, offsetEye)
+
+    #        medianOffsetsX[primaryIdx, secondaryIdx + primaryIdx + 1] = medianOffsetX
+    #        medianOffsetsY[primaryIdx, secondaryIdx + primaryIdx + 1] = medianOffsetY
+
+    #        medianOffsetsX[secondaryIdx + primaryIdx + 1, primaryIdx] = -1 * medianOffsetX
+    #        medianOffsetsY[secondaryIdx + primaryIdx + 1, primaryIdx] = -1 * medianOffsetY
+
+    #medianOffsetsX = medianOffsetsX.astype('int32')
+    #medianOffsetsY = medianOffsetsY.astype('int32')
+    ##memoizedDistances = {}
+    #print('median offset X :: \n' + str(medianOffsetsX))
+    #print('median offset Y :: \n' + str(medianOffsetsY))
+
+
+
+    #relativeEyeOffsets = np.vstack([[medianOffsetsX[i-1, i], medianOffsetsY[i-1, i]] for i in range(1, len(eyes))])
+    #print('relativeEyeOffsets :: ' + str(relativeEyeOffsets))
+
+    ##END TEST
+
+    relativeEyeOffsets = [calculateOffset(preparedEye, preparedEyes[sharpestIndex]) for index, preparedEye in enumerate(preparedEyes)]
+
+    eyeOffsets = relativeEyeOffsets
+
+    #eyeOffsets = [relativeEyeOffsets[0]]
+    #for relativeEyeOffset in relativeEyeOffsets[1:]:
+    #    eyeOffsets.append(eyeOffsets[-1] + relativeEyeOffset)
+
+    #eyeOffsets = [np.array([0, 0])]
+    #for relativeEyeOffset in relativeEyeOffsets:
+    #    eyeOffsets.append(eyeOffsets[-1] + relativeEyeOffset)
+
+    #eyeOffsets = np.vstack([[medianOffsetsX[0, i], medianOffsetsY[0, i]] for i in range(0, len(eyes))])
+
 
     #for index, eyeOffset in enumerate(eyeOffsets):
     #    print('Eye Offset {} :: {}'.format(index, eyeOffset))
+
+    print('EYE OFFSETS :: ' + str(eyeOffsets))
 
     return np.array(eyeOffsets)
 
@@ -251,6 +373,10 @@ def getCaptureEyeOffsets(captures):
 
 def getCaptureEyeOffsets2(captures):
     wb = captures[0].getAsShotWhiteBalance()
+    sharpestMask = np.array([capture.isSharpest for capture in captures])
+    sharpestIndex = np.arange(len(sharpestMask))[sharpestMask][0]
+    #print('sharpestIndex :: ' + str(sharpestIndex))
+
     leftEyeCrops = [capture.leftEyeImage for capture in captures]
     rightEyeCrops = [capture.rightEyeImage for capture in captures]
 
@@ -258,9 +384,9 @@ def getCaptureEyeOffsets2(captures):
         return getCaptureEyeOffsets(captures)
 
     print('One')
-    leftEyeOffsets = getEyeOffsets(leftEyeCrops, wb)
+    leftEyeOffsets = getEyeOffsets(leftEyeCrops, sharpestIndex, wb)
     print('Two')
-    rightEyeOffsets = getEyeOffsets(rightEyeCrops, wb)
+    rightEyeOffsets = getEyeOffsets(rightEyeCrops, sharpestIndex, wb)
     print('Three')
 
     leftEyeBBOrigins = np.array([capture.leftEyeBB[0] for capture in captures])

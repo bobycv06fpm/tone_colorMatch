@@ -167,9 +167,15 @@ size = 10
 
 linearFits = []
 
+blackList = []
+#blackList = ['doug1448', 'doug1229', 'doug1196', 'doug1373', 'doug1302', 'doug1201', 'doug1347', 'doug1455', 'doug1200', 'doug1359']
+
 for faceData in facesData:
 
     if not faceData['successful']:
+        continue
+
+    if faceData['name'] in blackList:
         continue
 
     linearFits.append([faceData['name'], faceData['linearFits'], faceData['bestGuess'], faceData['reflectionArea']])
