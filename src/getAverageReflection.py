@@ -145,6 +145,25 @@ def stretchHistogram(gray, mask=None):
     #stretched = np.clip(stretched * 255, 0, 255)
     return stretched
 
+
+#Stretches each row individially...
+def simpleStretch(grey):
+
+    minValue = np.min(grey, axis=1)
+    maxValue = np.max(grey, axis=1)
+    return (grey - minValue[:, np.newaxis]) / (maxValue - minValue)[:, np.newaxis]
+
+
+    #stretchedGrey = []
+    #for row in grey:
+    #    print('row :: ' + str(row))
+    #    minValue = np.min(grey)
+    #    maxValue = np.max(grey)
+    #    stretchedRow = (grey - minValue) / (maxValue - minValue)
+    #    stretchedGrey.append(stretchedRow)
+
+
+    #return np.array(stretchedRow)
 def maskReflectionBB(eyes, wb):
     for index, eye in enumerate(eyes):
         if eye.shape[0] * eye.shape[1] == 0:
@@ -184,6 +203,7 @@ def maskReflectionBB(eyes, wb):
 
     highScore = 0
     eyeReflectionBB = None
+    #mask = None
     for index, contour in enumerate(contours):
         target = np.zeros(totalChangeMaskOpenedDilated.shape, dtype='uint8')
         drawn =  cv2.drawContours(target, contours, index, 255, cv2.FILLED)
@@ -197,9 +217,193 @@ def maskReflectionBB(eyes, wb):
             if borderPointsMedian > highScore:
                 highScore = borderPointsMedian
                 eyeReflectionBB = list(cv2.boundingRect(contour))
+                #mask = drawn
 
     if eyeReflectionBB is None:
         raise NameError('Could Not Find Reflection BB')
+
+    
+    x, y, w, h = eyeReflectionBB
+    refCrops = [eyeCrop[y:y+h, x:x+w] for eyeCrop in croppedGreyEyes]
+    kernel = np.ones((5, 5), np.uint8)
+#    mask = cv2.dilate(mask, kernel, iterations=1).astype('bool') #mask.astype('bool')
+#    invMask = np.logical_not(mask)
+#    eyeCrops = []
+
+    middlePoint = [math.floor(w / 2), math.floor(h / 2)]
+    halfSampleWidth = 3
+    sampleHeight = math.floor(w / 2)
+
+    topColumnSampleBB = [middlePoint[0] - halfSampleWidth, 0, 2 * halfSampleWidth, sampleHeight]
+    bottomColumnSampleBB = [middlePoint[0] - halfSampleWidth, (h - sampleHeight), 2 * halfSampleWidth, sampleHeight]
+
+    leftRowSampleBB = [0, middlePoint[1] - halfSampleWidth, sampleHeight, 2 * halfSampleWidth]
+    rightRowSampleBB = [middlePoint[0], w - sampleHeight, sampleHeight, 2 * halfSampleWidth]
+
+    topColumns = [simpleStretch(np.rot90(crop[topColumnSampleBB[1]:topColumnSampleBB[1] + topColumnSampleBB[3], topColumnSampleBB[0]:topColumnSampleBB[0] + topColumnSampleBB[2]], 1)) for crop in refCrops]
+
+    bottomColumns = [simpleStretch(np.rot90(crop[bottomColumnSampleBB[1]:bottomColumnSampleBB[1] + bottomColumnSampleBB[3], bottomColumnSampleBB[0]:bottomColumnSampleBB[0] + bottomColumnSampleBB[2]], 3)) for crop in refCrops]
+
+    leftRows = [simpleStretch(crop[leftRowSampleBB[1]:leftRowSampleBB[1] + leftRowSampleBB[3], leftRowSampleBB[0]:leftRowSampleBB[0] + leftRowSampleBB[2]]) for crop in refCrops]
+
+    rightRows = [simpleStretch(np.rot90(crop[rightRowSampleBB[1]:rightRowSampleBB[1] + rightRowSampleBB[3], rightRowSampleBB[0]:rightRowSampleBB[0] + rightRowSampleBB[2]], 2)) for crop in refCrops]
+
+    topColumnStack = np.vstack(topColumns)
+    bottomColumnStack = np.vstack(bottomColumns)
+    leftRowStack = np.vstack(leftRows)
+    rightRowStack = np.vstack(rightRows)
+
+    cv2.imshow('AllEdgeSamples', np.hstack([topColumnStack, bottomColumnStack, leftRowStack, rightRowStack]))
+    #cv2.imshow('rows', np.hstack([leftRowStack, rightRowStack]))
+
+    medianTopColumns = [np.median(topColumn, axis=0) for topColumn in topColumns]
+    medianBottomColumns = [np.median(bottomColumn, axis=0) for bottomColumn in bottomColumns]
+    medianLeftRows = [np.median(leftRow, axis=0) for leftRow in leftRows]
+    medianRightRows = [np.median(rightRow, axis=0) for rightRow in rightRows]
+
+    medianTopColumnStack = np.vstack(medianTopColumns)
+    medianBottomColumnStack = np.vstack(medianBottomColumns)
+    medianLeftRowStack = np.vstack(medianLeftRows)
+    medianRightRowStack = np.vstack(medianRightRows)
+
+    cv2.imshow('AllEdgeSamplesMedians', np.hstack([medianTopColumnStack, medianBottomColumnStack, medianLeftRowStack, medianRightRowStack]))
+    cv2.waitKey(0)
+
+    
+    for idx in range(0, len(medianTopColumns)):
+        plotIndex = 481
+
+        plt.subplot(4, 8, 1 + idx)
+        #plt.hist(topColumns[idx].flatten())
+        plt.scatter(np.arange(len(medianTopColumns[idx])), medianTopColumns[idx])
+
+        plt.subplot(4, 8, 9 + idx)
+        #plt.hist(bottomColumns[idx].flatten())
+        plt.scatter(np.arange(len(medianBottomColumns[idx])), medianBottomColumns[idx])
+
+        plt.subplot(4, 8, 17 + idx)
+        #plt.hist(leftRows[idx].flatten())
+        plt.scatter(np.arange(len(medianLeftRows[idx])), medianLeftRows[idx])
+
+        plt.subplot(4, 8, 25 + idx)
+        #plt.hist(rightRows[idx].flatten())
+        plt.scatter(np.arange(len(medianRightRows[idx])), medianRightRows[idx])
+
+    plt.show()
+
+
+
+    #refinedRefCrops = []
+    #refinedGradCrops = []
+    #laps = []
+    #lapsMasked = []
+    #lapsMaskedMean = []
+    #gDiffs = []
+    #gDiffsMasked = []
+    #gDiffsMaskedMean = []
+
+    #for refCrop in refCrops:
+    #    minValue = np.min(refCrop)
+    #    maxValue = np.max(refCrop)
+    #    refCrop = refCrop - minValue
+    #    refCrop = refCrop * (1 / (maxValue - minValue))
+    #    refCrop = np.clip(refCrop, 0, 1)
+    #    refinedRefCrops.append(refCrop)
+
+    #    refCrop2 = np.copy(refCrop)
+
+    #    target = np.median(refCrop2)
+
+    #    gradCropMask = refCrop2 > target
+    #    #cv2.imshow('gradCropMask', gradCropMask.astype('uint8') * 255)
+    #    gradCropMask = cv2.morphologyEx(gradCropMask.astype('uint8'), cv2.MORPH_GRADIENT, kernel)
+    #    refCrop2[np.logical_not(gradCropMask)] = 0
+    #    refinedGradCrops.append(refCrop2)
+
+    #    lap = cv2.Laplacian(refCrop, cv2.CV_64F)
+    #    laps.append(lap)
+
+    #    lapMasked = np.copy(lap)
+    #    lapMaskedMean = np.mean(lapMasked[gradCropMask])
+    #    lapMasked[np.logical_not(gradCropMask)] = 0
+    #    lapsMasked.append(lapMasked)
+    #    lapsMaskedMean.append(lapMaskedMean)
+
+    #    blurred = cv2.GaussianBlur(refCrop, (7, 7), 0)
+    #    blurredLite = cv2.GaussianBlur(refCrop, (3, 3), 0)
+
+    #    #gDiff = np.abs(refCrop - blurred)
+    #    #gDiff = np.abs(blurredLite - blurred)
+    #    gDiff = np.clip(-1 * (blurredLite - blurred), 0, 1)
+    #    gDiffs.append(gDiff)
+
+    #    gDiffMasked = np.copy(gDiff)
+    #    gDiffPoints = gDiffMasked[gradCropMask]
+    #    gDiffMaskedMean = np.mean(gDiffPoints[gDiffPoints > (0)])
+    #    #gDiffMaskedMean = np.mean(gDiffMasked)
+    #    gDiffMasked[np.logical_not(gradCropMask)] = 0
+    #    gDiffsMasked.append(gDiffMasked)
+    #    gDiffsMaskedMean.append(gDiffMaskedMean)
+    #   
+    #    
+    #    
+    #    #refCrop[invMask] = 0
+    #    #eyeCrops.append(eyeCrop)
+
+    #refCropStack = np.vstack(refCrops)
+    #refinedRefCropStack = np.vstack(refinedRefCrops)
+    #refinedGradCropStack = np.vstack(refinedGradCrops)
+    ##cv2.imshow('ref stack', refCropStack)
+    ##cv2.imshow('refined stack', refinedRefCropStack)
+
+    ##laps = [cv2.Laplacian(crop, cv2.CV_64F) for crop in refinedRefCrops]
+    #lapStack = np.vstack(laps)
+    #lapMaskedStack = np.vstack(lapsMasked)
+    #gDiffStacked = np.vstack(gDiffs)
+    #gDiffMaskedStack = np.vstack(gDiffsMasked)
+    #laps_means = lapsMaskedMean#[np.mean(lap) for lap in lapsMaskedPoints]
+
+    #laps_top10 = []
+
+    ##plt.subplot(131)
+    ##plt.scatter(hsvPoints[:, 0], hsvPoints[:, 2], 50, colors)
+    ##plt.xlabel('Hue')
+    ##plt.ylabel('Value')
+
+    ##plotIndexBase = 100 + len(refinedRefCrops) * 10
+
+    ##for idx, ref in enumerate(refinedRefCrops):
+    ##    plotIndex = plotIndexBase + idx + 1
+    ##    greaterThanZero = ref[ref>0.2]
+    ##    plt.subplot(plotIndex)
+    ##    plt.hist(greaterThanZero, bins=25, cumulative=False)
+
+    ##plt.show()
+    ##for lap in laps:
+    ##    greaterThanZero = lap[lap>0]
+    ##    margin = -1 * 0.05
+    ##    index = int(margin * len(greaterThanZero))
+    ##    #bottom5_index = int(margin * len(greaterThanZero))
+    ##    #print('Top 10 index :: ' + str(top10_index))
+    ##    middle90 = sorted(greaterThanZero)[index:index]
+    ##    top10_mean = np.mean(middle90)
+    ##    laps_top10.append(top10_mean)
+    ##laps_top10 = [np.mean(sorted(lap[lap>0])[-10:]) for lap in laps]
+    #print('BLURRIENESS SCORES :: {}'.format(gDiffsMaskedMean))
+    ##print('BLURRIENESS SCORES2:: {}'.format(laps_top10))
+
+    ##cv2.imshow('ffts', ffts_shifted[0] / np.max(ffts_shifted))
+    ##cv2.waitKey(0)
+    ##greyLeftEyeCropsLinearStretchedFFTShiftedMeans = [np.mean(leftEyeFFT) for leftEyeFFT in greyLeftEyeCropsLinearStretchedFFTShifted]
+
+    #lapStack = lapStack / np.max(lapStack)
+    #lapMaskedStack = lapMaskedStack / np.max(lapMaskedStack)
+    #gDiffStacked = gDiffStacked / np.max(gDiffStacked)
+    #gDiffMaskedStack = gDiffMaskedStack / np.max(gDiffMaskedStack)
+
+    #cv2.imshow('stack', np.hstack([refCropStack, refinedRefCropStack, refinedGradCropStack, lapStack, lapMaskedStack, gDiffStacked, gDiffMaskedStack]))
+    #cv2.waitKey(0)
+
 
     print('Eye Reflection BB :: ' + str(eyeReflectionBB))
     eyeReflectionBB[0] += eyeCropX1
