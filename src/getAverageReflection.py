@@ -162,6 +162,19 @@ def simpleStretch(grey):
     #    stretchedRow = (grey - minValue) / (maxValue - minValue)
     #    stretchedGrey.append(stretchedRow)
 
+#Extracts a bounding box of all masked objects together
+def simpleMaskBB(mask):
+    yAxis = (np.arange(mask.shape[0])[:, None] * mask)[mask]
+    xAxis = (np.arange(mask.shape[1]) * mask)[mask]
+
+    yStart = np.min(yAxis)
+    yEnd = np.max(yAxis)
+
+    xStart = np.min(xAxis)
+    xEnd = np.max(xAxis)
+
+    return np.array([xStart, yStart, xEnd - xStart, yEnd - yStart])
+
 
     #return np.array(stretchedRow)
 def maskReflectionBB(eyes, wb):
@@ -203,7 +216,7 @@ def maskReflectionBB(eyes, wb):
 
     highScore = 0
     eyeReflectionBB = None
-    #mask = None
+    gradientMask = None
     for index, contour in enumerate(contours):
         target = np.zeros(totalChangeMaskOpenedDilated.shape, dtype='uint8')
         drawn =  cv2.drawContours(target, contours, index, 255, cv2.FILLED)
@@ -217,36 +230,113 @@ def maskReflectionBB(eyes, wb):
             if borderPointsMedian > highScore:
                 highScore = borderPointsMedian
                 eyeReflectionBB = list(cv2.boundingRect(contour))
-                #mask = drawn
+                gradientMask = drawn.astype('bool')
 
     if eyeReflectionBB is None:
         raise NameError('Could Not Find Reflection BB')
 
-    
+
     x, y, w, h = eyeReflectionBB
-    refCrops = [eyeCrop[y:y+h, x:x+w] for eyeCrop in croppedGreyEyes]
+    middlePoint = [x + int(0.5 * w), y + int(0.5 * h)]
+    print('Middle Point :: ' + str(middlePoint))
+
+    halfSampleWidth = 3
+
+    #columnBB = [middlePoint[0] - halfSampleWidth, 0, 2 * halfSampleWidth, h]
+    #rowBB = [0, middlePoint[1] - halfSampleWidth, w, 2 * halfSampleWidth]
+
+    topColumnMask = np.zeros(gradientMask.shape, dtype='bool')
+    topColumnMask[:middlePoint[1], (middlePoint[0] - halfSampleWidth):(middlePoint[0] + halfSampleWidth)] = True
+
+    bottomColumnMask = np.zeros(gradientMask.shape, dtype='bool')
+    bottomColumnMask[middlePoint[1]:, (middlePoint[0] - halfSampleWidth):(middlePoint[0] + halfSampleWidth)] = True
+
+    leftRowMask = np.zeros(gradientMask.shape, dtype='bool')
+    leftRowMask[(middlePoint[1] - halfSampleWidth):(middlePoint[1] + halfSampleWidth), :middlePoint[0]] = True
+
+    rightRowMask = np.zeros(gradientMask.shape, dtype='bool')
+    rightRowMask[(middlePoint[1] - halfSampleWidth):(middlePoint[1] + halfSampleWidth), middlePoint[0]:] = True
+
+    #crossMask = np.logical_or(columnMask, rowMask)
+    #sampleZonesMask = np.logical_and(crossMask, gradientMask)
+    topMask = np.logical_and(topColumnMask, gradientMask)
+    bottomMask = np.logical_and(bottomColumnMask, gradientMask)
+    leftMask = np.logical_and(leftRowMask, gradientMask)
+    rightMask = np.logical_and(rightRowMask, gradientMask)
+
+    topMaskBB = simpleMaskBB(topMask)
+    #topMaskBB = topMaskBB + [0, int(topMaskBB[3] / 2), 0, 0]
+    topMaskBB = topMaskBB + [0, 0, 0, topMaskBB[3]]
+    topMaskShifted = np.zeros(topMask.shape)
+    topMaskShifted[topMaskBB[1]:topMaskBB[1] + topMaskBB[3], topMaskBB[0]:topMaskBB[0] + topMaskBB[2]] = 255
+
+    bottomMaskBB = simpleMaskBB(bottomMask)
+    #bottomMaskBB = bottomMaskBB - [0, int(bottomMaskBB[3] / 2), 0, 0]
+    bottomMaskBB = bottomMaskBB - [0, bottomMaskBB[3], 0, (-1) * bottomMaskBB[3]]
+    bottomMaskShifted = np.zeros(bottomMask.shape)
+    bottomMaskShifted[bottomMaskBB[1]:bottomMaskBB[1] + bottomMaskBB[3], bottomMaskBB[0]:bottomMaskBB[0] + bottomMaskBB[2]] = 255
+
+    leftMaskBB = simpleMaskBB(leftMask)
+    #leftMaskBB = leftMaskBB + [int(leftMaskBB[2] / 2), 0, 0, 0]
+    leftMaskBB = leftMaskBB + [0, 0, leftMaskBB[2], 0]
+    leftMaskShifted = np.zeros(leftMask.shape)
+    leftMaskShifted[leftMaskBB[1]:leftMaskBB[1] + leftMaskBB[3], leftMaskBB[0]:leftMaskBB[0] + leftMaskBB[2]] = 255
+
+    rightMaskBB = simpleMaskBB(rightMask)
+    #rightMaskBB = rightMaskBB - [int(rightMaskBB[2] / 2), 0, 0, 0]
+    rightMaskBB = rightMaskBB - [rightMaskBB[2], 0, (-1) * rightMaskBB[2], 0]
+    rightMaskShifted = np.zeros(rightMask.shape)
+    rightMaskShifted[rightMaskBB[1]:rightMaskBB[1] + rightMaskBB[3], rightMaskBB[0]:rightMaskBB[0] + rightMaskBB[2]] = 255
+
+    joinedMask = np.logical_or(topMask, bottomMask)
+    joinedMask = np.logical_or(joinedMask, leftMask)
+    joinedMask = np.logical_or(joinedMask, rightMask)
+
+    joinedMaskShifted = np.logical_or(topMaskShifted, bottomMaskShifted)
+    joinedMaskShifted = np.logical_or(joinedMaskShifted, leftMaskShifted)
+    joinedMaskShifted = np.logical_or(joinedMaskShifted, rightMaskShifted)
+
+    test = np.copy(croppedGreyEyes[0])
+    test[np.logical_not(joinedMask)] = 0
+
+    testShifted = np.copy(croppedGreyEyes[0])
+    testShifted[np.logical_not(joinedMaskShifted)] = 0
+
+    #cv2.imshow('test', )
+
+    print('BBs :: {} | {} | {} | {}'.format(topMaskBB, bottomMaskBB, leftMaskBB, rightMaskBB))
+
+    stack0 = np.vstack([croppedGreyEyes[0], test])
+    stack1 = np.vstack([croppedGreyEyes[0], testShifted])
+    stack2 = np.vstack([gradientMask, joinedMask]).astype('uint8') * 255
+
+
+    cv2.imshow('mask', np.hstack([stack2, stack0, stack1]))
+    cv2.waitKey(0)
+
+
+    #refCrops = [eyeCrop[y:y+h, x:x+w] for eyeCrop in croppedGreyEyes]
     kernel = np.ones((5, 5), np.uint8)
 #    mask = cv2.dilate(mask, kernel, iterations=1).astype('bool') #mask.astype('bool')
 #    invMask = np.logical_not(mask)
 #    eyeCrops = []
 
     middlePoint = [math.floor(w / 2), math.floor(h / 2)]
-    halfSampleWidth = 3
     sampleHeight = math.floor(w / 2)
 
-    topColumnSampleBB = [middlePoint[0] - halfSampleWidth, 0, 2 * halfSampleWidth, sampleHeight]
-    bottomColumnSampleBB = [middlePoint[0] - halfSampleWidth, (h - sampleHeight), 2 * halfSampleWidth, sampleHeight]
+    topColumnSampleBB = topMaskBB#[middlePoint[0] - halfSampleWidth, 0, 2 * halfSampleWidth, sampleHeight]
+    bottomColumnSampleBB = bottomMaskBB#[middlePoint[0] - halfSampleWidth, (h - sampleHeight), 2 * halfSampleWidth, sampleHeight]
 
-    leftRowSampleBB = [0, middlePoint[1] - halfSampleWidth, sampleHeight, 2 * halfSampleWidth]
-    rightRowSampleBB = [middlePoint[0], w - sampleHeight, sampleHeight, 2 * halfSampleWidth]
+    leftRowSampleBB = leftMaskBB#[0, middlePoint[1] - halfSampleWidth, sampleHeight, 2 * halfSampleWidth]
+    rightRowSampleBB = rightMaskBB#[middlePoint[0], w - sampleHeight, sampleHeight, 2 * halfSampleWidth]
 
-    topColumns = [simpleStretch(np.rot90(crop[topColumnSampleBB[1]:topColumnSampleBB[1] + topColumnSampleBB[3], topColumnSampleBB[0]:topColumnSampleBB[0] + topColumnSampleBB[2]], 1)) for crop in refCrops]
+    topColumns = [simpleStretch(np.rot90(crop[topColumnSampleBB[1]:topColumnSampleBB[1] + topColumnSampleBB[3], topColumnSampleBB[0]:topColumnSampleBB[0] + topColumnSampleBB[2]], 1)) for crop in croppedGreyEyes]
 
-    bottomColumns = [simpleStretch(np.rot90(crop[bottomColumnSampleBB[1]:bottomColumnSampleBB[1] + bottomColumnSampleBB[3], bottomColumnSampleBB[0]:bottomColumnSampleBB[0] + bottomColumnSampleBB[2]], 3)) for crop in refCrops]
+    bottomColumns = [simpleStretch(np.rot90(crop[bottomColumnSampleBB[1]:bottomColumnSampleBB[1] + bottomColumnSampleBB[3], bottomColumnSampleBB[0]:bottomColumnSampleBB[0] + bottomColumnSampleBB[2]], 3)) for crop in croppedGreyEyes]
 
-    leftRows = [simpleStretch(crop[leftRowSampleBB[1]:leftRowSampleBB[1] + leftRowSampleBB[3], leftRowSampleBB[0]:leftRowSampleBB[0] + leftRowSampleBB[2]]) for crop in refCrops]
+    leftRows = [simpleStretch(crop[leftRowSampleBB[1]:leftRowSampleBB[1] + leftRowSampleBB[3], leftRowSampleBB[0]:leftRowSampleBB[0] + leftRowSampleBB[2]]) for crop in croppedGreyEyes]
 
-    rightRows = [simpleStretch(np.rot90(crop[rightRowSampleBB[1]:rightRowSampleBB[1] + rightRowSampleBB[3], rightRowSampleBB[0]:rightRowSampleBB[0] + rightRowSampleBB[2]], 2)) for crop in refCrops]
+    rightRows = [simpleStretch(np.rot90(crop[rightRowSampleBB[1]:rightRowSampleBB[1] + rightRowSampleBB[3], rightRowSampleBB[0]:rightRowSampleBB[0] + rightRowSampleBB[2]], 2)) for crop in croppedGreyEyes]
 
     topColumnStack = np.vstack(topColumns)
     bottomColumnStack = np.vstack(bottomColumns)
