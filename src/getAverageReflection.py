@@ -311,8 +311,8 @@ def maskReflectionBB(eyes, wb):
     stack2 = np.vstack([gradientMask, joinedMask]).astype('uint8') * 255
 
 
-    cv2.imshow('mask', np.hstack([stack2, stack0, stack1]))
-    cv2.waitKey(0)
+    #cv2.imshow('mask', np.hstack([stack2, stack0, stack1]))
+    #cv2.waitKey(0)
 
 
     #refCrops = [eyeCrop[y:y+h, x:x+w] for eyeCrop in croppedGreyEyes]
@@ -343,7 +343,7 @@ def maskReflectionBB(eyes, wb):
     leftRowStack = np.vstack(leftRows)
     rightRowStack = np.vstack(rightRows)
 
-    cv2.imshow('AllEdgeSamples', np.hstack([topColumnStack, bottomColumnStack, leftRowStack, rightRowStack]))
+    #cv2.imshow('AllEdgeSamples', np.hstack([topColumnStack, bottomColumnStack, leftRowStack, rightRowStack]))
     #cv2.imshow('rows', np.hstack([leftRowStack, rightRowStack]))
 
     medianTopColumns = [np.median(topColumn, axis=0) for topColumn in topColumns]
@@ -356,30 +356,30 @@ def maskReflectionBB(eyes, wb):
     medianLeftRowStack = np.vstack(medianLeftRows)
     medianRightRowStack = np.vstack(medianRightRows)
 
-    cv2.imshow('AllEdgeSamplesMedians', np.hstack([medianTopColumnStack, medianBottomColumnStack, medianLeftRowStack, medianRightRowStack]))
-    cv2.waitKey(0)
+    #cv2.imshow('AllEdgeSamplesMedians', np.hstack([medianTopColumnStack, medianBottomColumnStack, medianLeftRowStack, medianRightRowStack]))
+    #cv2.waitKey(0)
 
     
-    for idx in range(0, len(medianTopColumns)):
-        plotIndex = 481
+    #for idx in range(0, len(medianTopColumns)):
+    #    plotIndex = 481
 
-        plt.subplot(4, 8, 1 + idx)
-        #plt.hist(topColumns[idx].flatten())
-        plt.scatter(np.arange(len(medianTopColumns[idx])), medianTopColumns[idx])
+    #    plt.subplot(4, 8, 1 + idx)
+    #    #plt.hist(topColumns[idx].flatten())
+    #    plt.scatter(np.arange(len(medianTopColumns[idx])), medianTopColumns[idx])
 
-        plt.subplot(4, 8, 9 + idx)
-        #plt.hist(bottomColumns[idx].flatten())
-        plt.scatter(np.arange(len(medianBottomColumns[idx])), medianBottomColumns[idx])
+    #    plt.subplot(4, 8, 9 + idx)
+    #    #plt.hist(bottomColumns[idx].flatten())
+    #    plt.scatter(np.arange(len(medianBottomColumns[idx])), medianBottomColumns[idx])
 
-        plt.subplot(4, 8, 17 + idx)
-        #plt.hist(leftRows[idx].flatten())
-        plt.scatter(np.arange(len(medianLeftRows[idx])), medianLeftRows[idx])
+    #    plt.subplot(4, 8, 17 + idx)
+    #    #plt.hist(leftRows[idx].flatten())
+    #    plt.scatter(np.arange(len(medianLeftRows[idx])), medianLeftRows[idx])
 
-        plt.subplot(4, 8, 25 + idx)
-        #plt.hist(rightRows[idx].flatten())
-        plt.scatter(np.arange(len(medianRightRows[idx])), medianRightRows[idx])
+    #    plt.subplot(4, 8, 25 + idx)
+    #    #plt.hist(rightRows[idx].flatten())
+    #    plt.scatter(np.arange(len(medianRightRows[idx])), medianRightRows[idx])
 
-    plt.show()
+    #plt.show()
 
 
 
