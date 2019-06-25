@@ -17,6 +17,7 @@ import math
 import matplotlib.pyplot as plt
 import cropTools
 import getSharpness
+import getVersion
 #import landmarkPoints
 from capture import Capture 
 from faceRegions import FaceRegions
@@ -634,6 +635,8 @@ def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
     return medianDiffs
 
 def run(username, imageName, fast=False, saveStats=False, failOnError=False):
+    version = getVersion.getVersion()
+    print("SERVER VERSION :: " + str(version))
     saveStep = Save(username, imageName)
     saveStep.resetLogFile()
     saveStep.deleteReference()
