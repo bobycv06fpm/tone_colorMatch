@@ -311,9 +311,8 @@ def maskReflectionBB(eyes, wb):
     stack2 = np.vstack([gradientMask, joinedMask]).astype('uint8') * 255
 
 
-    #cv2.imshow('mask', np.hstack([stack2, stack0, stack1]))
+    #cv2.imshow('mask', np.hstack([stack2, stack0, stack1])) cv2.waitKey(0)
     #cv2.waitKey(0)
-
 
     #refCrops = [eyeCrop[y:y+h, x:x+w] for eyeCrop in croppedGreyEyes]
     kernel = np.ones((5, 5), np.uint8)

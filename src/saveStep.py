@@ -4,32 +4,60 @@ import os
 import numpy as np
 import colorTools
 import json
+import psycopg2
 
-#root = '../../'
-#root = '/home/dmacewen/Projects/tone/'
-root = os.path.expanduser('/home/dmacewen/Projects/tone/')
+IMAGES_DIR = '/home/dmacewen/Projects/tone/images/'
 
-class Save:
+#Turn into an abstraction around state? Encapsulate DB and File System?
+# Load Images
+# Load DB info
+# Load and Save reference data
+class State:
 
-    def __init__(self, username, fileName):
-        self.root = root#os.path.expanduser('~/Projects/tone/')
-        #self.root = '/home/dmacewen/Projects/tone/'
-        self.username = username
-        self.fileName = fileName
+    def __init__(self, user_id, capture_id=None):
+        self.user_id = user_id
+        self.capture_id = capture_id
+        self.capture_directory = None 
+        self.capture_metadata = None
+
+        try:
+            #Do not love storing password in plain text in code....
+            self.conn = psycopg2.connect(dbname="tone",
+                                    user="postgres",
+                                    port="5434",
+                                    password="dirty vent unroof")
+
+        except (Exception, psycopg2.Error) as error:
+            print("Error while fetch data from Postrgesql", error)
+
+        if self.capture_id is not None:
+            captureQuery = 'SELECT capture_id, session_id, capture_metadata FROM captures WHERE (user_id=%s AND capture_id=%s)'
+            data = (self.user_id, self.capture_id)
+        else:
+            captureQuery = 'SELECT capture_id, session_id, capture_metadata FROM captures WHERE (user_id=%s AND capture_date=(SELECT MAX(capture_date) FROM captures WHERE user_id=%s))'
+            data = (self.user_id, self.user_id)
+
+
+        with self.conn.cursor() as cursor:
+            cursor.execute(captureQuery, data)
+            capture = cursor.fetchone()
+
+        self.capture_id = capture[0]
+        self.session_id = capture[1]
+        self.capture_metadata = capture[2]
+        self.capture_directory = os.path.join(IMAGES_DIR, str(user_id), str(self.session_id), str(self.capture_id))
+
+        if not os.path.isdir(self.capture_directory):
+            raise NameError("Capture Directory Does Not Exist :: {}".format(self.capture_directory))
+
+        #self.images = self.loadImages()
 
     def referencePathBuilder(self, file='', extension=''):
-        return os.path.join(self.root, 'images/', self.username, self.fileName, 'reference', file + extension)
-
-    #def benchmarkPathBuilder(self, benchmarkName=''):
-    #    extension = '.csv' if benchmarkName != '' else ''
-    #    return os.path.join(root, 'images/', username, fileName, 'benchmark', benchmarkName + extension)
+        return os.path.join(self.capture_directory, 'reference', file + extension)
 
     def stepPathBuilder(self, step='', ext='.csv', meta=''):
         extension = ext if step != '' else ''
-        return os.path.join(self.root, 'images/', self.username, self.fileName, 'steps', str(step) + meta + extension)
-
-    #def calibrationPathBuilder(username):
-    #    return '../calibrations/' + username + '/cameraResponseFunction.csv'
+        return os.path.join(self.capture_directory, 'steps', str(step) + meta + extension)
 
     def touchReference(self):
         path = self.referencePathBuilder()
@@ -46,19 +74,47 @@ class Save:
                 print('Removing :: ' + str(fileToRemove))
                 os.remove(fileToRemove)
 
-#userDirectories = [o for o in os.listdir(userPath) if os.path.isdir(os.path.join(userPath, o))]
-
-    #def touchBenchmark(username, fileName):
-    #    path = benchmarkPathBuilder(username, fileName)
-    #    if not os.path.exists(path):
-    #        os.makedirs(path)
-    #        os.chmod(path, 0o777)
-
     def touchSteps(self):
         path = self.stepPathBuilder()
         if not os.path.exists(path):
             os.makedirs(path)
             os.chmod(path, 0o777)
+
+    def imageName(self):
+        return '{}-{}-{}'.format(self.user_id, self.session_id, self.capture_id)
+
+    def loadImages(self): 
+        leftEyeFileTemplate = "{}_leftEye.PNG"
+        rightEyeFileTemplate = "{}_rightEye.PNG"
+        faceFileTemplate = "{}.PNG"
+
+        imageSets = []
+        for capture_number in range(1, 9):
+            faceFile = faceFileTemplate.format(capture_number)
+            leftEyeFile = leftEyeFileTemplate.format(capture_number)
+            rightEyeFile = rightEyeFileTemplate.format(capture_number)
+
+            faceFilePath = os.path.join(self.capture_directory, faceFile)
+            leftEyeFilePath = os.path.join(self.capture_directory, leftEyeFile)
+            rightEyeFilePath = os.path.join(self.capture_directory, rightEyeFile)
+
+            isFacePathValid = os.path.isfile(faceFilePath)
+            isLeftEyePathValid = os.path.isfile(leftEyeFilePath)
+            isRightEyePathValid = os.path.isfile(rightEyeFilePath)
+
+            if not (isFacePathValid and isLeftEyePathValid and isRightEyePathValid):
+                raise NameError('Face, Left Eye, or Right Eye Path is not valid :: {}'.format(faceFilePath))
+
+            face = cv2.imread(faceFilePath)
+            leftEye = cv2.imread(leftEyeFilePath)
+            rightEye = cv2.imread(rightEyeFilePath)
+
+            if (face is None) or (leftEye is None) or (rightEye is None):
+                raise NameError('Face, Left Eye or Right Eye image could not be read :: {}'.format(faceFilePath))
+
+            imageSets.append([face, leftEye, rightEye])
+
+        return imageSets
 
     def saveImageStep(self, image, step, meta=''):
         self.touchSteps()
@@ -74,11 +130,6 @@ class Save:
         cv2.imwrite(path, image.astype('uint8'))
         os.chmod(path, 0o777)
 
-    #def loadImageStep(username, fileName, step, meta=''):
-    #    path = stepPathBuilder(username, fileName, step, '.PNG', meta)
-    #    image = cv2.imread(path)
-    #    return image
-
     def saveShapeStep(self, shape, step):
         self.touchSteps()
         path = self.stepPathBuilder(step)
@@ -88,16 +139,6 @@ class Save:
 
         os.chmod(path, 0o777)
 
-    #def loadShapeStep(username, fileName, step):
-    #    path = stepPathBuilder(username, fileName, step)
-    #    shape = []
-    #    with open(path, 'r', newline='') as f:
-    #        shapeReader = csv.reader(f, delimiter=' ', quotechar='|')
-    #        for row in shapeReader:
-    #            shape.append([int(i) for i in row])
-
-    #    return np.array(shape)
-
     def savePointsStep(self, points, step, meta=''):
         self.touchSteps()
         path = self.stepPathBuilder(step, '.csv', meta)
@@ -106,58 +147,6 @@ class Save:
             pointWriter.writerows(points)
 
         os.chmod(path, 0o777)
-
-    #def loadPointsStep(username, fileName, step, meta=''):
-    #    path = stepPathBuilder(username, fileName, step, '.csv', meta)
-    #    points = []
-    #    with open(path, 'r', newline='') as f:
-    #        pointReader = csv.reader(f, delimiter=' ', quotechar='|')
-    #        for row in pointReader:
-    #            points.append([float(i) for i in row])
-
-    #    return np.array(points)
-
-
-    #def saveAverageFlashContribution(averageFlashContribution, step):
-    #    self.touchSteps(username, fileName)
-    #    path = self.stepPathBuilder(username, fileName, step, '.txt', '_averageFlashContribution')
-    #    with open(path, 'w') as f:
-    #        f.write(str(averageFlashContribution))
-
-    #    os.chmod(path, 0o777)
-
-    #def loadAverageFlashContribution(username, fileName, step):
-    #    path = stepPathBuilder(username, fileName, step, '.txt', '_averageFlashContribution')
-    #    with open(path, 'r') as f:
-    #        averageFlashContribution = f.read()
-
-    #    return float(averageFlashContribution)
-
-    #def saveColor(username, fileName, color, step):
-    #    touchSteps(username, fileName)
-    #    path = stepPathBuilder(username, fileName, step, '.txt', '_averageColor')
-    #    with open(path, 'w') as f:
-    #        f.write(str(color[0]) + ',' + str(color[1]) + ',' + str(color[2]))
-
-    #    os.chmod(path, 0o777)
-
-    #def loadColor(username, fileName, step):
-    #    path = stepPathBuilder(username, fileName, step, '.txt', '_averageColor')
-    #    with open(path, 'r') as f:
-    #        point = [float(i) for i in f.readline().split(',')]
-
-    #    return point
-
-    #def drawPointsAndSaveBGR(username, bgr_float, shape, fileName, reference):
-    #    touchReference(username, fileName)
-    #    [image, error] = colorTools.convert_linearBGR_float_to_sBGR(bgr_float)
-    #    for (i, j) in shape:
-    #       cv2.circle(image, (i, j), 3, (0, 0, 255), -1)
-    #    image = bgr_float * 255
-    #    path = referencePathBuilder(username, fileName, reference, '.PNG')
-    #    cv2.imwrite(path, image)
-    #    os.chmod(path, 0o777)
-
 
     def saveReferenceImageSBGR(self, image, reference):
         self.touchReference()
@@ -187,10 +176,6 @@ class Save:
         cv2.imwrite(path, image)
         os.chmod(path, 0o777)
 
-    #def saveReferenceImageHSV(username, fileName, hsv_float, reference):
-    #    bgr_float  = colorTools.convert_linearHSV_float_to_linearBGR_float(hsv_float)
-    #    saveReferenceImageBGR(username, fileName, bgr_float, reference)
-
     def logMeasurement(self, measurementName, measurementValue):
         path = self.referencePathBuilder('measurementLog', '.txt')
         with open(path, 'a+') as f:
@@ -204,94 +189,28 @@ class Save:
         open(path, 'w').close()
         os.chmod(path, 0o777)
 
-    #def logTimeMeasurement(username, fileName, measurementName, programStartTime, stepStartTime, endTime):
-    #    stepElapsedTime = endTime - stepStartTime
-    #    totalElapsedTime = endTime - programStartTime
-    #    logMeasurement(fileName, 'Step Elapsed Time ' + measurementName, str(stepElapsedTime))
-    #    logMeasurement(fileName, 'Total Elapsed Time ' + measurementName, str(totalElapsedTime))
-
-    #def saveBenchmarkPoints(username, fileName, benchmarkName, points):
-    #    touchBenchmark(fileName)
-    #    path = benchmarkPathBuilder(username, fileName, benchmarkName)
-    #    with open(path, 'w', newline='') as f:
-    #        benchWriter = csv.writer(f, delimiter=' ', quotechar='|')
-    #        benchWriter.writerows(points)
-    #
-    #    os.chmod(path, 0o777)
-    #
-    #def saveBenchmarkValue(username, fileName, benchmarkName, value):
-    #    touchBenchmark(fileName)
-    #    path = benchmarkPathBuilder(username, fileName, benchmarkName)
-    #    with open(path, 'w', newline='') as f:
-    #        f.write(value)
-    #
-    #    os.chmod(path, 0o777)
-        
-    #def saveCameraResponseFunction(CRF, userName):
-    #    path = calibrationPathBuilder(userName)
-    #    with open(path, 'w') as f:
-    #        pointWriter = csv.writer(f)
-    #        pointWriter.writerows(CRF)
-    #
-    #    os.chmod(path, 0o777)
-    #
-    #def getCameraResponseFunction(userName):
-    #    path = calibrationPathBuilder(userName)
-    #    CRF = []
-    #    with open(path, 'r') as f:
-    #        crfReader = csv.reader(f)
-    #        for row in crfReader:
-    #            row = row[0][1:-1].split(" ")
-    #            row = [value for value in row if len(value) > 0]
-    #            print("Row :: " + str(row))
-    #            CRF.append([float(i) for i in row])
-    #
-    #    os.chmod(path, 0o777)
-    #
-    #    return np.array(CRF)
-
-    #def getAsShotWhiteBalance(username, fileName):
-    #    path = root + 'images/' + username + '/' + fileName + '/' + fileName + '-whiteBalance.txt'
-    #
-    #    parsedValues = []
-    #    with open(path, 'r', newline='') as f:
-    #        #Yea Yea I know this is nasty. Change so app just sends json or csv 
-    #        wbValuesString = f.readline()
-    #        roughParseValues = wbValuesString.split('], [')
-    #        parsedStringValues = [value.lstrip('[]\n').rstrip('[]\n').split(', ') for value in roughParseValues]
-    #        parsedValues = [[float(coordValue) for coordValue in value] for value in parsedStringValues]
-    #
-    #    for value in parsedValues:
-    #        if value != parsedValues[0]:
-    #            raise NameError('Not All White Balance Values Match!')
-    #
-    #    return parsedValues[0]
+    def getMetadata(self):
+        return self.capture_metadata
 
     def getAsShotWhiteBalance(self):
-        path = os.path.join(self.root, 'images/', self.username, self.fileName, self.fileName + '-metadata.txt')
+        whiteBalanceDict = self.capture_metadata[0]['whiteBalance']
+        return [whiteBalanceDict['x'], whiteBalanceDict['y']]
 
-        with open(path) as f:
-            data = json.load(f)
+    #def getMetadata(self):
+    #    path = os.path.join(self.root, 'images/', self.username, self.fileName, self.fileName + '-metadata.txt')
 
-        return [data[0]['whiteBalance']['x'], data[0]['whiteBalance']['y']]
+    #    with open(path) as f:
+    #        data = json.load(f)
 
-    def getMetadata(self):
-        path = os.path.join(self.root, 'images/', self.username, self.fileName, self.fileName + '-metadata.txt')
+    #    defaultImageTransforms = {}
+    #    defaultImageTransforms["isGammaSBGR"] = True
+    #    defaultImageTransforms["isRotated"] = True
 
-        with open(path) as f:
-            data = json.load(f)
+    #    for capture in data:
+    #        if not "imageTransforms" in capture:
+    #            capture["imageTransforms"] = defaultImageTransforms
 
-        defaultImageTransforms = {}
-        defaultImageTransforms["isGammaSBGR"] = True
-        defaultImageTransforms["isRotated"] = True
-
-        for capture in data:
-            if not "imageTransforms" in capture:
-                capture["imageTransforms"] = defaultImageTransforms
-
-        #print("LOADING :: " + str(data))
-
-        return data
+    #    return data
 
     def savePlot(self, name, plot):
         path = self.referencePathBuilder(name, '.jpg')
