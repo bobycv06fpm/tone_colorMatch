@@ -5,6 +5,7 @@ import numpy as np
 import colorTools
 import json
 import psycopg2
+import getVersion
 
 IMAGES_DIR = '/home/dmacewen/Projects/tone/images/'
 
@@ -15,6 +16,9 @@ IMAGES_DIR = '/home/dmacewen/Projects/tone/images/'
 class State:
 
     def __init__(self, user_id, capture_id=None):
+        self.version = getVersion.getVersion()
+        print("SERVER VERSION :: " + str(self.version))
+
         self.user_id = user_id
         self.capture_id = capture_id
         self.capture_directory = None 
@@ -29,6 +33,7 @@ class State:
 
         except (Exception, psycopg2.Error) as error:
             print("Error while fetch data from Postrgesql", error)
+            raise NameError("Error while fetch data from Postrgesql", error)
 
         if self.capture_id is not None:
             captureQuery = 'SELECT capture_id, session_id, capture_metadata FROM captures WHERE (user_id=%s AND capture_id=%s)'
@@ -51,6 +56,15 @@ class State:
             raise NameError("Capture Directory Does Not Exist :: {}".format(self.capture_directory))
 
         #self.images = self.loadImages()
+
+    def saveCaptureResults(self, calibrated_skin_color, matched_skin_color_id):
+        upsertCaptureResult = 'INSERT INTO capture_results (capture_id, user_id, backend_version, calibrated_skin_color, matched_skin_color_id) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (capture_id) DO UPDATE SET (processed_date, backend_version, calibrated_skin_color, matched_skin_color_id)=ROW(NOW()::TIMESTAMP, EXCLUDED.backend_version, EXCLUDED.calibrated_skin_color, EXCLUDED.matched_skin_color_id)'
+        data = (self.capture_id, int(self.user_id), self.version, calibrated_skin_color, matched_skin_color_id)
+        print('Capture Results Data :: {}'.format(data))
+
+        with self.conn.cursor() as cursor:
+            cursor.execute(upsertCaptureResult, data)
+            self.conn.commit()
 
     def referencePathBuilder(self, file='', extension=''):
         return os.path.join(self.capture_directory, 'reference', file + extension)

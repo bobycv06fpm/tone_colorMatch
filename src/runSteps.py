@@ -1,4 +1,3 @@
-#from detectFace import detectFace
 import alignImages
 from getAverageReflection import getAverageScreenReflectionColor2
 #from saveStep import Save
@@ -17,7 +16,6 @@ import math
 import matplotlib.pyplot as plt
 import cropTools
 import getSharpness
-import getVersion
 #import landmarkPoints
 from capture import Capture 
 from faceRegions import FaceRegions
@@ -635,8 +633,6 @@ def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
     return medianDiffs
 
 def run2(user_id, capture_id=None):
-    version = getVersion.getVersion()
-    print("SERVER VERSION :: " + str(version))
     state = State(user_id, capture_id)
     state.resetLogFile()
     state.deleteReference()
@@ -721,6 +717,10 @@ def run2(user_id, capture_id=None):
     #print('WB BGR vs Reflection :: ' + str(scaledBGR) + ' ' + str(bestGuess[0]))
     #print('BEST GUESS -> REFLECTION :: {} | FACE :: {}'.format(bestGuess[0], bestGuess[1]))
     #bestGuess[0] = list(scaledBGR)
+
+    calibrated_skin_color = [0.0, 0.0, 0.0]
+    matched_skin_color_id = 0
+    state.saveCaptureResults(calibrated_skin_color, matched_skin_color_id)
 
     response = getResponse(state.imageName(), True, captureSets, linearFitSets, bestGuess, averageReflectionArea)
     print(json.dumps(response))
