@@ -8,6 +8,7 @@ import psycopg2
 import getVersion
 
 IMAGES_DIR = '/home/dmacewen/Projects/tone/images/'
+COLOR_MATCH_DIR = '/home/dmacewen/Projects/tone/tone_colorMatch/'
 
 #Turn into an abstraction around state? Encapsulate DB and File System?
 # Load Images
@@ -16,7 +17,7 @@ IMAGES_DIR = '/home/dmacewen/Projects/tone/images/'
 class State:
 
     def __init__(self, user_id, capture_id=None):
-        self.version = getVersion.getVersion()
+        self.version = getVersion.getVersion(COLOR_MATCH_DIR)
         print("SERVER VERSION :: " + str(self.version))
 
         self.user_id = user_id
@@ -227,7 +228,8 @@ class State:
     #    return data
 
     def savePlot(self, name, plot):
-        path = self.referencePathBuilder(name, '.jpg')
+        #path = self.referencePathBuilder(name, '.jpg')
+        path = self.referencePathBuilder(name, '.png') #new matplotlib requires png
         plot.savefig(path, dpi=500)
         plot.close()
 

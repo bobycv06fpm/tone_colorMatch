@@ -71,7 +71,8 @@ def erode(img):
 
 def getReflectionBB(maskedImg):
     img = np.clip(maskedImg * 255, 0, 255).astype('uint8')
-    im2, contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    #im2, contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     areas = [cv2.contourArea(c) for c in contours]
 
     if not areas:
@@ -211,7 +212,8 @@ def maskReflectionBB(eyes, wb):
     totalChangeLap = cv2.Laplacian(totalChange, cv2.CV_64F)
     totalChangeLap = totalChangeLap / np.max(totalChangeLap)
 
-    im2, contours, hierarchy = cv2.findContours(totalChangeMaskOpenedDilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    #im2, contours, hierarchy = cv2.findContours(totalChangeMaskOpenedDilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(totalChangeMaskOpenedDilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     areas = [cv2.contourArea(c) for c in contours]
 
     highScore = 0
@@ -677,7 +679,8 @@ def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
     #reflectionMask = np.logical_or(lowerBoundMask, reflectionMask)
 
     inv_reflectionMask = np.logical_not(reflectionMask)
-    im2, contours, hierarchy = cv2.findContours(inv_reflectionMask.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    #im2, contours, hierarchy = cv2.findContours(inv_reflectionMask.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(inv_reflectionMask.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     
     areas = [cv2.contourArea(c) for c in contours]
     max_index = np.argmax(areas)
