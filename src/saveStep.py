@@ -32,19 +32,19 @@ class State:
         try:
             #TEMP
             #Do not love storing password in plain text in code....
-            self.conn = psycopg2.connect(dbname="tone",
-                                    user="postgres",
-                                    port="5434",
-                                    password="dirty vent unroof")
-
-            #if 'RDS_HOSTNAME' in os.environ:
-            #    conn = psycopg2.connect(dbname=os.environ['RDS_DB_NAME'],
-            #                            user=os.environ['RDS_USERNAME'],
-            #                            password=os.environ['RDS_PASSWORD'],
-            #                            host=os.environ['RDS_HOSTNAME'],
-            #                            port=os.environ['RDS_PORT'])
-            #else:
-            #    print('CANNOT CONNECT TO DB!')
+#            self.conn = psycopg2.connect(dbname="tone",
+#                                    user="postgres",
+#                                    port="5434",
+#                                    password="dirty vent unroof")
+#
+            if 'RDS_HOSTNAME' in os.environ:
+                conn = psycopg2.connect(dbname=os.environ['RDS_DB_NAME'],
+                                        user=os.environ['RDS_USERNAME'],
+                                        password=os.environ['RDS_PASSWORD'],
+                                        host=os.environ['RDS_HOSTNAME'],
+                                        port=os.environ['RDS_PORT'])
+            else:
+                print('CANNOT CONNECT TO DB!')
 
 
         except (Exception, psycopg2.Error) as error:
@@ -127,8 +127,8 @@ class State:
         raw_buffer = io.BytesIO(raw).getbuffer()
         return cv2.imdecode(np.asarray(raw_buffer), 1)
 
-    def storeImage(self, key, img):
-        img_encoded = io.BytesIO(cv2.imencode('.png', img)[1]).getvalue()
+    def storeImage(self, key, img, extension='.png'):
+        img_encoded = io.BytesIO(cv2.imencode(extension, img)[1]).getvalue()
         self.s3.put_object(Bucket=TONE_USER_CAPTURES_BUCKET, Key=key, Body=img_encoded)
 
     def loadImages(self): 
@@ -269,12 +269,20 @@ class State:
     #    return data
 
     def savePlot(self, name, plot):
-        print('NOT IMPLEMENTED')
-        return
+        #print('NOT IMPLEMENTED')
+        #return
         #path = self.referencePathBuilder(name, '.jpg')
-        path = self.referencePathBuilder(name, '.png') #new matplotlib requires png
-        plot.savefig(path, dpi=500)
+        extension='.jpg'
+        key = self.referencePathBuilder(name, extension) #new matplotlib requires png
+        path = '/tmp/{}{}'.format(self.imageName(), extension)
+        plot.savefig(path, optimize=True)
         plot.close()
+
+        print('Saved chart to {}'.format(path))
+
+        plotImg = cv2.imread(path)
+        self.storeImage(key, plotImg, extension)
+        os.remove(path)
 
     #def saveImageStat(self, statName, statValue):
     #    path = self.referencePathBuilder('imageStats', '.csv')
