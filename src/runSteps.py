@@ -633,15 +633,16 @@ def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
     return medianDiffs
 
 def run2(user_id, capture_id=None):
+    failOnError = False
     state = State(user_id, capture_id)
-    state.resetLogFile()
-    state.deleteReference()
+    #state.resetLogFile()
+    #state.deleteReference()
     images = state.loadImages()
     metadata = state.getMetadata()
     #print(state.getMetadata())
 
     if not isMetadataValid(metadata):
-        print('User :: {} | Image :: {} | Error :: {}'.format(username, state.imageName(), 'Metadata does not Match'))
+        print('User :: {} | Image :: {} | Error :: {}'.format(state.user_id, state.imageName(), 'Metadata does not Match'))
         return getResponse(state.imageName(), False)
 
     #numImages = len(images)
@@ -658,9 +659,9 @@ def run2(user_id, capture_id=None):
         leftEyeCropOffsets, rightEyeCropOffsets, faceCropOffsets = alignImages.getCaptureEyeOffsets2(captures)
     except Exception as err:
         if failOnError:
-            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, state.imageName(), 'Error Cropping and Aligning Images', err))
+            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error Cropping and Aligning Images', err))
         else:
-            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, state.imageName(), 'Error Cropping and Aligning Images', err))
+            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error Cropping and Aligning Images', err))
             return getResponse(state.imageName(), False)
 
     #leftEyeOffsets -= averageOffsets #Need offsets relative to averageOffset now that we are aligned
@@ -675,18 +676,18 @@ def run2(user_id, capture_id=None):
         averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections = getAverageScreenReflectionColor2(captures, leftEyeCropOffsets, rightEyeCropOffsets, state)
     except Exception as err:
         if failOnError:
-            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, state.imageName(), 'Error Extracting Reflection', err))
+            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error Extracting Reflection', err))
         else:
-            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, state.imageName(), 'Error Extracting Reflection', err))
+            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error Extracting Reflection', err))
             return getResponse(state.imageName(), False)
 
     try:
         faceRegions = np.array([FaceRegions(capture) for capture in captures])
     except Exception as err:
         if failOnError:
-            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, state.imageName(), 'Error extracting Points for Recovered Mask', err))
+            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error extracting Points for Recovered Mask', err))
         else:
-            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, state.imageName(), 'Error extracting Points for Recovered Mask', err))
+            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error extracting Points for Recovered Mask', err))
             return getResponse(state.imageName(), False)
 
     state.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')

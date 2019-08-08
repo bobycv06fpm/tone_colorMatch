@@ -1,6 +1,7 @@
 import cv2
 import csv
 import os
+import io
 import numpy as np
 import colorTools
 import json
@@ -10,6 +11,7 @@ import boto3
 
 #IMAGES_DIR = '/home/dmacewen/Projects/tone/images/'
 #COLOR_MATCH_DIR = '/home/dmacewen/Projects/tone/tone_colorMatch/'
+TONE_USER_CAPTURES_BUCKET = 'tone-user-captures'
 
 #Turn into an abstraction around state? Encapsulate DB and File System?
 # Load Images
@@ -24,25 +26,25 @@ class State:
 
         self.user_id = user_id
         self.capture_id = capture_id
-        self.capture_directory = None 
+        self.capture_key_root = None 
         self.capture_metadata = None
 
         try:
             #TEMP
             #Do not love storing password in plain text in code....
-            #self.conn = psycopg2.connect(dbname="tone",
-            #                        user="postgres",
-            #                        port="5434",
-            #                        password="dirty vent unroof")
+            self.conn = psycopg2.connect(dbname="tone",
+                                    user="postgres",
+                                    port="5434",
+                                    password="dirty vent unroof")
 
-            if 'RDS_HOSTNAME' in os.environ:
-                conn = psycopg2.connect(dbname=os.environ['RDS_DB_NAME'],
-                                        user=os.environ['RDS_USERNAME'],
-                                        password=os.environ['RDS_PASSWORD'],
-                                        host=os.environ['RDS_HOSTNAME'],
-                                        port=os.environ['RDS_PORT'])
-            else:
-                print('CANNOT CONNECT TO DB!')
+            #if 'RDS_HOSTNAME' in os.environ:
+            #    conn = psycopg2.connect(dbname=os.environ['RDS_DB_NAME'],
+            #                            user=os.environ['RDS_USERNAME'],
+            #                            password=os.environ['RDS_PASSWORD'],
+            #                            host=os.environ['RDS_HOSTNAME'],
+            #                            port=os.environ['RDS_PORT'])
+            #else:
+            #    print('CANNOT CONNECT TO DB!')
 
 
         except (Exception, psycopg2.Error) as error:
@@ -64,11 +66,13 @@ class State:
         self.capture_id = capture[0]
         self.session_id = capture[1]
         self.capture_metadata = capture[2]
-        #self.capture_directory = os.path.join(IMAGES_DIR, str(user_id), str(self.session_id), str(self.capture_id))
-        self.capture_directory = '{}/{}/{}'.format(user_id, self.session_id, self.capture_id)
+        #self.capture_key_root = os.path.join(IMAGES_DIR, str(user_id), str(self.session_id), str(self.capture_id))
+        self.capture_key_root = '{}/{}/{}'.format(user_id, self.session_id, self.capture_id)
 
-        if not os.path.isdir(self.capture_directory):
-            raise NameError("Capture Directory Does Not Exist :: {}".format(self.capture_directory))
+        self.s3 = boto3.client('s3')
+
+        #if not os.path.isdir(self.capture_key_root):
+        #    raise NameError("Capture Directory Does Not Exist :: {}".format(self.capture_key_root))
 
         #self.images = self.loadImages()
 
@@ -84,42 +88,53 @@ class State:
     def referencePathBuilder(self, file='', extension=''):
         #s3_client.get_object(Bucket=TONE_USER_CAPTURES_BUCKET, Key=metadataPath))
         #'{}/{}/{}/reference'.format(self.user_id, self.session_id, self.capture_id)
-        return os.path.join(self.capture_directory, 'reference', file + extension)
+        return os.path.join(self.capture_key_root, 'reference', file + extension)
 
     #CAN THIS BE REMOVED? ALL "STEP" THINGS?
-    def stepPathBuilder(self, step='', ext='.csv', meta=''):
-        #'{}/{}/{}/step'.format(self.user_id, self.session_id, self.capture_id)
-        extension = ext if step != '' else ''
-        return os.path.join(self.capture_directory, 'steps', str(step) + meta + extension)
+   # def stepPathBuilder(self, step='', ext='.csv', meta=''):
+   #     #'{}/{}/{}/step'.format(self.user_id, self.session_id, self.capture_id)
+   #     extension = ext if step != '' else ''
+   #     return os.path.join(self.capture_key_root, 'steps', str(step) + meta + extension)
 
-    def touchReference(self):
-        path = self.referencePathBuilder()
-        if not os.path.exists(path):
-            os.makedirs(path)
-            os.chmod(path, 0o777)
+    #def touchReference(self):
+    #    path = self.referencePathBuilder()
+    #    if not os.path.exists(path):
+    #        os.makedirs(path)
+    #        os.chmod(path, 0o777)
 
-    def deleteReference(self):
-        path = self.referencePathBuilder()
+    #def deleteReference(self):
+    #    path = self.referencePathBuilder()
 
-        if os.path.isdir(path):
-            for fileName in os.listdir(path):
-                fileToRemove = os.path.join(path, fileName)
-                print('Removing :: ' + str(fileToRemove))
-                os.remove(fileToRemove)
+    #    if os.path.isdir(path):
+    #        for fileName in os.listdir(path):
+    #            fileToRemove = os.path.join(path, fileName)
+    #            print('Removing :: ' + str(fileToRemove))
+    #            os.remove(fileToRemove)
 
-    def touchSteps(self):
-        path = self.stepPathBuilder()
-        if not os.path.exists(path):
-            os.makedirs(path)
-            os.chmod(path, 0o777)
+   # def touchSteps(self):
+   #     path = self.stepPathBuilder()
+   #     if not os.path.exists(path):
+   #         os.makedirs(path)
+   #         os.chmod(path, 0o777)
 
     def imageName(self):
         return '{}-{}-{}'.format(self.user_id, self.session_id, self.capture_id)
 
+    def fetchImage(self, key):
+        print('FETCHING :: {} - {}'.format(TONE_USER_CAPTURES_BUCKET, key))
+        resp = self.s3.get_object(Bucket=TONE_USER_CAPTURES_BUCKET, Key=key)
+        raw = resp['Body'].read()
+        raw_buffer = io.BytesIO(raw).getbuffer()
+        return cv2.imdecode(np.asarray(raw_buffer), 1)
+
+    def storeImage(self, key, img):
+        img_encoded = io.BytesIO(cv2.imencode('.png', img)[1]).getvalue()
+        self.s3.put_object(Bucket=TONE_USER_CAPTURES_BUCKET, Key=key, Body=img_encoded)
+
     def loadImages(self): 
-        leftEyeFileTemplate = "{}_leftEye.PNG"
-        rightEyeFileTemplate = "{}_rightEye.PNG"
-        faceFileTemplate = "{}.PNG"
+        leftEyeFileTemplate = "{}_leftEye.png"
+        rightEyeFileTemplate = "{}_rightEye.png"
+        faceFileTemplate = "{}.png"
 
         imageSets = []
         for capture_number in range(1, 9):
@@ -127,100 +142,108 @@ class State:
             leftEyeFile = leftEyeFileTemplate.format(capture_number)
             rightEyeFile = rightEyeFileTemplate.format(capture_number)
 
-            faceFilePath = os.path.join(self.capture_directory, faceFile)
-            leftEyeFilePath = os.path.join(self.capture_directory, leftEyeFile)
-            rightEyeFilePath = os.path.join(self.capture_directory, rightEyeFile)
+            faceFileKey = os.path.join(self.capture_key_root, faceFile)
+            leftEyeFileKey = os.path.join(self.capture_key_root, leftEyeFile)
+            rightEyeFileKey = os.path.join(self.capture_key_root, rightEyeFile)
 
-            isFacePathValid = os.path.isfile(faceFilePath)
-            isLeftEyePathValid = os.path.isfile(leftEyeFilePath)
-            isRightEyePathValid = os.path.isfile(rightEyeFilePath)
+            #isFacePathValid = os.path.isfile(faceFilePath)
+            #isLeftEyePathValid = os.path.isfile(leftEyeFilePath)
+            #isRightEyePathValid = os.path.isfile(rightEyeFilePath)
 
-            if not (isFacePathValid and isLeftEyePathValid and isRightEyePathValid):
-                raise NameError('Face, Left Eye, or Right Eye Path is not valid :: {}'.format(faceFilePath))
+            #if not (isFacePathValid and isLeftEyePathValid and isRightEyePathValid):
+            #    raise NameError('Face, Left Eye, or Right Eye Path is not valid :: {}'.format(faceFilePath))
 
-            face = cv2.imread(faceFilePath)
-            leftEye = cv2.imread(leftEyeFilePath)
-            rightEye = cv2.imread(rightEyeFilePath)
+            #face = cv2.imread(faceFilePath)
+            face = self.fetchImage(faceFileKey)
+
+            #leftEye = cv2.imread(leftEyeFilePath)
+            leftEye = self.fetchImage(leftEyeFileKey)
+
+            #rightEye = cv2.imread(rightEyeFilePath)
+            rightEye = self.fetchImage(rightEyeFileKey)
 
             if (face is None) or (leftEye is None) or (rightEye is None):
-                raise NameError('Face, Left Eye or Right Eye image could not be read :: {}'.format(faceFilePath))
+                raise NameError('Face, Left Eye or Right Eye image could not be read :: {}'.format(faceFileKey))
 
             imageSets.append([face, leftEye, rightEye])
 
         return imageSets
 
-    def saveImageStep(self, image, step, meta=''):
-        self.touchSteps()
-        path = self.stepPathBuilder(step, '.PNG', meta)
-        #image = np.clip(image_float * 255, 0, 255).astype('uint8')
-        cv2.imwrite(path, image.astype('uint8'))
-        os.chmod(path, 0o777)
+    #def saveImageStep(self, image, step, meta=''):
+    #    self.touchSteps()
+    #    path = self.stepPathBuilder(step, '.png', meta)
+    #    #image = np.clip(image_float * 255, 0, 255).astype('uint8')
+    #    cv2.imwrite(path, image.astype('uint8'))
+    #    os.chmod(path, 0o777)
 
-    def saveMaskStep(self, mask, step, meta=''):
-        self.touchSteps()
-        path = self.stepPathBuilder(step, '.PNG', meta)
-        image = np.clip(mask * 255, 0, 255).astype('uint8')
-        cv2.imwrite(path, image.astype('uint8'))
-        os.chmod(path, 0o777)
+    #def saveMaskStep(self, mask, step, meta=''):
+    #    self.touchSteps()
+    #    path = self.stepPathBuilder(step, '.png', meta)
+    #    image = np.clip(mask * 255, 0, 255).astype('uint8')
+    #    cv2.imwrite(path, image.astype('uint8'))
+    #    os.chmod(path, 0o777)
 
-    def saveShapeStep(self, shape, step):
-        self.touchSteps()
-        path = self.stepPathBuilder(step)
-        with open(path, 'w', newline='') as f:
-            shapeWriter = csv.writer(f, delimiter=' ', quotechar='|')
-            shapeWriter.writerows(shape)
+    #def saveShapeStep(self, shape, step):
+    #    self.touchSteps()
+    #    path = self.stepPathBuilder(step)
+    #    with open(path, 'w', newline='') as f:
+    #        shapeWriter = csv.writer(f, delimiter=' ', quotechar='|')
+    #        shapeWriter.writerows(shape)
 
-        os.chmod(path, 0o777)
+    #    os.chmod(path, 0o777)
 
-    def savePointsStep(self, points, step, meta=''):
-        self.touchSteps()
-        path = self.stepPathBuilder(step, '.csv', meta)
-        with open(path, 'w', newline='') as f:
-            pointWriter = csv.writer(f, delimiter=' ', quotechar='|')
-            pointWriter.writerows(points)
+    #def savePointsStep(self, points, step, meta=''):
+    #    self.touchSteps()
+    #    path = self.stepPathBuilder(step, '.csv', meta)
+    #    with open(path, 'w', newline='') as f:
+    #        pointWriter = csv.writer(f, delimiter=' ', quotechar='|')
+    #        pointWriter.writerows(points)
 
-        os.chmod(path, 0o777)
+    #    os.chmod(path, 0o777)
 
     def saveReferenceImageSBGR(self, image, reference):
-        self.touchReference()
+        #self.touchReference()
         #image = bgr_float * 255
         #image = bgr_float
-        path = self.referencePathBuilder(reference, '.PNG')
-        cv2.imwrite(path, image)
-        os.chmod(path, 0o777)
+        key = self.referencePathBuilder(reference, '.png')
+        self.storeImage(key, image)
+        #cv2.imwrite(path, image)
+        #os.chmod(path, 0o777)
 
     def saveReferenceImageLinearBGR(self, bgr, reference):
-        self.touchReference()
-        image = bgr
+        #self.touchReference()
+        #image = bgr
         #[image, error] = colorTools.convert_linearBGR_float_to_sBGR(bgr_float)
         #image = bgr_float * 255
         #image = bgr_float
-        path = self.referencePathBuilder(reference, '.PNG')
-        cv2.imwrite(path, image)
-        os.chmod(path, 0o777)
+        key = self.referencePathBuilder(reference, '.png')
+        self.storeImage(key, bgr)
+        #cv2.imwrite(path, image)
+        #os.chmod(path, 0o777)
 
     def saveReferenceImageBGR(self, bgr, reference):
-        self.touchReference()
+        #self.touchReference()
         #bgr_float_clipped = np.clip(bgr_float, 0.0, 1.0)
         #image = colorTools.convert_linearBGR_float_to_sBGR(bgr_float_clipped)
         #image = bgr * 255
-        image = bgr
-        path = self.referencePathBuilder(reference, '.PNG')
-        cv2.imwrite(path, image)
-        os.chmod(path, 0o777)
+        #image = bgr
+        key = self.referencePathBuilder(reference, '.png')
+        self.storeImage(key, bgr)
+        #cv2.imwrite(path, image)
+        #os.chmod(path, 0o777)
 
-    def logMeasurement(self, measurementName, measurementValue):
-        path = self.referencePathBuilder('measurementLog', '.txt')
-        with open(path, 'a+') as f:
-            f.write(measurementName + ", " + measurementValue + "\n")
+    #def logMeasurement(self, measurementName, measurementValue):
+    #    path = self.referencePathBuilder('measurementLog', '.txt')
+    #    with open(path, 'a+') as f:
+    #        f.write(measurementName + ", " + measurementValue + "\n")
 
-        os.chmod(path, 0o777)
+    #    os.chmod(path, 0o777)
 
-    def resetLogFile(self):
-        self.touchReference()
-        path = self.referencePathBuilder('measurementLog', '.txt')
-        open(path, 'w').close()
-        os.chmod(path, 0o777)
+    #def resetLogFile(self):
+    #    self.touchReference()
+    #    path = self.referencePathBuilder('measurementLog', '.txt')
+    #    open(path, 'w').close()
+    #    os.chmod(path, 0o777)
 
     def getMetadata(self):
         return self.capture_metadata
@@ -246,17 +269,19 @@ class State:
     #    return data
 
     def savePlot(self, name, plot):
+        print('NOT IMPLEMENTED')
+        return
         #path = self.referencePathBuilder(name, '.jpg')
         path = self.referencePathBuilder(name, '.png') #new matplotlib requires png
         plot.savefig(path, dpi=500)
         plot.close()
 
-    def saveImageStat(self, statName, statValue):
-        path = self.referencePathBuilder('imageStats', '.csv')
+    #def saveImageStat(self, statName, statValue):
+    #    path = self.referencePathBuilder('imageStats', '.csv')
 
-        with open(path, 'a', newline='') as f:
-            benchWriter = csv.writer(f, delimiter=' ', quotechar='|')
-            benchWriter.writerows([[statName, *statValue]])
+    #    with open(path, 'a', newline='') as f:
+    #        benchWriter = csv.writer(f, delimiter=' ', quotechar='|')
+    #        benchWriter.writerows([[statName, *statValue]])
 
-        os.chmod(path, 0o777)
+    #    os.chmod(path, 0o777)
 
