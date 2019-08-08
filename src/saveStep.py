@@ -6,9 +6,10 @@ import colorTools
 import json
 import psycopg2
 import getVersion
+import boto3
 
-IMAGES_DIR = '/home/dmacewen/Projects/tone/images/'
-COLOR_MATCH_DIR = '/home/dmacewen/Projects/tone/tone_colorMatch/'
+#IMAGES_DIR = '/home/dmacewen/Projects/tone/images/'
+#COLOR_MATCH_DIR = '/home/dmacewen/Projects/tone/tone_colorMatch/'
 
 #Turn into an abstraction around state? Encapsulate DB and File System?
 # Load Images
@@ -17,7 +18,8 @@ COLOR_MATCH_DIR = '/home/dmacewen/Projects/tone/tone_colorMatch/'
 class State:
 
     def __init__(self, user_id, capture_id=None):
-        self.version = getVersion.getVersion(COLOR_MATCH_DIR)
+        #self.version = getVersion.getVersion(COLOR_MATCH_DIR)
+        self.version = '0.0.1' #GET EB VERSION SOMEHOW?? #getVersion.getVersion(COLOR_MATCH_DIR)
         print("SERVER VERSION :: " + str(self.version))
 
         self.user_id = user_id
@@ -26,11 +28,22 @@ class State:
         self.capture_metadata = None
 
         try:
+            #TEMP
             #Do not love storing password in plain text in code....
-            self.conn = psycopg2.connect(dbname="tone",
-                                    user="postgres",
-                                    port="5434",
-                                    password="dirty vent unroof")
+            #self.conn = psycopg2.connect(dbname="tone",
+            #                        user="postgres",
+            #                        port="5434",
+            #                        password="dirty vent unroof")
+
+            if 'RDS_HOSTNAME' in os.environ:
+                conn = psycopg2.connect(dbname=os.environ['RDS_DB_NAME'],
+                                        user=os.environ['RDS_USERNAME'],
+                                        password=os.environ['RDS_PASSWORD'],
+                                        host=os.environ['RDS_HOSTNAME'],
+                                        port=os.environ['RDS_PORT'])
+            else:
+                print('CANNOT CONNECT TO DB!')
+
 
         except (Exception, psycopg2.Error) as error:
             print("Error while fetch data from Postrgesql", error)
@@ -51,7 +64,8 @@ class State:
         self.capture_id = capture[0]
         self.session_id = capture[1]
         self.capture_metadata = capture[2]
-        self.capture_directory = os.path.join(IMAGES_DIR, str(user_id), str(self.session_id), str(self.capture_id))
+        #self.capture_directory = os.path.join(IMAGES_DIR, str(user_id), str(self.session_id), str(self.capture_id))
+        self.capture_directory = '{}/{}/{}'.format(user_id, self.session_id, self.capture_id)
 
         if not os.path.isdir(self.capture_directory):
             raise NameError("Capture Directory Does Not Exist :: {}".format(self.capture_directory))
@@ -68,9 +82,13 @@ class State:
             self.conn.commit()
 
     def referencePathBuilder(self, file='', extension=''):
+        #s3_client.get_object(Bucket=TONE_USER_CAPTURES_BUCKET, Key=metadataPath))
+        #'{}/{}/{}/reference'.format(self.user_id, self.session_id, self.capture_id)
         return os.path.join(self.capture_directory, 'reference', file + extension)
 
+    #CAN THIS BE REMOVED? ALL "STEP" THINGS?
     def stepPathBuilder(self, step='', ext='.csv', meta=''):
+        #'{}/{}/{}/step'.format(self.user_id, self.session_id, self.capture_id)
         extension = ext if step != '' else ''
         return os.path.join(self.capture_directory, 'steps', str(step) + meta + extension)
 
