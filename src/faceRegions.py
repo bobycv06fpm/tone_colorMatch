@@ -19,15 +19,11 @@ class FaceRegions:
         self.chinPoints, self.chinCleanRatio = extractMask.extractPolygonPoints(capture.faceImage, capture.faceMask, self.chinPolygon)
         self.foreheadPoints, self.foreheadCleanRatio = extractMask.extractPolygonPoints(capture.faceImage, capture.faceMask, self.foreheadPolygon)
 
-        print('{} - Converting Face Regions to Linear -'.format(capture.name), end="")
+        #print('{} - Converting Face Regions to Linear -'.format(capture.name))
         self.linearLeftCheekPoints = colorTools.convert_sBGR_to_linearBGR_float_fast(self.leftCheekPoints)
-        print('-', end="")
         self.linearRightCheekPoints = colorTools.convert_sBGR_to_linearBGR_float_fast(self.rightCheekPoints)
-        print('-', end="")
         self.linearChinPoints = colorTools.convert_sBGR_to_linearBGR_float_fast(self.chinPoints)
-        print('-', end="")
         self.linearForeheadPoints = colorTools.convert_sBGR_to_linearBGR_float_fast(self.foreheadPoints)
-        print('-> Done')
 
         self.linearLeftCheekMedian = np.median(self.linearLeftCheekPoints, axis=0)
         self.linearRightCheekMedian = np.median(self.linearRightCheekPoints, axis=0)

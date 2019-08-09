@@ -1,29 +1,22 @@
 import alignImages
 from getAverageReflection import getAverageScreenReflectionColor2
-#from saveStep import Save
 from saveStep import State
 from getPolygons import getPolygons, getFullFacePolygon
-#from extractMask import extractMask
 import colorTools
 import plotTools
-#import processPoints
 import cv2
 import numpy as np
-#import dlib
 import thresholdMask
 import math
-#from scipy import ndimage
 import matplotlib.pyplot as plt
 import cropTools
 import getSharpness
-#import landmarkPoints
 from capture import Capture 
 from faceRegions import FaceRegions
 from logger import getLogger
 
 
 import json
-
 import colorsys
 
 logger = getLogger(__name__)
@@ -135,37 +128,37 @@ def plotBGR(axs, color, size, x, y, blurryMask, pointRange=None):
 
     axs.plot([start_x, end_x], [(m * start_x + c), (m * end_x + c)], color=color)
 
-def plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
-    logger.info('PLOTTING: Per Eye Reflection Brightness')
-    size = 25
-    numCaptures = len(leftEyeReflections)
-    expectedBrightness = np.array([regions.capture.flashRatio for regions in faceRegions])
+#def plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
+#    logger.info('PLOTTING: Per Eye Reflection Brightness')
+#    size = 25
+#    numCaptures = len(leftEyeReflections)
+#    expectedBrightness = np.array([regions.capture.flashRatio for regions in faceRegions])
+#
+#    leftEyeReflectionsLuminance = colorTools.getRelativeLuminance(leftEyeReflections)
+#    rightEyeReflectionsLuminance = colorTools.getRelativeLuminance(rightEyeReflections)
+#
+#    plt.scatter(expectedBrightness, leftEyeReflectionsLuminance, size, (1, 0, 0))
+#    m, c = fitLine(expectedBrightness, leftEyeReflectionsLuminance)[0]
+#    plt.plot([0, 1], [c, (m + c)], color=(1, 0, 0))
+#
+#    plt.scatter(expectedBrightness, rightEyeReflectionsLuminance, size, (0, 0, 1))
+#    m, c = fitLine(expectedBrightness, rightEyeReflectionsLuminance)[0]
+#    plt.plot([0, 1], [c, (m + c)], color=(1, 0, 0))
+#
+#    plt.title('Measured Reflection Brightness vs Expected Reflection Brightness')
+#    plt.xlabel('Expected Reflection Brightness')
+#    plt.ylabel('Measured Reflectoin Brightness')
+#
+#    saveStep.savePlot('Measured_vs_Expected_Reflection', plt)
 
-    leftEyeReflectionsLuminance = colorTools.getRelativeLuminance(leftEyeReflections)
-    rightEyeReflectionsLuminance = colorTools.getRelativeLuminance(rightEyeReflections)
-
-    plt.scatter(expectedBrightness, leftEyeReflectionsLuminance, size, (1, 0, 0))
-    m, c = fitLine(expectedBrightness, leftEyeReflectionsLuminance)[0]
-    plt.plot([0, 1], [c, (m + c)], color=(1, 0, 0))
-
-    plt.scatter(expectedBrightness, rightEyeReflectionsLuminance, size, (0, 0, 1))
-    m, c = fitLine(expectedBrightness, rightEyeReflectionsLuminance)[0]
-    plt.plot([0, 1], [c, (m + c)], color=(1, 0, 0))
-
-    plt.title('Measured Reflection Brightness vs Expected Reflection Brightness')
-    plt.xlabel('Expected Reflection Brightness')
-    plt.ylabel('Measured Reflectoin Brightness')
-
-    saveStep.savePlot('Measured_vs_Expected_Reflection', plt)
-
-def getRegionMapBGR(leftCheek, rightCheek, chin, forehead):
-    value = {}
-    value['left'] = list(leftCheek)
-    value['right'] = list(rightCheek)
-    value['chin'] = list(chin)
-    value['forehead'] = list(forehead)
-
-    return value
+#def getRegionMapBGR(leftCheek, rightCheek, chin, forehead):
+#    value = {}
+#    value['left'] = list(leftCheek)
+#    value['right'] = list(rightCheek)
+#    value['chin'] = list(chin)
+#    value['forehead'] = list(forehead)
+#
+#    return value
 
 def getReflectionMap(leftReflection, rightReflection):
     value = {}
@@ -203,31 +196,31 @@ def getResponse(imageName, successful, captureSets=None, linearFits=None, bestGu
 
     return response
 
-def getNonLinearityMask(flashStepDiff, fullFlashRangeDiff):
-    blurDiffs = np.abs(cv2.blur(flashStepDiff, (5, 5)))#.astype('uint8')
-
-    percentError = blurDiffs / fullFlashRangeDiff
-    perSubPixelMaxError = np.mean(percentError, axis=2)
-
-    maxFullDiffImage = np.max(fullFlashRangeDiff, axis=2)
-    lowValueMask = maxFullDiffImage < (10 / 255)
-    medLowValueMask = maxFullDiffImage < (25 / 255)
-    medHighValueMask = maxFullDiffImage < (100 / 255)
-    medHigherValueMask = maxFullDiffImage < (180 / 255)
-
-    nonLinearMaskHigh = perSubPixelMaxError > .04 #All Values less than 255
-    nonLinearMaskMedHigher = perSubPixelMaxError > .06 #All Values less than 180
-    nonLinearMaskMedHigh = perSubPixelMaxError > .09 #All Values less than 100
-    nonLinearMaskMedLow = perSubPixelMaxError > .12 #All Values less than 25
-    nonLinearMaskLow = perSubPixelMaxError > .25 #All Values less than 10
-    
-    nonLinearMask = nonLinearMaskHigh
-    nonLinearMask[medHigherValueMask] = nonLinearMaskMedHigher[medHigherValueMask]
-    nonLinearMask[medHighValueMask] = nonLinearMaskMedHigh[medHighValueMask]
-    nonLinearMask[medLowValueMask] = nonLinearMaskMedLow[medLowValueMask]
-    nonLinearMask[lowValueMask] = nonLinearMaskLow[lowValueMask]
-
-    return nonLinearMask
+#def getNonLinearityMask(flashStepDiff, fullFlashRangeDiff):
+#    blurDiffs = np.abs(cv2.blur(flashStepDiff, (5, 5)))#.astype('uint8')
+#
+#    percentError = blurDiffs / fullFlashRangeDiff
+#    perSubPixelMaxError = np.mean(percentError, axis=2)
+#
+#    maxFullDiffImage = np.max(fullFlashRangeDiff, axis=2)
+#    lowValueMask = maxFullDiffImage < (10 / 255)
+#    medLowValueMask = maxFullDiffImage < (25 / 255)
+#    medHighValueMask = maxFullDiffImage < (100 / 255)
+#    medHigherValueMask = maxFullDiffImage < (180 / 255)
+#
+#    nonLinearMaskHigh = perSubPixelMaxError > .04 #All Values less than 255
+#    nonLinearMaskMedHigher = perSubPixelMaxError > .06 #All Values less than 180
+#    nonLinearMaskMedHigh = perSubPixelMaxError > .09 #All Values less than 100
+#    nonLinearMaskMedLow = perSubPixelMaxError > .12 #All Values less than 25
+#    nonLinearMaskLow = perSubPixelMaxError > .25 #All Values less than 10
+#    
+#    nonLinearMask = nonLinearMaskHigh
+#    nonLinearMask[medHigherValueMask] = nonLinearMaskMedHigher[medHigherValueMask]
+#    nonLinearMask[medHighValueMask] = nonLinearMaskMedHigh[medHighValueMask]
+#    nonLinearMask[medLowValueMask] = nonLinearMaskMedLow[medLowValueMask]
+#    nonLinearMask[lowValueMask] = nonLinearMaskLow[lowValueMask]
+#
+#    return nonLinearMask
 
 def getDiffs(points):
     diffs = []
@@ -260,7 +253,7 @@ def plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, sav
     colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1)]
     fig, axs = plt.subplots(2, 3, sharex=True, sharey=True, tight_layout=True)
 
-    logger.info('Flash Ratio vs Face Region Diff :: ' + str(flashRatios) + ' ' + str(captureFaceRegionsDiffs[:, 0, 0]))
+    #logger.info('Flash Ratio vs Face Region Diff :: ' + str(flashRatios) + ' ' + str(captureFaceRegionsDiffs[:, 0, 0]))
 
     for regionIndex in range(0, numberOfRegions):
         axs[0, 0].plot(flashRatios[1:], captureFaceRegionsDiffs[regionIndex, :, 2], color=colors[regionIndex])
@@ -287,6 +280,8 @@ def plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, sav
     axs[1, 0].set_ylabel('Measured Reflection Slope Mag')
     saveStep.savePlot('RegionDiffs', plt)
 
+#Best Guess is an alternative to linear fit. Just uses the median slopes
+# Do not think there is any promise in this
 def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
     logger.info('PLOTTING: Region Scaled Linearity')
     captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
@@ -309,7 +304,7 @@ def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
         scaledCaptureFaceRegions.append(scaledCaptureFaceRegion)
 
     scaledCaptureFaceRegions = np.vstack(scaledCaptureFaceRegions)
-    logger.info('SCALED DIFFS CAPTURE FACE REGIONS :: ' + str(scaledCaptureFaceRegions))
+    #logger.info('SCALED DIFFS CAPTURE FACE REGIONS :: ' + str(scaledCaptureFaceRegions))
 
     leftEyeDiffs = getDiffs(leftEyeReflections[3:-1])
     #leftEyeDiffs = getDiffs(leftEyeReflections[-4:-1])
@@ -321,16 +316,13 @@ def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
     scaledRightEyeReflections = rightEyeDiffs #/ (np.ones(3) * np.reshape(rightEyeDiffs[:, 2], (rightEyeDiffs.shape[0], 1)))
 
     scaledDiffReflections = np.vstack((scaledLeftEyeReflections, scaledRightEyeReflections))
-    logger.info('SCALED DIFFS REFLECTIONS :: ' + str(scaledDiffReflections))
+    #logger.info('SCALED DIFFS REFLECTIONS :: ' + str(scaledDiffReflections))
     #print('SCALED DIFFS LEFT REFLECTIONS :: ' + str(scaledLeftEyeReflections))
     #print('SCALED DIFFS RIGHT REFLECTIONS:: ' + str(scaledRightEyeReflections))
 
     medianScaledDiffFace = list(np.median(scaledCaptureFaceRegions, axis=0))
     medianScaledDiffReflections = list(np.median(scaledDiffReflections, axis=0))
     return [medianScaledDiffReflections, medianScaledDiffFace]
-
-
-    
 
 def plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
     logger.info('PLOTTING: Region Scaled Linearity')
@@ -348,7 +340,7 @@ def plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflec
     for regionIndex in range(0, numberOfRegions):
         #print('Regions :: ' + str(captureFaceRegions[:, regionIndex]))
         diff = getDiffs(captureFaceRegions[:, regionIndex, :])
-        logger.info("Diffs :: {}".format(diff))
+        #logger.info("Diffs :: {}".format(diff))
         #captureFaceRegion = captureFaceRegions[:, regionIndex, :]
         #print('FACE REGION :: ' + str(captureFaceRegion[:, 2]))
         diff[diff == 0] = 0.0001 #Kinda shitty work around for divide by 0. Still makes the divide by zero stand out on the chart
@@ -363,7 +355,7 @@ def plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflec
         axs[0, 2].plot(flashRatios[1:], scaledCaptureFaceRegion[:, 0], color=colors[regionIndex])
 
 
-    logger.info('LEFT EYE REFLECTIONS :: ' + str(leftEyeReflections[:, 2]))
+    #logger.info('LEFT EYE REFLECTIONS :: ' + str(leftEyeReflections[:, 2]))
     leftEyeDiffs = getDiffs(leftEyeReflections)
     rightEyeDiffs = getDiffs(rightEyeReflections)
     leftEyeDiffs[:, 2][leftEyeDiffs[:, 2] == 0] = 0.001
@@ -553,7 +545,7 @@ def getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMa
         captureFaceRegionsScores.append(scores)
 
     captureFaceRegionsLinearFit = np.array(captureFaceRegionsLinearFit)
-    logger.info('CAPTURE FACE REGIONS LINEAR FIT :: {}'.format(captureFaceRegionsLinearFit))
+    #logger.info('CAPTURE FACE REGIONS LINEAR FIT :: {}'.format(captureFaceRegionsLinearFit))
     captureFaceRegionsScores = np.array(captureFaceRegionsScores)
     reflectionScores = np.array([leftEyeScores, rightEyeScores])
 
@@ -590,9 +582,9 @@ def getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMa
     linearFits["regions"]["linearityScore"] = list(maxFaceRegionScores)
 
     #formatString = '\nLINEAR FITS :: {}\n\tEYES\n\t\tSCORE \t\t{} \n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\tFACE\n\t\tSCORE \t\t{}\n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\t\tCHIN \t\t{}\n\t\tFOREHEAD \t{}\n'
-    formatString = '\nLINEAR FITS :: {}\n\tEYES\n\t\tSCORE \t{}\n\tFACE\n\t\tSCORE \t{}\n'
-    formatted = formatString.format('BGR', maxReflectionScores, maxFaceRegionScores)
-    logger.info(formatted)
+    #formatString = '\nLINEAR FITS :: {}\n\tEYES\n\t\tSCORE \t{}\n\tFACE\n\t\tSCORE \t{}\n'
+    #formatted = formatString.format('BGR', maxReflectionScores, maxFaceRegionScores)
+    #logger.info(formatted)
 
     #formattedHSV = formatString.format('HSV', leftEyeLinearFitHSV, rightEyeLinearFitHSV, *captureFaceRegionsLinearFitHSV)
     #print(formattedHSV)
@@ -627,50 +619,37 @@ def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
     medianDiffs["regions"]["chin"] = list(faceRegionDiffMedians[2])
     medianDiffs["regions"]["forehead"] = list(faceRegionDiffMedians[3])
 
-    formatString = '\nMEDIAN DIFFS :: {}\n\tEYES \n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\tFACE\n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\t\tCHIN \t\t{}\n\t\tFOREHEAD \t{}\n'
-    formatted = formatString.format('BGR', leftEyeDiffReflectionMedian, rightEyeDiffReflectionMedian, *faceRegionDiffMedians)
-    formattedHSV = formatString.format('HSV', leftEyeDiffReflectionMedianHSV, rightEyeDiffReflectionMedianHSV, *faceRegionDiffMediansHSV)
-    logger.info(formatted)
-    logger.info(formattedHSV)
+    #formatString = '\nMEDIAN DIFFS :: {}\n\tEYES \n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\tFACE\n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\t\tCHIN \t\t{}\n\t\tFOREHEAD \t{}\n'
+    #formatted = formatString.format('BGR', leftEyeDiffReflectionMedian, rightEyeDiffReflectionMedian, *faceRegionDiffMedians)
+    #formattedHSV = formatString.format('HSV', leftEyeDiffReflectionMedianHSV, rightEyeDiffReflectionMedianHSV, *faceRegionDiffMediansHSV)
+    #logger.info(formatted)
+    #logger.info(formattedHSV)
 
     return medianDiffs
 
 def run2(user_id, capture_id=None, isProduction=False):
-    failOnError = False
+    failOnError = True
+    logger.info('BEGINNING COLOR MATCH PROCESSING FOR USER {} CAPTURE {}'.format(user_id, capture_id if capture_id is not None else '-1'))
     state = State(user_id, capture_id, isProduction)
-    #logger = state.logger #Kinda messy...
     logger.info('IS PRODUCTION :: {}'.format(isProduction))
-    #state.resetLogFile()
-    #state.deleteReference()
     images = state.loadImages()
     metadata = state.getMetadata()
-    #print(state.getMetadata())
 
     if not isMetadataValid(metadata):
-        logger.warn('User :: {} | Image :: {} | Error :: {}'.format(state.user_id, state.imageName(), 'Metadata does not Match'))
+        logger.error('User :: {} | Image :: {} | Error :: {}'.format(state.user_id, state.imageName(), 'Metadata does not Match'))
+        if failOnError: raise ValueError('Metadata does not Match')
         return getResponse(state.imageName(), False)
 
-    #numImages = len(images)
     captures = [Capture(image, meta) for image, meta in zip(images, metadata)]
-    #captures[0].showImageWithLandmarks()
-    #Brightest is index 0, dimmest is last
- 
     getSharpness.labelSharpestCaptures(captures)
-
     blurryMask = [capture.isBlurry for capture in captures]
-    logger.info('BLURRY MASK :: {}'.format(blurryMask))
 
     try:
         leftEyeCropOffsets, rightEyeCropOffsets, faceCropOffsets = alignImages.getCaptureEyeOffsets2(captures)
     except Exception as err:
-        if failOnError:
-            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error Cropping and Aligning Images', err))
-        else:
-            logger.warning('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error Cropping and Aligning Images', err))
-            return getResponse(state.imageName(), False)
-
-    #leftEyeOffsets -= averageOffsets #Need offsets relative to averageOffset now that we are aligned
-    #rightEyeOffsets -= averageOffsets #Need offsets relative to averageOffset
+        logger.error('User :: {} | Image :: {} | Error :: {} | Details ::\n{}'.format(state.user_id, state.imageName(), 'Error Cropping and Aligning Images', err))
+        if failOnError: raise
+        return getResponse(state.imageName(), False)
 
     updatedAverageOffset = cropTools.cropCapturesToOffsets(captures, faceCropOffsets)
     #All offsets are relative to capture[0]
@@ -680,28 +659,24 @@ def run2(user_id, capture_id=None, isProduction=False):
     try:
         averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections = getAverageScreenReflectionColor2(captures, leftEyeCropOffsets, rightEyeCropOffsets, state)
     except Exception as err:
-        if failOnError:
-            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error Extracting Reflection', err))
-        else:
-            logger.warning('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error Extracting Reflection', err))
-            return getResponse(state.imageName(), False)
+        logger.error('User :: {} | Image :: {} | Error :: {} | Details ::\n{}'.format(state.user_id, state.imageName(), 'Error Extracting Reflection', err))
+        if failOnError: raise
+        return getResponse(state.imageName(), False)
 
     try:
         faceRegions = np.array([FaceRegions(capture) for capture in captures])
     except Exception as err:
-        if failOnError:
-            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error extracting Points for Recovered Mask', err))
-        else:
-            logger.warning('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error extracting Points for Recovered Mask', err))
-            return getResponse(state.imageName(), False)
+        logger.error('User :: {} | Image :: {} | Error :: {} | Details ::\n{}'.format(state.user_id, state.imageName(), 'Error extracting Points for Recovered Mask', err))
+        if failOnError: raise
+        return getResponse(state.imageName(), False)
 
-    logger.info('Done Most Image Processing. Begining Analysis')
+    logger.info('Finished Image Processing - Beginning Analysis')
     state.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')
 
     #--TEMP FOR DEBUG?---
-    #plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, state)
-    #plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflections, state)
-    #plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, state)
+    plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, state)
+    plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflections, state)
+    plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, state)
     #--END TEMP FOR DEBUG?---
 
     #plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, state)
@@ -727,7 +702,7 @@ def run2(user_id, capture_id=None, isProduction=False):
     #print('WB BGR vs Reflection :: ' + str(scaledBGR) + ' ' + str(bestGuess[0]))
     #print('BEST GUESS -> REFLECTION :: {} | FACE :: {}'.format(bestGuess[0], bestGuess[1]))
     #bestGuess[0] = list(scaledBGR)
-    logger.info('Done Analysis. Final Gathering of Results.')
+    logger.info('Done Analysis - Generating Results')
 
     calibrated_skin_color = [0.0, 0.0, 0.0]
     matched_skin_color_id = 0
@@ -735,100 +710,5 @@ def run2(user_id, capture_id=None, isProduction=False):
 
     response = getResponse(state.imageName(), True, captureSets, linearFitSets, bestGuess, averageReflectionArea)
     #print(json.dumps(response))
-    logger.info('Done. Returing Results.')
+    logger.info('Done - Returing Results')
     return response
-
-
-#def run(username, imageName, fast=False, saveStats=False, failOnError=False):
-#    version = getVersion.getVersion()
-#    print("SERVER VERSION :: " + str(version))
-#    saveStep = Save(username, imageName)
-#    saveStep.resetLogFile()
-#    saveStep.deleteReference()
-#    images = loadImages(username, imageName)
-#    print('shape :: ' + str(images.shape))
-#
-#    metadata = saveStep.getMetadata()
-#
-#    if not isMetadataValid(metadata):
-#        print('User :: {} | Image :: {} | Error :: {}'.format(username, imageName, 'Metadata does not Match'))
-#        return getResponse(imageName, False)
-#
-#    #numImages = len(images)
-#    captures = [Capture(image, meta) for image, meta in zip(images, metadata)]
-#    #captures[0].showImageWithLandmarks()
-#    #Brightest is index 0, dimmest is last
-#
-#    getSharpness.labelSharpestCaptures(captures)
-#
-#    blurryMask = [capture.isBlurry for capture in captures]
-#    print('BLURRY MASK :: {}'.format(blurryMask))
-#
-#    try:
-#        leftEyeCropOffsets, rightEyeCropOffsets, faceCropOffsets = alignImages.getCaptureEyeOffsets2(captures)
-#    except Exception as err:
-#        if failOnError:
-#            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
-#        else:
-#            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Cropping and Aligning Images', err))
-#            return getResponse(imageName, False)
-#
-#    #leftEyeOffsets -= averageOffsets #Need offsets relative to averageOffset now that we are aligned
-#    #rightEyeOffsets -= averageOffsets #Need offsets relative to averageOffset
-#
-#    updatedAverageOffset = cropTools.cropCapturesToOffsets(captures, faceCropOffsets)
-#    #All offsets are relative to capture[0]
-#    for capture in captures:
-#        capture.landmarks = captures[0].landmarks
-#
-#    try:
-#        averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections = getAverageScreenReflectionColor2(captures, leftEyeCropOffsets, rightEyeCropOffsets, saveStep)
-#    except Exception as err:
-#        if failOnError:
-#            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
-#        else:
-#            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error Extracting Reflection', err))
-#            return getResponse(imageName, False)
-#
-#    try:
-#        faceRegions = np.array([FaceRegions(capture) for capture in captures])
-#    except Exception as err:
-#        if failOnError:
-#            raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
-#        else:
-#            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(username, imageName, 'Error extracting Points for Recovered Mask', err))
-#            return getResponse(imageName, False)
-#
-#    saveStep.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')
-#
-#    plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, saveStep)
-#    plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
-#    #plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
-#    plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, saveStep)
-#
-#    #plotPerRegionPoints(faceRegions, saveStep)
-#    #plotPerRegionDistribution(faceRegions, saveStep)
-#
-#    captureSets = zip(faceRegions, leftEyeReflections, rightEyeReflections)
-#    #medianDiffSets = getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions)
-#    #print('Median Diff Sets :: ' + str(medianDiffSets))
-#    linearFitSets = getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMask)
-#
-#    #reflectionBestGuess, faceBestGuess = getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections)
-#    bestGuess = getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections)
-#
-#    #x = metadata[0]["whiteBalance"]["x"]
-#    #y = metadata[0]["whiteBalance"]["y"]
-#    #asShotBGR = colorTools.convert_CIE_xy_to_unscaledBGR(x, y)
-#    #targetBGR = colorTools.convert_CIE_xy_to_unscaledBGR(0.31271, 0.32902) #Illuminant D65
-#    ##bgrMultiplier = asShotBGR / targetBGR / asShotBGR
-#    #bgrMultiplier = targetBGR / asShotBGR
-#    #scaledBGR = bgrMultiplier / bgrMultiplier[2]
-#    #print('WB BGR vs Reflection :: ' + str(scaledBGR) + ' ' + str(bestGuess[0]))
-#    #print('BEST GUESS -> REFLECTION :: {} | FACE :: {}'.format(bestGuess[0], bestGuess[1]))
-#    #bestGuess[0] = list(scaledBGR)
-#
-#    response = getResponse(imageName, True, captureSets, linearFitSets, bestGuess, averageReflectionArea)
-#    print(json.dumps(response))
-#    return response
-#

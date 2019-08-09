@@ -4,6 +4,10 @@ import thresholdMask
 import colorTools
 import saveStep
 from landmarkPoints import Landmarks
+from logger import getLogger
+
+
+logger = getLogger(__name__)
 
 class Capture:
 
@@ -12,39 +16,13 @@ class Capture:
         self.flashSettings = metadata["flashSettings"]
         self.flashRatio = self.flashSettings["area"] / self.flashSettings["areas"]
         self.isNoFlash = True if metadata["flashSettings"]["area"] == 0 else False
-        #self.image = np.clip(image, 0, 255).astype('uint8')
-        #self.image = image.astype('int32')
-        #colorTools.whitebalance_from_asShot_to_d65(image.astype('uint16'), metadata['whiteBalance']['x'], metadata['whiteBalance']['y'])
         self.isGammaSBGR = True#metadata['faceImageTransforms']["isGammaSBGR"]
-
-        #if "exposurePoint" in metadata:
-        #    exposurePoint = metadata["exposurePoint"]
-        #    print('Image Size :: ' + str(image[0].shape))
-        #    exposurePoint *= np.array([image[0].shape[1], image[0].shape[0]])
-        #    exposurePoint = exposurePoint.astype('int32')
-        #    print("Exposure Point :: {}".format(exposurePoint))
-
-        #    copy = np.copy(image[0])
-        #    cv2.circle(copy, (int(exposurePoint[0]), int(exposurePoint[1])), 5, (0, 0, 255), -1)
-        #    cv2.imshow('exposure point', copy)
-        #    cv2.waitKey(0)
-
         self.scaleRatio = metadata['faceImageTransforms']["scaleRatio"] if "scaleRatio" in metadata['faceImageTransforms'] else 1
-        print("Scale Ratio :: {}".format(self.scaleRatio))
-        #self.image = image
         self.faceImage, self.leftEyeImage, self.rightEyeImage = image
-        #if metadata["imageTransforms"]["isGammaSBGR"] is False:
-        #    self.image = colorTools.convert_sBGR_to_linearBGR_float_fast(image)
-        #    print('{} :: sBGR -> Linear'.format(self.name))
-        #else:
-        #    self.image = image / 255
-
         self.metadata = metadata
-        
+
         self.leftEyeBB = np.array(self.metadata['leftEyeImageTransforms']['bbInParent']) if 'bbInParent' in self.metadata['leftEyeImageTransforms'] else None
-        print("Scale Ratio :: {}".format(self.leftEyeBB))
         self.rightEyeBB = np.array(self.metadata['rightEyeImageTransforms']['bbInParent']) if 'bbInParent' in self.metadata['rightEyeImageTransforms'] else None
-        print("Scale Ratio :: {}".format(self.rightEyeBB))
 
         self.landmarks = Landmarks(self.metadata['faceLandmarksSource'], self.metadata['faceImageTransforms']['landmarks'], [self.leftEyeBB, self.rightEyeBB], self.faceImage.shape)
 

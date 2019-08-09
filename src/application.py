@@ -72,7 +72,7 @@ def application(environ, start_response):
             elif path == '/scheduled':
                 logger.info("Received task %s scheduled at %s", environ['HTTP_X_AWS_SQSD_TASKNAME'], environ['HTTP_X_AWS_SQSD_SCHEDULED_AT'])
                 response = str(True)
-        except (TypeError, ValueError) as e:
+        except Exception as e:
             logger.warning('Error retrieving request body for async work. {}'.format(e))
             response = str(False)
     else:

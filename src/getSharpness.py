@@ -3,6 +3,8 @@ import numpy as np
 import cv2
 import colorTools
 import math
+from logger import getLogger
+logger = getLogger(__name__)
 
 #TAKES A FLOAT
 def stretchHistogram(gray, mask=None):
@@ -48,7 +50,7 @@ def labelSharpestCaptures(captures):
     greyLeftEyeCropsLinearStretchedFFT = [np.fft.fft2(greyLeftEyeCropLinearStretched) for greyLeftEyeCropLinearStretched in greyLeftEyeCropsLinearStretched]
     greyLeftEyeCropsLinearStretchedFFTShifted = [np.abs(np.fft.fftshift(greyLeftEyeCropLinearStretchedFFT)) for greyLeftEyeCropLinearStretchedFFT in greyLeftEyeCropsLinearStretchedFFT]
     greyLeftEyeCropsLinearStretchedFFTShiftedMeans = [np.mean(leftEyeFFT) for leftEyeFFT in greyLeftEyeCropsLinearStretchedFFTShifted]
-    print('LEFT SCORE :: ' + str(greyLeftEyeCropsLinearStretchedFFTShiftedMeans))
+    #logger.info('Left Eye Sharpness Scores :: {}'.format(greyLeftEyeCropsLinearStretchedFFTShiftedMeans))
 
     rightEyeCropsLinear = [colorTools.convert_sBGR_to_linearBGR_float_fast(rightEyeCrop) for rightEyeCrop in rightEyeCrops]
     greyRightEyeCropsLinear = [np.mean(linearRightEyeCrop, axis=2) for linearRightEyeCrop in rightEyeCropsLinear]
@@ -56,17 +58,19 @@ def labelSharpestCaptures(captures):
     greyRightEyeCropsLinearStretchedFFT = [np.fft.fft2(greyRightEyeCropLinearStretched) for greyRightEyeCropLinearStretched in greyRightEyeCropsLinearStretched]
     greyRightEyeCropsLinearStretchedFFTShifted = [np.abs(np.fft.fftshift(greyRightEyeCropLinearStretchedFFT)) for greyRightEyeCropLinearStretchedFFT in greyRightEyeCropsLinearStretchedFFT]
     greyRightEyeCropsLinearStretchedFFTShiftedMeans = [np.mean(rightEyeFFT) for rightEyeFFT in greyRightEyeCropsLinearStretchedFFTShifted]
-    print('RIGHT SCORE :: ' + str(greyRightEyeCropsLinearStretchedFFTShiftedMeans))
+    #logger.info('Right Eye Sharpness Scores :: {}'.format(greyRightEyeCropsLinearStretchedFFTShiftedMeans))
 
     scores = [(left + right) / 2 for (left, right) in zip(greyLeftEyeCropsLinearStretchedFFTShiftedMeans, greyRightEyeCropsLinearStretchedFFTShiftedMeans)]
     sortedScores = sorted(scores)
 
-    print('SCORES :: ' + str(scores))
+    logger.info('Eye Sharpness Scores :: {}'.format(scores))
 
     for score, capture in zip(scores, captures):
         if (score == sortedScores[0]) or (score == sortedScores[1]):
             capture.isBlurry = True
+            logger.info('Blurry Capture :: {}'.format(capture.name))
 
         if (score == sortedScores[-1]):
             capture.isSharpest = True
+            logger.info('Sharpest Capture :: {}'.format(capture.name))
 

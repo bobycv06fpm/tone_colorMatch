@@ -13,7 +13,7 @@ def getThird(arr):
     return arr[2]
 
 def cropToAxis(captures, offsets, axis):
-    print('Cropping to Axis')
+    #print('Cropping to Axis')
     #imageSets = np.dstack((images, offset, np.arange(len(offset))))
     OFFSET = 1
 
@@ -51,12 +51,12 @@ def cropToAxis(captures, offsets, axis):
             #capture.landmarks.sourceLandmarkPoints[:, 0] -= start
 
 def cropToOffsets(captures, offsets):
-    print('Offsets :: ' + str(offsets))
+    #print('Offsets :: ' + str(offsets))
     cropToAxis(captures, offsets[:, X], X)
     cropToAxis(captures, offsets[:, Y], Y)
 
 def cropImagesToAxis(images, offsets, axis):
-    print('Cropping to Axis')
+    #print('Cropping to Axis')
     OFFSET = 1
 
     imageSets = []
@@ -92,7 +92,7 @@ def cropImagesToOffsets(images, offsets):
     imageDimensions = np.array([image.shape for image in images])
     minHeight = np.min(imageDimensions[:, 0])
     minWidth = np.min(imageDimensions[:, 1])
-    print('Min Width :: {}, Min Height :: {}'.format(minHeight, minWidth))
+    #print('Min Width :: {}, Min Height :: {}'.format(minHeight, minWidth))
 
     #Occasionally there is data that is 1 px smaller. Probably a rounding issue on the cropping app side. On todo list...
     images = np.array([image[0:minHeight, 0:minWidth] for image in images])
