@@ -8,6 +8,9 @@ import json
 import psycopg2
 import getVersion
 import boto3
+from logger import getLogger
+
+logger = getLogger(__name__)
 
 #IMAGES_DIR = '/home/dmacewen/Projects/tone/images/'
 #COLOR_MATCH_DIR = '/home/dmacewen/Projects/tone/tone_colorMatch/'
@@ -19,10 +22,11 @@ TONE_USER_CAPTURES_BUCKET = 'tone-user-captures'
 # Load and Save reference data
 class State:
 
-    def __init__(self, user_id, capture_id=None):
+    def __init__(self, user_id, capture_id=None, isProduction=False):
+        # Create logger()
         #self.version = getVersion.getVersion(COLOR_MATCH_DIR)
         self.version = '0.0.1' #GET EB VERSION SOMEHOW?? #getVersion.getVersion(COLOR_MATCH_DIR)
-        print("SERVER VERSION :: " + str(self.version))
+        logger.info("NOTE: THIS IS STATIC - SERVER VERSION :: " + str(self.version))
 
         self.user_id = user_id
         self.capture_id = capture_id
@@ -30,25 +34,38 @@ class State:
         self.capture_metadata = None
 
         try:
-            #TEMP
+            #NOTE: THIS IS STATIC - priniTEMP
             #Do not love storing password in plain text in code....
-#            self.conn = psycopg2.connect(dbname="tone",
-#                                    user="postgres",
-#                                    port="5434",
-#                                    password="dirty vent unroof")
-#
-            if 'RDS_HOSTNAME' in os.environ:
-                conn = psycopg2.connect(dbname=os.environ['RDS_DB_NAME'],
-                                        user=os.environ['RDS_USERNAME'],
-                                        password=os.environ['RDS_PASSWORD'],
-                                        host=os.environ['RDS_HOSTNAME'],
-                                        port=os.environ['RDS_PORT'])
+
+            logger.info("Opening connection to DB")
+
+            if isProduction:
+                self.conn = psycopg2.connect(dbname="ebdb",
+                                        host="aa7a9qu9bzxsgc.cz5sm4eeyiaf.us-west-2.rds.amazonaws.com",
+                                        user="toneDatabase",
+                                        port="5432",
+                                        password="mr9pkatYVlX5pD9HjGRDJEzJ0NFpoC")
             else:
-                print('CANNOT CONNECT TO DB!')
+                self.conn = psycopg2.connect(dbname="tone",
+                                        user="postgres",
+                                        port="5434",
+                                        password="dirty vent unroof")
+
+            logger.info("Opened connection to DB")
+
+#            if 'RDS_HOSTNAME' in os.environ:
+#                self.conn = psycopg2.connect(dbname=os.environ['RDS_DB_NAME'],
+#                                        user=os.environ['RDS_USERNAME'],
+#                                        password=os.environ['RDS_PASSWORD'],
+#                                        host=os.environ['RDS_HOSTNAME'],
+#                                        port=os.environ['RDS_PORT'])
+#            else:
+#                #print('CANNOT CONNECT TO DB!')
+#                logger.warning('Cannot Connect to DB - RDS_HOSTNAME not present')
 
 
         except (Exception, psycopg2.Error) as error:
-            print("Error while fetch data from Postrgesql", error)
+            logger.warning("Error while fetch data from Postrgesql :: {}".format(error))
             raise NameError("Error while fetch data from Postrgesql", error)
 
         if self.capture_id is not None:
@@ -76,10 +93,12 @@ class State:
 
         #self.images = self.loadImages()
 
+
     def saveCaptureResults(self, calibrated_skin_color, matched_skin_color_id):
         upsertCaptureResult = 'INSERT INTO capture_results (capture_id, user_id, backend_version, calibrated_skin_color, matched_skin_color_id) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (capture_id) DO UPDATE SET (processed_date, backend_version, calibrated_skin_color, matched_skin_color_id)=ROW(NOW()::TIMESTAMP, EXCLUDED.backend_version, EXCLUDED.calibrated_skin_color, EXCLUDED.matched_skin_color_id)'
         data = (self.capture_id, int(self.user_id), self.version, calibrated_skin_color, matched_skin_color_id)
-        print('Capture Results Data :: {}'.format(data))
+        #print('Capture Results Data :: {}'.format(data))
+        logger.info('Capture Results Data :: {}'.format(data))
 
         with self.conn.cursor() as cursor:
             cursor.execute(upsertCaptureResult, data)
@@ -121,11 +140,25 @@ class State:
         return '{}-{}-{}'.format(self.user_id, self.session_id, self.capture_id)
 
     def fetchImage(self, key):
-        print('FETCHING :: {} - {}'.format(TONE_USER_CAPTURES_BUCKET, key))
-        resp = self.s3.get_object(Bucket=TONE_USER_CAPTURES_BUCKET, Key=key)
-        raw = resp['Body'].read()
-        raw_buffer = io.BytesIO(raw).getbuffer()
-        return cv2.imdecode(np.asarray(raw_buffer), 1)
+        #print('FETCHING :: {} - {}'.format(TONE_USER_CAPTURES_BUCKET, key))
+        try:
+            print("FETCHING...DOUBLE RUNNING?? :: {}".format(key))
+            logger.info('FETCHING :: {} - {}'.format(TONE_USER_CAPTURES_BUCKET, key))
+            resp = self.s3.get_object(Bucket=TONE_USER_CAPTURES_BUCKET, Key=key)
+            logger.info('RESPONSE :: {}'.format(resp))
+            raw = resp['Body'].read()
+            logger.info('Read Response Body | length :: {}'.format(len(raw)))
+            raw_buffer = io.BytesIO(raw).getbuffer()
+            logger.info('Got Raw Buffer')
+            np_array =  np.asarray(raw_buffer)
+            logger.info('Got NP Array')
+            decoded = cv2.imdecode(np_array, 1)
+            logger.info('Decoded Raw Buffer to Image')
+        except Exception as e:
+            print('ERROR IN FETCH!')
+            logger.warn('Error in Fetch! :: {}'.format(e))
+
+        return decoded
 
     def storeImage(self, key, img, extension='.png'):
         img_encoded = io.BytesIO(cv2.imencode(extension, img)[1]).getvalue()
@@ -278,7 +311,7 @@ class State:
         plot.savefig(path, optimize=True)
         plot.close()
 
-        print('Saved chart to {}'.format(path))
+        logger.info('Saved chart to {}'.format(path))
 
         plotImg = cv2.imread(path)
         self.storeImage(key, plotImg, extension)

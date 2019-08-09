@@ -11,11 +11,13 @@ from wsgiref.simple_server import make_server
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+isProduction = False
 # Handler 
 if __name__ == '__main__':
-    LOG_FILE = 'tone-colormatch-app.log'
+    LOG_FILE = 'tone-colormatch-server.log'
 else:
-    LOG_FILE = '/opt/python/log/tone-colormatch-app.log'
+    LOG_FILE = '/opt/python/log/tone-colormatch-server.log'
+    isProduction = True
 
 handler = logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=1048576, backupCount=5)
 handler.setLevel(logging.INFO)
@@ -59,7 +61,12 @@ def application(environ, start_response):
                 capture_id = requestForm[capture_id_key]
                 
                 logger.info('PROCESSING :: user_id :: {}, session_id :: {}, capture_id :: {}'.format(user_id, session_id, capture_id))
-                isSuccessful = run2(user_id, capture_id)['successful']
+                isSuccessful = run2(user_id, capture_id, isProduction)['successful']
+                if isSuccessful:
+                    logger.info('IS SUCCESSFUL :: user_id :: {}, session_id :: {}, capture_id :: {}'.format(user_id, session_id, capture_id))
+                else:
+                    logger.warning('NOT SUCCESSFUL :: user_id :: {}, session_id :: {}, capture_id :: {}'.format(user_id, session_id, capture_id))
+
                 response = str(isSuccessful)
 
             elif path == '/scheduled':
@@ -70,6 +77,7 @@ def application(environ, start_response):
             response = str(False)
     else:
         response = welcome
+
     status = '200 OK'
     headers = [('Content-type', 'text/html')]
 

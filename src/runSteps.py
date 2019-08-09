@@ -19,11 +19,14 @@ import getSharpness
 #import landmarkPoints
 from capture import Capture 
 from faceRegions import FaceRegions
+from logger import getLogger
 
 
 import json
 
 import colorsys
+
+logger = getLogger(__name__)
 
 def fitLine(A, B):
     A_prepped = np.vstack([A, np.ones(len(A))]).T
@@ -38,7 +41,7 @@ def samplePoints(pointsA, pointsB):
     return [list(pointsA), list(pointsB)]
 
 def plotPerRegionDistribution(faceRegionsSets, saveStep):
-    print('PLOTTING: Per Region Distribution')
+    logger.info('PLOTTING: Per Region Distribution')
     faceRegionsSetsLuminance = np.array([faceRegionSet.getRegionLuminance() for faceRegionSet in faceRegionsSets])
     faceRegionsSetsHSV = np.array([faceRegionSet.getRegionHSV() for faceRegionSet in faceRegionsSets])
 
@@ -133,7 +136,7 @@ def plotBGR(axs, color, size, x, y, blurryMask, pointRange=None):
     axs.plot([start_x, end_x], [(m * start_x + c), (m * end_x + c)], color=color)
 
 def plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
-    print('PLOTTING: Per Eye Reflection Brightness')
+    logger.info('PLOTTING: Per Eye Reflection Brightness')
     size = 25
     numCaptures = len(leftEyeReflections)
     expectedBrightness = np.array([regions.capture.flashRatio for regions in faceRegions])
@@ -249,7 +252,7 @@ def plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, sav
 
     captureFaceRegionsDiffs = np.array(captureFaceRegionsDiffs)
 
-    print('PLOTTING: Region Diffs')
+    logger.info('PLOTTING: Region Diffs')
 
     ##averageEyeReflections = (leftEyeReflections + rightEyeReflections) / 2
 
@@ -257,7 +260,7 @@ def plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, sav
     colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1)]
     fig, axs = plt.subplots(2, 3, sharex=True, sharey=True, tight_layout=True)
 
-    print('Flash Ratio vs Face Region Diff :: ' + str(flashRatios) + ' ' + str(captureFaceRegionsDiffs[:, 0, 0]))
+    logger.info('Flash Ratio vs Face Region Diff :: ' + str(flashRatios) + ' ' + str(captureFaceRegionsDiffs[:, 0, 0]))
 
     for regionIndex in range(0, numberOfRegions):
         axs[0, 0].plot(flashRatios[1:], captureFaceRegionsDiffs[regionIndex, :, 2], color=colors[regionIndex])
@@ -285,7 +288,7 @@ def plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, sav
     saveStep.savePlot('RegionDiffs', plt)
 
 def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
-    print('PLOTTING: Region Scaled Linearity')
+    logger.info('PLOTTING: Region Scaled Linearity')
     captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
     flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
     numberOfRegions = captureFaceRegions.shape[1]
@@ -306,7 +309,7 @@ def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
         scaledCaptureFaceRegions.append(scaledCaptureFaceRegion)
 
     scaledCaptureFaceRegions = np.vstack(scaledCaptureFaceRegions)
-    print('SCALED DIFFS CAPTURE FACE REGIONS :: ' + str(scaledCaptureFaceRegions))
+    logger.info('SCALED DIFFS CAPTURE FACE REGIONS :: ' + str(scaledCaptureFaceRegions))
 
     leftEyeDiffs = getDiffs(leftEyeReflections[3:-1])
     #leftEyeDiffs = getDiffs(leftEyeReflections[-4:-1])
@@ -318,7 +321,7 @@ def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
     scaledRightEyeReflections = rightEyeDiffs #/ (np.ones(3) * np.reshape(rightEyeDiffs[:, 2], (rightEyeDiffs.shape[0], 1)))
 
     scaledDiffReflections = np.vstack((scaledLeftEyeReflections, scaledRightEyeReflections))
-    print('SCALED DIFFS REFLECTIONS :: ' + str(scaledDiffReflections))
+    logger.info('SCALED DIFFS REFLECTIONS :: ' + str(scaledDiffReflections))
     #print('SCALED DIFFS LEFT REFLECTIONS :: ' + str(scaledLeftEyeReflections))
     #print('SCALED DIFFS RIGHT REFLECTIONS:: ' + str(scaledRightEyeReflections))
 
@@ -330,7 +333,7 @@ def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
     
 
 def plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
-    print('PLOTTING: Region Scaled Linearity')
+    logger.info('PLOTTING: Region Scaled Linearity')
     captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
     flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
     numberOfRegions = captureFaceRegions.shape[1]
@@ -345,7 +348,7 @@ def plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflec
     for regionIndex in range(0, numberOfRegions):
         #print('Regions :: ' + str(captureFaceRegions[:, regionIndex]))
         diff = getDiffs(captureFaceRegions[:, regionIndex, :])
-        print("Diffs :: {}".format(diff))
+        logger.info("Diffs :: {}".format(diff))
         #captureFaceRegion = captureFaceRegions[:, regionIndex, :]
         #print('FACE REGION :: ' + str(captureFaceRegion[:, 2]))
         diff[diff == 0] = 0.0001 #Kinda shitty work around for divide by 0. Still makes the divide by zero stand out on the chart
@@ -360,7 +363,7 @@ def plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflec
         axs[0, 2].plot(flashRatios[1:], scaledCaptureFaceRegion[:, 0], color=colors[regionIndex])
 
 
-    print('LEFT EYE REFLECTIONS :: ' + str(leftEyeReflections[:, 2]))
+    logger.info('LEFT EYE REFLECTIONS :: ' + str(leftEyeReflections[:, 2]))
     leftEyeDiffs = getDiffs(leftEyeReflections)
     rightEyeDiffs = getDiffs(rightEyeReflections)
     leftEyeDiffs[:, 2][leftEyeDiffs[:, 2] == 0] = 0.001
@@ -395,7 +398,7 @@ def plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflec
     saveStep.savePlot('ScaledRegionLinearity', plt)
 
 def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, saveStep):
-    print('PLOTTING: Region Linearity')
+    logger.info('PLOTTING: Region Linearity')
     captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
     flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
     numberOfRegions = captureFaceRegions.shape[1]
@@ -477,7 +480,7 @@ def isMetadataValid(metadata):
     expectedExposure = metadata[0]["exposureTime"]
 
     if not 'faceImageTransforms' in metadata[0]:
-        print('No Face Image Transforms')
+        logger.warning('No Face Image Transforms')
         return False
 
     expectedWB = metadata[0]["whiteBalance"]
@@ -550,7 +553,7 @@ def getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMa
         captureFaceRegionsScores.append(scores)
 
     captureFaceRegionsLinearFit = np.array(captureFaceRegionsLinearFit)
-    print('CAPTURE FACE REGIONS LINEAR FIT :: {}'.format(captureFaceRegionsLinearFit))
+    logger.info('CAPTURE FACE REGIONS LINEAR FIT :: {}'.format(captureFaceRegionsLinearFit))
     captureFaceRegionsScores = np.array(captureFaceRegionsScores)
     reflectionScores = np.array([leftEyeScores, rightEyeScores])
 
@@ -589,7 +592,7 @@ def getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMa
     #formatString = '\nLINEAR FITS :: {}\n\tEYES\n\t\tSCORE \t\t{} \n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\tFACE\n\t\tSCORE \t\t{}\n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\t\tCHIN \t\t{}\n\t\tFOREHEAD \t{}\n'
     formatString = '\nLINEAR FITS :: {}\n\tEYES\n\t\tSCORE \t{}\n\tFACE\n\t\tSCORE \t{}\n'
     formatted = formatString.format('BGR', maxReflectionScores, maxFaceRegionScores)
-    print(formatted)
+    logger.info(formatted)
 
     #formattedHSV = formatString.format('HSV', leftEyeLinearFitHSV, rightEyeLinearFitHSV, *captureFaceRegionsLinearFitHSV)
     #print(formattedHSV)
@@ -627,14 +630,16 @@ def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
     formatString = '\nMEDIAN DIFFS :: {}\n\tEYES \n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\tFACE\n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\t\tCHIN \t\t{}\n\t\tFOREHEAD \t{}\n'
     formatted = formatString.format('BGR', leftEyeDiffReflectionMedian, rightEyeDiffReflectionMedian, *faceRegionDiffMedians)
     formattedHSV = formatString.format('HSV', leftEyeDiffReflectionMedianHSV, rightEyeDiffReflectionMedianHSV, *faceRegionDiffMediansHSV)
-    print(formatted)
-    print(formattedHSV)
+    logger.info(formatted)
+    logger.info(formattedHSV)
 
     return medianDiffs
 
-def run2(user_id, capture_id=None):
+def run2(user_id, capture_id=None, isProduction=False):
     failOnError = False
-    state = State(user_id, capture_id)
+    state = State(user_id, capture_id, isProduction)
+    #logger = state.logger #Kinda messy...
+    logger.info('IS PRODUCTION :: {}'.format(isProduction))
     #state.resetLogFile()
     #state.deleteReference()
     images = state.loadImages()
@@ -642,7 +647,7 @@ def run2(user_id, capture_id=None):
     #print(state.getMetadata())
 
     if not isMetadataValid(metadata):
-        print('User :: {} | Image :: {} | Error :: {}'.format(state.user_id, state.imageName(), 'Metadata does not Match'))
+        logger.warn('User :: {} | Image :: {} | Error :: {}'.format(state.user_id, state.imageName(), 'Metadata does not Match'))
         return getResponse(state.imageName(), False)
 
     #numImages = len(images)
@@ -653,7 +658,7 @@ def run2(user_id, capture_id=None):
     getSharpness.labelSharpestCaptures(captures)
 
     blurryMask = [capture.isBlurry for capture in captures]
-    print('BLURRY MASK :: {}'.format(blurryMask))
+    logger.info('BLURRY MASK :: {}'.format(blurryMask))
 
     try:
         leftEyeCropOffsets, rightEyeCropOffsets, faceCropOffsets = alignImages.getCaptureEyeOffsets2(captures)
@@ -661,7 +666,7 @@ def run2(user_id, capture_id=None):
         if failOnError:
             raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error Cropping and Aligning Images', err))
         else:
-            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error Cropping and Aligning Images', err))
+            logger.warning('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error Cropping and Aligning Images', err))
             return getResponse(state.imageName(), False)
 
     #leftEyeOffsets -= averageOffsets #Need offsets relative to averageOffset now that we are aligned
@@ -678,7 +683,7 @@ def run2(user_id, capture_id=None):
         if failOnError:
             raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error Extracting Reflection', err))
         else:
-            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error Extracting Reflection', err))
+            logger.warning('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error Extracting Reflection', err))
             return getResponse(state.imageName(), False)
 
     try:
@@ -687,22 +692,26 @@ def run2(user_id, capture_id=None):
         if failOnError:
             raise NameError('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error extracting Points for Recovered Mask', err))
         else:
-            print('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error extracting Points for Recovered Mask', err))
+            logger.warning('User :: {} | Image :: {} | Error :: {} | Details :: {}'.format(state.user_id, state.imageName(), 'Error extracting Points for Recovered Mask', err))
             return getResponse(state.imageName(), False)
 
+    logger.info('Done Most Image Processing. Begining Analysis')
     state.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')
 
-    plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, state)
-    plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflections, state)
-    #plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, state)
-    plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, state)
+    #--TEMP FOR DEBUG?---
+    #plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, state)
+    #plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflections, state)
+    #plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, state)
+    #--END TEMP FOR DEBUG?---
 
+    #plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, state)
     #plotPerRegionPoints(faceRegions, state)
     #plotPerRegionDistribution(faceRegions, state)
 
     captureSets = zip(faceRegions, leftEyeReflections, rightEyeReflections)
     #medianDiffSets = getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions)
     #print('Median Diff Sets :: ' + str(medianDiffSets))
+
     linearFitSets = getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMask)
 
     #reflectionBestGuess, faceBestGuess = getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections)
@@ -718,13 +727,15 @@ def run2(user_id, capture_id=None):
     #print('WB BGR vs Reflection :: ' + str(scaledBGR) + ' ' + str(bestGuess[0]))
     #print('BEST GUESS -> REFLECTION :: {} | FACE :: {}'.format(bestGuess[0], bestGuess[1]))
     #bestGuess[0] = list(scaledBGR)
+    logger.info('Done Analysis. Final Gathering of Results.')
 
     calibrated_skin_color = [0.0, 0.0, 0.0]
     matched_skin_color_id = 0
     state.saveCaptureResults(calibrated_skin_color, matched_skin_color_id)
 
     response = getResponse(state.imageName(), True, captureSets, linearFitSets, bestGuess, averageReflectionArea)
-    print(json.dumps(response))
+    #print(json.dumps(response))
+    logger.info('Done. Returing Results.')
     return response
 
 
