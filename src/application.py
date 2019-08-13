@@ -41,7 +41,6 @@ def application(environ, start_response):
             if path == '/':
                 request_body_size = int(environ['CONTENT_LENGTH'])
                 request_body = environ['wsgi.input'].read(request_body_size).decode()
-                logger.info("Received message: %s" % request_body)
                 requestForm = json.loads(request_body)
 
                 user_id_key = 'user_id'
