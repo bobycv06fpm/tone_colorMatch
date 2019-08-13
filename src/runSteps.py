@@ -632,11 +632,19 @@ def run2(user_id, capture_id=None, isProduction=False):
     logger.info('BEGINNING COLOR MATCH PROCESSING FOR USER {} CAPTURE {}'.format(user_id, capture_id if capture_id is not None else '-1'))
     state = State(user_id, capture_id, isProduction)
     logger.info('IS PRODUCTION :: {}'.format(isProduction))
-    images = state.loadImages()
+    try:
+        images = state.loadImages()
+    except Exception as err:
+        logger.error('User :: {} | Image :: {} | Error :: {} | Details ::\n{}'.format(state.user_id, state.imageName(), 'Error Loading Images', err))
+        state.errorProccessing()
+        if failOnError: raise
+        return getResponse(state.imageName(), False)
+
     metadata = state.getMetadata()
 
     if not isMetadataValid(metadata):
         logger.error('User :: {} | Image :: {} | Error :: {}'.format(state.user_id, state.imageName(), 'Metadata does not Match'))
+        state.errorProccessing()
         if failOnError: raise ValueError('Metadata does not Match')
         return getResponse(state.imageName(), False)
 
@@ -648,6 +656,7 @@ def run2(user_id, capture_id=None, isProduction=False):
         leftEyeCropOffsets, rightEyeCropOffsets, faceCropOffsets = alignImages.getCaptureEyeOffsets2(captures)
     except Exception as err:
         logger.error('User :: {} | Image :: {} | Error :: {} | Details ::\n{}'.format(state.user_id, state.imageName(), 'Error Cropping and Aligning Images', err))
+        state.errorProccessing()
         if failOnError: raise
         return getResponse(state.imageName(), False)
 
@@ -660,6 +669,7 @@ def run2(user_id, capture_id=None, isProduction=False):
         averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections = getAverageScreenReflectionColor2(captures, leftEyeCropOffsets, rightEyeCropOffsets, state)
     except Exception as err:
         logger.error('User :: {} | Image :: {} | Error :: {} | Details ::\n{}'.format(state.user_id, state.imageName(), 'Error Extracting Reflection', err))
+        state.errorProccessing()
         if failOnError: raise
         return getResponse(state.imageName(), False)
 
@@ -667,6 +677,7 @@ def run2(user_id, capture_id=None, isProduction=False):
         faceRegions = np.array([FaceRegions(capture) for capture in captures])
     except Exception as err:
         logger.error('User :: {} | Image :: {} | Error :: {} | Details ::\n{}'.format(state.user_id, state.imageName(), 'Error extracting Points for Recovered Mask', err))
+        state.errorProccessing()
         if failOnError: raise
         return getResponse(state.imageName(), False)
 

@@ -35,17 +35,10 @@ class State:
                                     user="toneDatabase",
                                     port="5432",
                                     password="mr9pkatYVlX5pD9HjGRDJEzJ0NFpoC")
-            #if isProduction:
-            #    self.conn = psycopg2.connect(dbname="ebdb",
-            #                            host="aa7a9qu9bzxsgc.cz5sm4eeyiaf.us-west-2.rds.amazonaws.com",
-            #                            user="toneDatabase",
-            #                            port="5432",
-            #                            password="mr9pkatYVlX5pD9HjGRDJEzJ0NFpoC")
-            #else:
-            #    self.conn = psycopg2.connect(dbname="tone",
-            #                            user="postgres",
-            #                            port="5434",
-            #                            password="dirty vent unroof")
+            #self.conn = psycopg2.connect(dbname="tone",
+            #                        user="postgres",
+            #                        port="5434",
+            #                        password="dirty vent unroof")
 
             logger.info("Opened connection to DB")
 
@@ -72,9 +65,17 @@ class State:
         self.s3 = boto3.client('s3')
 
     def saveCaptureResults(self, calibrated_skin_color, matched_skin_color_id):
-        upsertCaptureResult = 'INSERT INTO capture_results (capture_id, user_id, backend_version, calibrated_skin_color, matched_skin_color_id) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (capture_id) DO UPDATE SET (processed_date, backend_version, calibrated_skin_color, matched_skin_color_id)=ROW(NOW()::TIMESTAMP, EXCLUDED.backend_version, EXCLUDED.calibrated_skin_color, EXCLUDED.matched_skin_color_id)'
-        data = (self.capture_id, int(self.user_id), self.version, calibrated_skin_color, matched_skin_color_id)
+        upsertCaptureResult = 'INSERT INTO capture_results (capture_id, user_id, backend_version, calibrated_skin_color, matched_skin_color_id, successful) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (capture_id) DO UPDATE SET (processed_date, backend_version, calibrated_skin_color, matched_skin_color_id, successful)=ROW(NOW()::TIMESTAMP, EXCLUDED.backend_version, EXCLUDED.calibrated_skin_color, EXCLUDED.matched_skin_color_id, EXCLUDED.successful)'
+        data = (self.capture_id, int(self.user_id), self.version, calibrated_skin_color, matched_skin_color_id, True)
         logger.info('Capture Results Data :: {}'.format(data))
+
+        with self.conn.cursor() as cursor:
+            cursor.execute(upsertCaptureResult, data)
+            self.conn.commit()
+
+    def errorProccessing(self):
+        upsertCaptureResult = 'INSERT INTO capture_results (capture_id, user_id, backend_version, calibrated_skin_color, matched_skin_color_id, successful) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (capture_id) DO UPDATE SET (processed_date, backend_version, calibrated_skin_color, matched_skin_color_id, successful)=ROW(NOW()::TIMESTAMP, EXCLUDED.backend_version, EXCLUDED.calibrated_skin_color, EXCLUDED.matched_skin_color_id, EXCLUDED.successful)'
+        data = (self.capture_id, int(self.user_id), self.version, None, None, False)
 
         with self.conn.cursor() as cursor:
             cursor.execute(upsertCaptureResult, data)
