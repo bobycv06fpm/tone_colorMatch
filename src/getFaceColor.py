@@ -36,10 +36,8 @@ user_id = args["user_id"]
 #if not baseline:
 #    error = runSteps.run(username, imageName, fast, save, failOnError)
 
-error = runSteps.run2(user_id)
-if error is None:
-    print('Done getting face color')
-else:
-    print(error)
+response = runSteps.run2(user_id)
+if response is None:
+    print('Error....')
 
 

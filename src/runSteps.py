@@ -687,7 +687,38 @@ def run2(user_id, capture_id=None, isProduction=False):
     #medianDiffSets = getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions)
     #print('Median Diff Sets :: ' + str(medianDiffSets))
 
+
+
+
+    #linearFits = {}
+    #linearFits["reflections"] = {}
+    #linearFits["reflections"]["left"] = list(leftEyeLinearFit[:, 0])
+    #linearFits["reflections"]["right"] = list(rightEyeLinearFit[:, 0])
+    #linearFits["reflections"]["linearityScore"] = list(maxReflectionScores)
+
+    #linearFits["regions"] = {}
+    #linearFits["regions"]["left"] = list(captureFaceRegionsLinearFit[0, :, 0])
+    #linearFits["regions"]["right"] = list(captureFaceRegionsLinearFit[1, :, 0])
+    #linearFits["regions"]["chin"] = list(captureFaceRegionsLinearFit[2, :, 0])
+    #linearFits["regions"]["forehead"] = list(captureFaceRegionsLinearFit[3, :, 0])
+    #linearFits["regions"]["linearityScore"] = list(maxFaceRegionScores)
+    #print('Left Eye Reflections :: ' + str(leftEyeReflections))
+    #print('Right Eye Reflections :: ' + str(rightEyeReflections))
+    #print('Face Regions :: ' + str(faceRegions))
     linearFitSets = getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMask)
+
+    averageReflectionSlope = (np.array(linearFitSets["reflections"]["left"]) + np.array(linearFitSets["reflections"]["right"])) / 2
+    averageSkinSlope = (np.array(linearFitSets["regions"]["left"]) + np.array(linearFitSets["regions"]["right"]) + np.array(linearFitSets["regions"]["chin"]) + np.array(linearFitSets["regions"]["forehead"])) / 4
+    channelRatio = averageSkinSlope / averageReflectionSlope
+    hue = 60 * ((channelRatio[1] - channelRatio[0]) / (channelRatio[2])) % 6
+    sat = (max(channelRatio) - min(channelRatio)) / max(channelRatio) 
+    val = colorTools.getRelativeLuminance([channelRatio])[0]
+    #val = sum(channelRatio) / 3
+
+    #print('AVERAGE REFLECION SLOPE :: ' + str(averageReflectionSlope))
+    #print('AVERAGE SKIN SLOPE :: ' + str(averageSkinSlope))
+    #print('SKIN CHANNEL RATIOS :: ' + str(channelRatio))
+    #print('SKIN CHANNEL RATIOS HSV :: ' + str(hue) + ', ' + str(sat) + ', ' + str(val))
 
     #reflectionBestGuess, faceBestGuess = getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections)
     bestGuess = getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections)
@@ -704,7 +735,7 @@ def run2(user_id, capture_id=None, isProduction=False):
     #bestGuess[0] = list(scaledBGR)
     logger.info('Done Analysis - Generating Results')
 
-    calibrated_skin_color = [0.0, 0.0, 0.0]
+    calibrated_skin_color = [hue, sat, val]#[0.0, 0.0, 0.0]
     matched_skin_color_id = 0
     state.saveCaptureResults(calibrated_skin_color, matched_skin_color_id)
 
