@@ -25,6 +25,11 @@ def fitLine(A, B):
     A_prepped = np.vstack([A, np.ones(len(A))]).T
     return np.linalg.lstsq(A_prepped, B, rcond=None)
 
+def fitLine2(A, B):
+    return np.polyfit(A, B, 1)
+    #A_prepped = np.vstack([A, np.ones(len(A))]).T
+    #return np.linalg.lstsq(A_prepped, B, rcond=None)
+
 def samplePoints(pointsA, pointsB):
     sampleSize = 1000
     if len(pointsA) > sampleSize:
@@ -436,6 +441,42 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
     axs[1, 0].set_ylabel('Measured Reflection Mag')
     saveStep.savePlot('RegionLinearity', plt)
 
+def plotPerRegionLinearityAlt(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, saveStep):
+    logger.info('PLOTTING: Region Linearity')
+    captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
+    flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
+
+    numberOfRegions = captureFaceRegions.shape[1]
+
+    averageEyeReflections = (leftEyeReflections + rightEyeReflections) / 2
+    print('Average Eye Reflections :: {}'.format(averageEyeReflections))
+
+    blurryMask = np.zeros(len(blurryMask)).astype('bool')
+
+    size=1
+    colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1)]
+    isBlurryColor = (0, 0, 0)
+
+    #fig, axs = plt.subplots(2, 3, sharex=True, sharey=True, tight_layout=True)
+    fig, axs = plt.subplots(1, 3, sharex=False, sharey=False, tight_layout=True)
+
+    for regionIndex in range(0, numberOfRegions):
+        #print('Regions :: ' + str(captureFaceRegions[:, regionIndex]))
+        #tempBlurryMask = np.zeros(len(blurryMask)).astype('bool')
+        #tempBlurryMask = blurryMask
+        plotBGR(axs[0], colors[regionIndex], size, averageEyeReflections[:, 2], captureFaceRegions[:, regionIndex, 2], blurryMask)
+        plotBGR(axs[1], colors[regionIndex], size, averageEyeReflections[:, 1], captureFaceRegions[:, regionIndex, 1], blurryMask)
+        plotBGR(axs[2], colors[regionIndex], size, averageEyeReflections[:, 0], captureFaceRegions[:, regionIndex, 0], blurryMask)
+
+    axs[0].set_title('Red')
+    axs[1].set_title('Green')
+    axs[2].set_title('Blue')
+
+    axs[0].set_xlabel('Screen Flash Ratio')
+    axs[0].set_ylabel('Channel Mag')
+
+    saveStep.savePlot('RegionLinearityAlt', plt)
+
 #def plotPerRegionPoints(faceRegionsSets, saveStep):
 #    print('PLOTTING: Per Region Points')
 #    size=1
@@ -513,12 +554,17 @@ def scoreLinearFit(linearFit):
 
 def getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMask):
     flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
+    print('Flash Ratios :: {}'.format(flashRatios))
 
     filteredFlashRatios = flashRatios[np.logical_not(blurryMask)]
     filteredLeftEyeReflections = leftEyeReflections[np.logical_not(blurryMask)]
     filteredRightEyeReflections = rightEyeReflections[np.logical_not(blurryMask)]
 
     leftEyeLinearFitFull = np.array([fitLine(filteredFlashRatios, filteredLeftEyeReflections[:, subPixel]) for subPixel in range(0, 3)])
+    leftEyeLinearFitFullTest = np.array([fitLine2(filteredFlashRatios, filteredLeftEyeReflections[:, subPixel]) for subPixel in range(0, 3)])
+
+    print('Left Eye Linear Fit Full :: {}'.format(leftEyeLinearFitFull))
+    print('Left Eye Linear Fit Full Test :: {}'.format(leftEyeLinearFitFullTest))
 
     leftEyeLinearFit = np.vstack(leftEyeLinearFitFull[:, 0])
     leftEyeScores = scoreLinearFit(leftEyeLinearFitFull)
@@ -590,6 +636,31 @@ def getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMa
     #print(formattedHSV)
 
     return linearFits
+
+#def getLinearFitExperimental(leftEyeReflections, rightEyeReflections, faceRegions, blurryMask):
+#    flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
+#    print('Flash Ratios :: {}'.format(flashRatios))
+#
+#    filteredFlashRatios = flashRatios[np.logical_not(blurryMask)]
+#    filteredLeftEyeReflections = leftEyeReflections[np.logical_not(blurryMask)]
+#    filteredRightEyeReflections = rightEyeReflections[np.logical_not(blurryMask)]
+#    averageEyeReflections = leftEyeRE
+#
+#    captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
+#    filteredCaptureFaceRegions = captureFaceRegions[np.logical_not(blurryMask)]
+#
+#    filteredRegion0 = filteredCaptureFaceRegions[:, 0]
+#    filteredRegion1 = filteredCaptureFaceRegions[:, 1]
+#    filteredRegion2 = filteredCaptureFaceRegions[:, 2]
+#    filteredRegion3 = filteredCaptureFaceRegions[:, 3]
+#
+#    slope = np.array([fitLine2(filteredFlashRatios, filteredLeftEyeReflections[:, subPixel])[0] for subPixel in range(0, 3)])
+#    slope = np.array([fitLine2(filteredFlashRatios, filteredLeftEyeReflections[:, subPixel])[0] for subPixel in range(0, 3)])
+#    slope = np.array([fitLine2(filteredFlashRatios, filteredLeftEyeReflections[:, subPixel])[0] for subPixel in range(0, 3)])
+#    slope = np.array([fitLine2(filteredFlashRatios, filteredLeftEyeReflections[:, subPixel])[0] for subPixel in range(0, 3)])
+#
+    return linearFits
+
 
 def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
     leftEyeDiffReflectionMedian = getMedianDiff(leftEyeReflections)
@@ -686,6 +757,7 @@ def run2(user_id, capture_id=None, isProduction=False):
 
     #--TEMP FOR DEBUG?---
     plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, state)
+    plotPerRegionLinearityAlt(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, state)
     plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflections, state)
     plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, state)
     #--END TEMP FOR DEBUG?---
@@ -713,11 +785,13 @@ def run2(user_id, capture_id=None, isProduction=False):
     #linearFits["regions"]["chin"] = list(captureFaceRegionsLinearFit[2, :, 0])
     #linearFits["regions"]["forehead"] = list(captureFaceRegionsLinearFit[3, :, 0])
     #linearFits["regions"]["linearityScore"] = list(maxFaceRegionScores)
-    #print('Left Eye Reflections :: ' + str(leftEyeReflections))
+    print('Left Eye Reflections :: ' + str(leftEyeReflections))
     #print('Right Eye Reflections :: ' + str(rightEyeReflections))
     #print('Face Regions :: ' + str(faceRegions))
     linearFitSets = getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMask)
+    #linearFitExperimental = getLinearFitExperimental(leftEyeReflections, rightEyeReflections, faceRegions, blurryMask)
 
+    print('Left Eye Reflection Slope :: ' + str(linearFitSets["reflections"]["left"]))
     averageReflectionSlope = (np.array(linearFitSets["reflections"]["left"]) + np.array(linearFitSets["reflections"]["right"])) / 2
     averageSkinSlope = (np.array(linearFitSets["regions"]["left"]) + np.array(linearFitSets["regions"]["right"]) + np.array(linearFitSets["regions"]["chin"]) + np.array(linearFitSets["regions"]["forehead"])) / 4
     channelRatio = averageSkinSlope / averageReflectionSlope

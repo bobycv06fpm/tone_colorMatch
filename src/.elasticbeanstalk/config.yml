@@ -1,6 +1,8 @@
 branch-defaults:
   default:
     environment: tone-colormatch-env
+  beanstalk:
+    environment: tone-colormatch-env
 environment-defaults:
   tone-colormatch-env:
     branch: null

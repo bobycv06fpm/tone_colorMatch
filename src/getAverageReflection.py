@@ -386,6 +386,9 @@ def getEyeWidth(capture):
 
     return (leftEyeWidth + rightEyeWidth) / 2
 
+def getEyeWhiteSample(eye, leftPoint, rightPoint):
+    return None
+
 def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, saveStep):
     wb = captures[0].getAsShotWhiteBalance()
     isSpecialCase = [capture.isNoFlash for capture in captures]
