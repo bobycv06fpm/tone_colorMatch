@@ -699,7 +699,7 @@ def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
     return medianDiffs
 
 def run2(user_id, capture_id=None, isProduction=False):
-    failOnError = True
+    failOnError = True#False#True
     logger.info('BEGINNING COLOR MATCH PROCESSING FOR USER {} CAPTURE {}'.format(user_id, capture_id if capture_id is not None else '-1'))
     state = State(user_id, capture_id, isProduction)
     logger.info('IS PRODUCTION :: {}'.format(isProduction))
