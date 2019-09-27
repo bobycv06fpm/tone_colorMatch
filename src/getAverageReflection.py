@@ -80,6 +80,67 @@ def maskReflectionBB(eyes, wb):
     #greyEyes = np.array([np.mean(eye, axis=2) for eye in eyes])
     greyEyes = np.array([np.mean(eye[:, :, 0:2], axis=2) for eye in eyes])
 
+
+    ###TESTING
+
+    #eye_blur = [cv2.medianBlur(eye, 5) for eye in eyes]
+    eye_blur = [cv2.blur(eye, (5, 5)) for eye in eyes]
+    eyes_hsv = [colorTools.naiveBGRtoHSV(eye) for eye in eye_blur]
+    eye_s = []
+    for eye in eyes_hsv:
+        sat = 1 - eye[:, :, 1]
+        val = eye[:, :, 2]
+
+        sat = sat * val
+        print('Sat :: {}'.format(sat))
+        print('Val :: {}'.format(val))
+        min_sat = np.min(sat)
+        max_sat = np.max(sat)
+
+        scaled_sat = (sat - min_sat) / (max_sat - min_sat)
+
+        eye[:, :, 0] = scaled_sat
+        eye[:, :, 1] = scaled_sat
+        eye[:, :, 2] = scaled_sat
+        eye_s.append(eye)
+
+    #cv2.imshow('s', np.vstack([np.hstack(eye_s[0:4]), np.hstack(eye_s[4:])]))
+
+
+    diff = eye_s[0] - eye_s[-1]
+    diff = np.clip(diff, 0, 255)
+    min_diff = np.min(diff)
+    max_diff = np.max(diff)
+
+    scaled_diff = (diff - min_diff) / (max_diff - min_diff)
+    scaled_diff = np.clip(scaled_diff * 255, 0, 255).astype('uint8')
+
+    ret, thresh = cv2.threshold(scaled_diff[:, :, 0], 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    kernel = np.ones((9, 9), np.uint8)
+    thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+    thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    areas = [cv2.contourArea(c) for c in contours]
+    max_index = np.argmax(areas)
+    target = np.zeros(thresh.shape, dtype='uint8')
+    sclera_mask =  cv2.drawContours(target, contours, max_index, 255, cv2.FILLED)
+
+
+    thresh = np.stack((thresh, thresh, thresh), axis=-1)
+
+    masked_eyes = np.copy(eyes)
+    masked_eyes[:, np.logical_not(sclera_mask)] = [0, 0, 0]
+
+    #cv2.imshow('diff', scaled_diff)
+    #cv2.imshow('thresh', thresh)
+    #cv2.imshow('sclera', sclera_mask)
+    cv2.imshow('sclera', np.vstack([np.hstack(masked_eyes[0:4]), np.hstack(masked_eyes[4:])]))
+    #cv2.waitKey(0)
+
+
+    ##END TESTING
+
     eyeCropY1 = int(0.15 * greyEyes[0].shape[0])
     eyeCropY2 = int(0.85 * greyEyes[0].shape[0])
 
@@ -90,7 +151,6 @@ def maskReflectionBB(eyes, wb):
 
     totalChange = np.sum(croppedGreyEyes[:-1] - croppedGreyEyes[1:], axis=0)
     totalChange = totalChange / np.max(totalChange)
-    kernel = np.ones((9, 9), np.uint8)
 
     totalChangeMask = totalChange > (np.median(totalChange) + np.std(totalChange))
     totalChangeMaskEroded = cv2.erode(totalChangeMask.astype('uint8'), kernel, iterations=1)
@@ -399,6 +459,9 @@ def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, 
     leftEyeCrops, leftOffsets = cropTools.cropImagesToOffsets(leftEyeCrops, leftEyeOffsets)
     leftEyeMasks, offsets = cropTools.cropImagesToOffsets(leftEyeMasks, leftEyeOffsets)
 
+    #cv2.imshow('left eye', np.vstack(leftEyeCrops))
+    #cv2.waitKey(0)
+
     rightEyeCrops = [capture.rightEyeImage for capture in captures]
     rightEyeMasks = [capture.rightEyeMask for capture in captures]
 
@@ -407,6 +470,7 @@ def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, 
 
     leftReflectionBB = maskReflectionBB(leftEyeCrops, wb)
     rightReflectionBB = maskReflectionBB(rightEyeCrops, wb)
+    cv2.waitKey(0)
 
     #leftEyeCoords[:, 0:2] += leftOffsets
     #rightEyeCoords[:, 0:2] += rightOffsets

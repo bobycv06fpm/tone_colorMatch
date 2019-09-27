@@ -524,6 +524,8 @@ def isMetadataValid(metadata):
         wb = captureMetadata["whiteBalance"]
 
         if (iso != expectedISO) or (exposure != expectedExposure) or (wb['x'] != expectedWB['x']) or (wb['y'] != expectedWB['y']):
+            print("White Balance Does Not Match")
+            print("Expected :: {} | Received :: {}".format(expectedWB, wb))
             return False
         
     return True
@@ -699,7 +701,8 @@ def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
     return medianDiffs
 
 def run2(user_id, capture_id=None, isProduction=False):
-    failOnError = True#False#True
+    failOnError = True
+    #failOnError = False
     logger.info('BEGINNING COLOR MATCH PROCESSING FOR USER {} CAPTURE {}'.format(user_id, capture_id if capture_id is not None else '-1'))
     state = State(user_id, capture_id, isProduction)
     logger.info('IS PRODUCTION :: {}'.format(isProduction))
@@ -710,6 +713,8 @@ def run2(user_id, capture_id=None, isProduction=False):
         state.errorProccessing()
         if failOnError: raise
         return getResponse(state.imageName(), False)
+
+    state.saveExposurePointImage('exposurePoints', images)
 
     metadata = state.getMetadata()
 
