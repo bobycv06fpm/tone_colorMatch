@@ -70,18 +70,29 @@ def simpleMaskBB(mask):
 
     return np.array([xStart, yStart, xEnd - xStart, yEnd - yStart])
 
-def maskReflectionBB(eyes, wb):
+def bbToMask(bb, imgShape):
+    img = np.zeros(imgShape)
+    img[bb[1]:(bb[1]+bb[3]), bb[0]:(bb[0]+bb[2])] = 1
+    return img.astype('bool')
+
+def getEyeWhiteMask(eyes, reflection_bb, wb, label):
     for index, eye in enumerate(eyes):
         if eye.shape[0] * eye.shape[1] == 0:
             raise ValueError('Cannot Find #{} Eye'.format(index))
 
     eyes = [colorTools.convert_sBGR_to_linearBGR_float_fast(eye) for eye in eyes]
     eyes = [colorTools.whitebalance_from_asShot_to_d65(eye, *wb) for eye in eyes]
-    #greyEyes = np.array([np.mean(eye, axis=2) for eye in eyes])
-    greyEyes = np.array([np.mean(eye[:, :, 0:2], axis=2) for eye in eyes])
-
-
     ###TESTING
+
+    #print("Reflection BB :: {}".format(reflection_bb))  
+    #print("Size :: {}".format(eyes[0][:, :, 0].shape))
+    primarySpecularReflectionBB = reflection_bb
+    primarySpecularReflectionBB[0:2] -= reflection_bb[2:4]
+    primarySpecularReflectionBB[2:4] *= 3
+    primarySpecularReflectionMask = bbToMask(primarySpecularReflectionBB, eyes[0][:, :, 0].shape)
+    #print('masked :: {}'.format(primarySpecularReflectionMask.astype('uint8') * 255))
+    #cv2.imshow('masked', primarySpecularReflectionMask.astype('uint8') * 255)
+
 
     #eye_blur = [cv2.medianBlur(eye, 5) for eye in eyes]
     eye_blur = [cv2.blur(eye, (5, 5)) for eye in eyes]
@@ -91,21 +102,19 @@ def maskReflectionBB(eyes, wb):
         sat = 1 - eye[:, :, 1]
         val = eye[:, :, 2]
 
+        sat[primarySpecularReflectionMask] = 0
+        val[primarySpecularReflectionMask] = 0
+
         sat = sat * val
-        print('Sat :: {}'.format(sat))
-        print('Val :: {}'.format(val))
-        min_sat = np.min(sat)
-        max_sat = np.max(sat)
 
-        scaled_sat = (sat - min_sat) / (max_sat - min_sat)
-
-        eye[:, :, 0] = scaled_sat
-        eye[:, :, 1] = scaled_sat
-        eye[:, :, 2] = scaled_sat
+        eye[:, :, 0] = sat
+        eye[:, :, 1] = sat
+        eye[:, :, 2] = sat
         eye_s.append(eye)
 
     #cv2.imshow('s', np.vstack([np.hstack(eye_s[0:4]), np.hstack(eye_s[4:])]))
-
+    #cv2.imshow('brightest {}'.format(label), eye_s[0])
+    #cv2.imshow('dimmest {}'.format(label), eye_s[-1])
 
     diff = eye_s[0] - eye_s[-1]
     diff = np.clip(diff, 0, 255)
@@ -114,8 +123,11 @@ def maskReflectionBB(eyes, wb):
 
     scaled_diff = (diff - min_diff) / (max_diff - min_diff)
     scaled_diff = np.clip(scaled_diff * 255, 0, 255).astype('uint8')
+    cv2.imshow('scaled_diff {}'.format(label), scaled_diff)
 
     ret, thresh = cv2.threshold(scaled_diff[:, :, 0], 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    #cv2.imshow('thresh {}'.format(label), thresh)
+    #cv2.waitKey(0)
     kernel = np.ones((9, 9), np.uint8)
     thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
     thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
@@ -135,11 +147,22 @@ def maskReflectionBB(eyes, wb):
     #cv2.imshow('diff', scaled_diff)
     #cv2.imshow('thresh', thresh)
     #cv2.imshow('sclera', sclera_mask)
-    cv2.imshow('sclera', np.vstack([np.hstack(masked_eyes[0:4]), np.hstack(masked_eyes[4:])]))
+    cv2.imshow('sclera {}'.format(label), np.vstack([np.hstack(masked_eyes[0:4]), np.hstack(masked_eyes[4:])]))
     #cv2.waitKey(0)
 
 
     ##END TESTING
+
+def maskReflectionBB(eyes, wb):
+    for index, eye in enumerate(eyes):
+        if eye.shape[0] * eye.shape[1] == 0:
+            raise ValueError('Cannot Find #{} Eye'.format(index))
+
+    eyes = [colorTools.convert_sBGR_to_linearBGR_float_fast(eye) for eye in eyes]
+    eyes = [colorTools.whitebalance_from_asShot_to_d65(eye, *wb) for eye in eyes]
+    #greyEyes = np.array([np.mean(eye, axis=2) for eye in eyes])
+    greyEyes = np.array([np.mean(eye[:, :, 0:2], axis=2) for eye in eyes])
+
 
     eyeCropY1 = int(0.15 * greyEyes[0].shape[0])
     eyeCropY2 = int(0.85 * greyEyes[0].shape[0])
@@ -151,6 +174,8 @@ def maskReflectionBB(eyes, wb):
 
     totalChange = np.sum(croppedGreyEyes[:-1] - croppedGreyEyes[1:], axis=0)
     totalChange = totalChange / np.max(totalChange)
+
+    kernel = np.ones((9, 9), np.uint8)
 
     totalChangeMask = totalChange > (np.median(totalChange) + np.std(totalChange))
     totalChangeMaskEroded = cv2.erode(totalChangeMask.astype('uint8'), kernel, iterations=1)
@@ -470,6 +495,9 @@ def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, 
 
     leftReflectionBB = maskReflectionBB(leftEyeCrops, wb)
     rightReflectionBB = maskReflectionBB(rightEyeCrops, wb)
+
+    leftEyeWhiteMask  = getEyeWhiteMask(leftEyeCrops, leftReflectionBB, wb, 'left')
+    rightEyeWhiteMask = getEyeWhiteMask(rightEyeCrops, rightReflectionBB, wb, 'right')
     cv2.waitKey(0)
 
     #leftEyeCoords[:, 0:2] += leftOffsets
