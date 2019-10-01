@@ -123,7 +123,7 @@ def getEyeWhiteMask(eyes, reflection_bb, wb, label):
 
     scaled_diff = (diff - min_diff) / (max_diff - min_diff)
     scaled_diff = np.clip(scaled_diff * 255, 0, 255).astype('uint8')
-    cv2.imshow('scaled_diff {}'.format(label), scaled_diff)
+    #cv2.imshow('scaled_diff {}'.format(label), scaled_diff)
 
     ret, thresh = cv2.threshold(scaled_diff[:, :, 0], 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
     #xBlock = int(scaled_diff[:, :, 0].shape[0] / 4)
@@ -135,7 +135,7 @@ def getEyeWhiteMask(eyes, reflection_bb, wb, label):
     kernel = np.ones((9, 9), np.uint8)
     thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
     thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-    cv2.imshow('thresh {}'.format(label), thresh)
+    #cv2.imshow('thresh {}'.format(label), thresh)
 
     contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     areas = [cv2.contourArea(c) for c in contours]
@@ -164,6 +164,18 @@ def getEyeWhiteMask(eyes, reflection_bb, wb, label):
     target = np.zeros(thresh.shape, dtype='uint8')
     sclera_mask =  cv2.drawContours(target, contours, max_index, 255, cv2.FILLED)
 
+
+    masked_scaled_diff = scaled_diff[:, :, 0]
+    masked_scaled_diff[np.logical_not(sclera_mask)] = 0
+    print(sclera_mask)
+    median = np.median(masked_scaled_diff[sclera_mask.astype('bool')])
+    print('MEDIAN :: {}'.format(median))
+
+    cv2.imshow('masked scaled - {}'.format(label), masked_scaled_diff)
+    #ret, thresh2 = cv2.threshold(masked_scaled_diff, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    masked_scaled_diff = cv2.GaussianBlur(masked_scaled_diff,(5,5),0)
+    ret, thresh2 = cv2.threshold(masked_scaled_diff, median, 255, cv2.THRESH_BINARY)#+cv2.THRESH_OTSU)
+    cv2.imshow('thresh 2 - {}'.format(label), thresh2)
 
     thresh = np.stack((thresh, thresh, thresh), axis=-1)
 
