@@ -126,15 +126,41 @@ def getEyeWhiteMask(eyes, reflection_bb, wb, label):
     cv2.imshow('scaled_diff {}'.format(label), scaled_diff)
 
     ret, thresh = cv2.threshold(scaled_diff[:, :, 0], 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-    #cv2.imshow('thresh {}'.format(label), thresh)
+    #xBlock = int(scaled_diff[:, :, 0].shape[0] / 4)
+    #xBlock = xBlock if xBlock % 2 != 0 else xBlock + 1
+    #yBlock = int(scaled_diff[:, :, 0].shape[1] / 4)
+    #yBlock = yBlock if yBlock % 2 != 0 else yBlock + 1
+    #thresh = cv2.adaptiveThreshold(scaled_diff[:, :, 0], 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, xBlock, yBlock)
     #cv2.waitKey(0)
     kernel = np.ones((9, 9), np.uint8)
     thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
     thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+    cv2.imshow('thresh {}'.format(label), thresh)
 
     contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     areas = [cv2.contourArea(c) for c in contours]
-    max_index = np.argmax(areas)
+    totalArea = thresh.shape[0] * thresh.shape[1]
+    areaPercents = np.array(areas) / totalArea
+    areasMask = areaPercents > 0.01
+    print('Image Area :: {}'.format(totalArea))
+    print('Areas :: {}'.format(areas))
+    print('Areas % :: {}'.format(areaPercents))
+    print('Area Masks :: {}'.format(areasMask))
+
+    possibleContourIndexes = np.arange(len(contours))[areasMask]
+    print('PossibleContourIndexes :: {}'.format(possibleContourIndexes))
+
+    medians = []
+    for index in possibleContourIndexes:
+        target = np.zeros(thresh.shape, dtype='uint8')
+        mask =  cv2.drawContours(target, contours, index, 255, cv2.FILLED)
+        med = np.median(eye_s[0][mask.astype('bool')])
+        medians.append(med)
+
+    print('Median Values :: {}'.format(medians))
+    max_index = possibleContourIndexes[np.argmax(medians)]
+
+    #max_index = np.argmax(areas)
     target = np.zeros(thresh.shape, dtype='uint8')
     sclera_mask =  cv2.drawContours(target, contours, max_index, 255, cv2.FILLED)
 
