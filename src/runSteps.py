@@ -394,7 +394,7 @@ def plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflec
     axs[1, 0].set_ylabel('Scaled to Red Reflection Mag')
     saveStep.savePlot('ScaledRegionLinearity', plt)
 
-def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, saveStep):
+def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, blurryMask, saveStep):
     logger.info('PLOTTING: Region Linearity')
     captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
     flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
@@ -408,7 +408,7 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
     isBlurryColor = (0, 0, 0)
 
     #fig, axs = plt.subplots(2, 3, sharex=True, sharey=True, tight_layout=True)
-    fig, axs = plt.subplots(2, 3, sharex=False, sharey=False, tight_layout=True)
+    fig, axs = plt.subplots(3, 3, sharex=False, sharey=False, tight_layout=True)
 
     for regionIndex in range(0, numberOfRegions):
         #print('Regions :: ' + str(captureFaceRegions[:, regionIndex]))
@@ -418,17 +418,28 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
         plotBGR(axs[0, 1], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 1], blurryMask)
         plotBGR(axs[0, 2], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 0], blurryMask)
 
-    plotBGR(axs[1, 0], colors[0], 1, flashRatios, rightEyeReflections[:, 2], blurryMask)
-    plotBGR(axs[1, 0], colors[2], 1, flashRatios, leftEyeReflections[:, 2], blurryMask)
-    #plotBGR(axs[1, 0], colors[3], 1, flashRatios, averageEyeReflections[:, 2])
+    # ---- SCLERA -----
+    plotBGR(axs[1, 0], colors[0], 1, flashRatios, rightSclera[:, 2], blurryMask)
+    plotBGR(axs[1, 0], colors[2], 1, flashRatios, leftSclera[:, 2], blurryMask)
 
-    plotBGR(axs[1, 1], colors[0], 1, flashRatios, rightEyeReflections[:, 1], blurryMask)
-    plotBGR(axs[1, 1], colors[2], 1, flashRatios, leftEyeReflections[:, 1], blurryMask)
-    #plotBGR(axs[1, 1], colors[3], 1, flashRatios, averageEyeReflections[:, 1])
+    plotBGR(axs[1, 1], colors[0], 1, flashRatios, rightSclera[:, 1], blurryMask)
+    plotBGR(axs[1, 1], colors[2], 1, flashRatios, leftSclera[:, 1], blurryMask)
 
-    plotBGR(axs[1, 2], colors[0], 1, flashRatios, rightEyeReflections[:, 0], blurryMask)
-    plotBGR(axs[1, 2], colors[2], 1, flashRatios, leftEyeReflections[:, 0], blurryMask)
-    #plotBGR(axs[1, 2], colors[3], 1, flashRatios, averageEyeReflections[:, 0])
+    plotBGR(axs[1, 2], colors[0], 1, flashRatios, rightSclera[:, 0], blurryMask)
+    plotBGR(axs[1, 2], colors[2], 1, flashRatios, leftSclera[:, 0], blurryMask)
+
+    # ---- REFLECTIONS -----
+    plotBGR(axs[2, 0], colors[0], 1, flashRatios, rightEyeReflections[:, 2], blurryMask)
+    plotBGR(axs[2, 0], colors[2], 1, flashRatios, leftEyeReflections[:, 2], blurryMask)
+    #plotBGR(axs[2, 0], colors[3], 1, flashRatios, averageEyeReflections[:, 2])
+
+    plotBGR(axs[2, 1], colors[0], 1, flashRatios, rightEyeReflections[:, 1], blurryMask)
+    plotBGR(axs[2, 1], colors[2], 1, flashRatios, leftEyeReflections[:, 1], blurryMask)
+    #plotBGR(axs[2, 1], colors[3], 1, flashRatios, averageEyeReflections[:, 1])
+
+    plotBGR(axs[2, 2], colors[0], 1, flashRatios, rightEyeReflections[:, 0], blurryMask)
+    plotBGR(axs[2, 2], colors[2], 1, flashRatios, leftEyeReflections[:, 0], blurryMask)
+    #plotBGR(axs[2, 2], colors[3], 1, flashRatios, averageEyeReflections[:, 0])
 
     axs[0, 0].set_title('Red')
     axs[0, 1].set_title('Green')
@@ -437,8 +448,10 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
     axs[0, 0].set_xlabel('Screen Flash Ratio')
     axs[0, 0].set_ylabel('Channel Mag')
 
-    axs[1, 0].set_xlabel('Screen Flash Ratio')
-    axs[1, 0].set_ylabel('Measured Reflection Mag')
+    axs[1, 0].set_ylabel('Sclera Mag')
+
+    axs[2, 0].set_xlabel('Screen Flash Ratio')
+    axs[2, 0].set_ylabel('Reflection Mag')
     saveStep.savePlot('RegionLinearity', plt)
 
 def plotPerRegionLinearityAlt(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, saveStep):
@@ -742,7 +755,7 @@ def run2(user_id, capture_id=None, isProduction=False):
         capture.landmarks = captures[0].landmarks
 
     try:
-        averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections = getAverageScreenReflectionColor2(captures, leftEyeCropOffsets, rightEyeCropOffsets, state)
+        averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera = getAverageScreenReflectionColor2(captures, leftEyeCropOffsets, rightEyeCropOffsets, state)
     except Exception as err:
         logger.error('User :: {} | Image :: {} | Error :: {} | Details ::\n{}'.format(state.user_id, state.imageName(), 'Error Extracting Reflection', err))
         state.errorProccessing()
@@ -761,7 +774,7 @@ def run2(user_id, capture_id=None, isProduction=False):
     state.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')
 
     #--TEMP FOR DEBUG?---
-    plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, state)
+    plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, blurryMask, state)
     plotPerRegionLinearityAlt(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, state)
     plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflections, state)
     plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, state)

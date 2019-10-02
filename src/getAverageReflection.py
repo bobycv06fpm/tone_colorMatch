@@ -142,13 +142,13 @@ def getEyeWhiteMask(eyes, reflection_bb, wb, label):
     totalArea = thresh.shape[0] * thresh.shape[1]
     areaPercents = np.array(areas) / totalArea
     areasMask = areaPercents > 0.01
-    print('Image Area :: {}'.format(totalArea))
-    print('Areas :: {}'.format(areas))
-    print('Areas % :: {}'.format(areaPercents))
-    print('Area Masks :: {}'.format(areasMask))
+    #print('Image Area :: {}'.format(totalArea))
+    #print('Areas :: {}'.format(areas))
+    #print('Areas % :: {}'.format(areaPercents))
+    #print('Area Masks :: {}'.format(areasMask))
 
     possibleContourIndexes = np.arange(len(contours))[areasMask]
-    print('PossibleContourIndexes :: {}'.format(possibleContourIndexes))
+    #print('PossibleContourIndexes :: {}'.format(possibleContourIndexes))
 
     medians = []
     for index in possibleContourIndexes:
@@ -157,7 +157,7 @@ def getEyeWhiteMask(eyes, reflection_bb, wb, label):
         med = np.median(eye_s[0][mask.astype('bool')])
         medians.append(med)
 
-    print('Median Values :: {}'.format(medians))
+    #print('Median Values :: {}'.format(medians))
     max_index = possibleContourIndexes[np.argmax(medians)]
 
     #max_index = np.argmax(areas)
@@ -167,9 +167,9 @@ def getEyeWhiteMask(eyes, reflection_bb, wb, label):
 
     masked_scaled_diff = scaled_diff[:, :, 0]
     masked_scaled_diff[np.logical_not(sclera_mask)] = 0
-    print(sclera_mask)
+    #print(sclera_mask)
     median = np.median(masked_scaled_diff[sclera_mask.astype('bool')])
-    print('MEDIAN :: {}'.format(median))
+    #print('MEDIAN :: {}'.format(median))
 
     #cv2.imshow('masked scaled - {}'.format(label), masked_scaled_diff)
     #ret, thresh2 = cv2.threshold(masked_scaled_diff, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
@@ -183,9 +183,9 @@ def getEyeWhiteMask(eyes, reflection_bb, wb, label):
     contoursRefined, hierarchy = cv2.findContours(thresh2, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     areasRefined = [cv2.contourArea(c) for c in contoursRefined]
     maxIndex = np.argmax(areasRefined)
-    print('MAX INDEX :: {}'.format(maxIndex))
+    #print('MAX INDEX :: {}'.format(maxIndex))
     target = np.zeros(thresh.shape, dtype='uint8')
-    maskRefined =  cv2.drawContours(target, contoursRefined, maxIndex, 255, cv2.FILLED)
+    maskRefined =  cv2.drawContours(target, contoursRefined, maxIndex, 255, cv2.FILLED).astype('bool')
 
     #cv2.imshow('mask 2 - {}'.format(label), maskRefined)
      #= np.stack((maskRefined, maskRefined, maskRefined), axis=-1)
@@ -461,7 +461,15 @@ def calculateRepresentativeReflectionPoint(reflectionPoints):
     return np.array(newRepValue)
 
 def extractScleraPoints(eyes, scleraMask):
-    return []
+    eyePoints = [eye[scleraMask] for eye in eyes]
+    greyEyePoints = [np.mean(eye, axis=1) for eye in eyePoints]
+    topTenthIndex = int(len(greyEyePoints[0]) * 0.9)
+    brightestThresholds = [math.floor(sorted(points)[topTenthIndex]) for points in greyEyePoints]
+    brightestPointsMasks = [greyPoints > threshold for greyPoints, threshold in zip(greyEyePoints, brightestThresholds)]
+    brightestMeans = [np.mean(points[brightestMask], axis=0) for points, brightestMask in zip(eyePoints, brightestPointsMasks)]
+    #print('eye points :: {}'.format(brightestThresholds))
+    print('Means :: {}'.format(brightestMeans))
+    return np.array(brightestMeans) / 255
 
 def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
 
@@ -556,8 +564,8 @@ def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, 
     leftEyeWhiteMask, leftEyeWhiteContour  = getEyeWhiteMask(leftEyeCrops, leftReflectionBB, wb, 'left')
     rightEyeWhiteMask, rightEyeWhiteContour = getEyeWhiteMask(rightEyeCrops, rightReflectionBB, wb, 'right')
 
-    extractScleraPoints(leftEyeCrops, leftEyeWhiteMask)
-    extractScleraPoints(rightEyeCrops, rightEyeWhiteMask)
+    leftEyeScleraPoints = extractScleraPoints(leftEyeCrops, leftEyeWhiteMask)
+    rightEyeScleraPoints = extractScleraPoints(rightEyeCrops, rightEyeWhiteMask)
     #cv2.waitKey(0)
 
     #leftEyeCoords[:, 0:2] += leftOffsets
@@ -627,5 +635,5 @@ def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, 
     logger.info('LEFT FLUXISH :: {} | AREA ::  {} | LUMINOSITY :: {}'.format(leftFluxish, leftReflectionArea, leftHalfReflectionLuminance))
     logger.info('RIGHT FLUXISH :: {} | AREA ::  {} | LUMINOSITY :: {}'.format(rightFluxish, rightReflectionArea, rightHalfReflectionLuminance))
 
-    return [averageReflections[middleIndex], averageReflectionArea, wbLeftReflections, wbRightReflections]
+    return [averageReflections[middleIndex], averageReflectionArea, wbLeftReflections, wbRightReflections, leftEyeScleraPoints, rightEyeScleraPoints]
 
