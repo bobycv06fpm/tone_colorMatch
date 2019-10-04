@@ -713,6 +713,16 @@ def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
 
     return medianDiffs
 
+def getReflectionColor(reflectionPoints):
+    print('Reflection Points :: {}'.format(reflectionPoints))
+    reflectionHSV = colorTools.naiveBGRtoHSV(np.array([reflectionPoints]))[0]
+    medianHSV = np.median(reflectionHSV, axis=0)
+    print('Median HSV :: {}'.format(medianHSV))
+    hue, sat, val = medianHSV
+
+    proportionalRGB = colorTools.hueSatToProportionalBGR(hue, sat)
+    print('Proportional RGB :: {}'.format(proportionalRGB))
+
 def run2(user_id, capture_id=None, isProduction=False):
     failOnError = True
     #failOnError = False
@@ -769,6 +779,12 @@ def run2(user_id, capture_id=None, isProduction=False):
         state.errorProccessing()
         if failOnError: raise
         return getResponse(state.imageName(), False)
+
+    print('LEFT')
+    getReflectionColor(leftEyeReflections)
+    print('RIGHT')
+    getReflectionColor(rightEyeReflections)
+
 
     logger.info('Finished Image Processing - Beginning Analysis')
     state.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')
