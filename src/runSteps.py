@@ -567,19 +567,24 @@ def scoreLinearFit(linearFit):
     return score
 
 
-def getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMask):
+def getLinearFits(leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, faceRegions, blurryMask):
     flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
     print('Flash Ratios :: {}'.format(flashRatios))
 
     filteredFlashRatios = flashRatios[np.logical_not(blurryMask)]
+
     filteredLeftEyeReflections = leftEyeReflections[np.logical_not(blurryMask)]
     filteredRightEyeReflections = rightEyeReflections[np.logical_not(blurryMask)]
 
+    filteredLeftSclera = leftSclera[np.logical_not(blurryMask)]
+    filteredRightSclera = rightSclera[np.logical_not(blurryMask)]
+
+
     leftEyeLinearFitFull = np.array([fitLine(filteredFlashRatios, filteredLeftEyeReflections[:, subPixel]) for subPixel in range(0, 3)])
-    leftEyeLinearFitFullTest = np.array([fitLine2(filteredFlashRatios, filteredLeftEyeReflections[:, subPixel]) for subPixel in range(0, 3)])
+    #leftEyeLinearFitFullTest = np.array([fitLine2(filteredFlashRatios, filteredLeftEyeReflections[:, subPixel]) for subPixel in range(0, 3)])
 
     print('Left Eye Linear Fit Full :: {}'.format(leftEyeLinearFitFull))
-    print('Left Eye Linear Fit Full Test :: {}'.format(leftEyeLinearFitFullTest))
+    #print('Left Eye Linear Fit Full Test :: {}'.format(leftEyeLinearFitFullTest))
 
     leftEyeLinearFit = np.vstack(leftEyeLinearFitFull[:, 0])
     leftEyeScores = scoreLinearFit(leftEyeLinearFitFull)
@@ -588,6 +593,12 @@ def getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMa
 
     rightEyeLinearFit = np.vstack(rightEyeLinearFitFull[:, 0])
     rightEyeScores = scoreLinearFit(rightEyeLinearFitFull)
+
+    leftScleraLinearFitFull = np.array([fitLine(filteredFlashRatios, filteredRightSclera[:, subPixel]) for subPixel in range(0, 3)])
+    leftScleraLinearFit = np.vstack(leftScleraLinearFitFull[:, 0])
+
+    rightScleraLinearFitFull = np.array([fitLine(filteredFlashRatios, filteredRightSclera[:, subPixel]) for subPixel in range(0, 3)])
+    rightScleraLinearFit = np.vstack(rightScleraLinearFitFull[:, 0])
 
     captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
     filteredCaptureFaceRegions = captureFaceRegions[np.logical_not(blurryMask)]
@@ -641,6 +652,10 @@ def getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMa
     linearFits["regions"]["chin"] = list(captureFaceRegionsLinearFit[2, :, 0])
     linearFits["regions"]["forehead"] = list(captureFaceRegionsLinearFit[3, :, 0])
     linearFits["regions"]["linearityScore"] = list(maxFaceRegionScores)
+
+    linearFits["sclera"] = {}
+    linearFits["sclera"]["left"] = list(leftScleraLinearFit[:, 0])
+    linearFits["sclera"]["right"] = list(rightScleraLinearFit[:, 0])
 
     #formatString = '\nLINEAR FITS :: {}\n\tEYES\n\t\tSCORE \t\t{} \n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\tFACE\n\t\tSCORE \t\t{}\n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\t\tCHIN \t\t{}\n\t\tFOREHEAD \t{}\n'
     #formatString = '\nLINEAR FITS :: {}\n\tEYES\n\t\tSCORE \t{}\n\tFACE\n\t\tSCORE \t{}\n'
@@ -714,14 +729,12 @@ def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
     return medianDiffs
 
 def getReflectionColor(reflectionPoints):
-    print('Reflection Points :: {}'.format(reflectionPoints))
     reflectionHSV = colorTools.naiveBGRtoHSV(np.array([reflectionPoints]))[0]
     medianHSV = np.median(reflectionHSV, axis=0)
-    print('Median HSV :: {}'.format(medianHSV))
     hue, sat, val = medianHSV
 
-    proportionalRGB = colorTools.hueSatToProportionalBGR(hue, sat)
-    print('Proportional RGB :: {}'.format(proportionalRGB))
+    proportionalBGR = colorTools.hueSatToProportionalBGR(hue, sat)
+    return np.asarray(proportionalBGR)
 
 def run2(user_id, capture_id=None, isProduction=False):
     failOnError = True
@@ -780,11 +793,13 @@ def run2(user_id, capture_id=None, isProduction=False):
         if failOnError: raise
         return getResponse(state.imageName(), False)
 
-    print('LEFT')
-    getReflectionColor(leftEyeReflections)
-    print('RIGHT')
-    getReflectionColor(rightEyeReflections)
+    leftEyePropBGR = getReflectionColor(leftEyeReflections)
+    rightEyePropBGR = getReflectionColor(rightEyeReflections)
 
+    propBGR = (leftEyePropBGR + rightEyePropBGR) / 2
+    print('Average Reflection PROP BGR :: {}'.format(propBGR))
+    #propBGR = propBGR / max(propBGR)
+    #print('Scaled To Brightest PROP BGR :: {}'.format(propBGR))
 
     logger.info('Finished Image Processing - Beginning Analysis')
     state.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')
@@ -822,12 +837,30 @@ def run2(user_id, capture_id=None, isProduction=False):
     print('Left Eye Reflections :: ' + str(leftEyeReflections))
     #print('Right Eye Reflections :: ' + str(rightEyeReflections))
     #print('Face Regions :: ' + str(faceRegions))
-    linearFitSets = getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMask)
+    linearFitSets = getLinearFits(leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, faceRegions, blurryMask)
     #linearFitExperimental = getLinearFitExperimental(leftEyeReflections, rightEyeReflections, faceRegions, blurryMask)
 
     print('Left Eye Reflection Slope :: ' + str(linearFitSets["reflections"]["left"]))
-    averageReflectionSlope = (np.array(linearFitSets["reflections"]["left"]) + np.array(linearFitSets["reflections"]["right"])) / 2
+    #averageReflectionSlope = (np.array(linearFitSets["reflections"]["left"]) + np.array(linearFitSets["reflections"]["right"])) / 2
     averageSkinSlope = (np.array(linearFitSets["regions"]["left"]) + np.array(linearFitSets["regions"]["right"]) + np.array(linearFitSets["regions"]["chin"]) + np.array(linearFitSets["regions"]["forehead"])) / 4
+    averageCheekSlope = (np.array(linearFitSets["regions"]["left"]) + np.array(linearFitSets["regions"]["right"])) / 2
+    averageScleraSlope = (np.array(linearFitSets["sclera"]["left"]) + np.array(linearFitSets["sclera"]["right"])) / 2
+
+    print('Reflection Proprtional BGR :: {}'.format(propBGR))
+
+    print('Average Skin Slope :: {}'.format(averageSkinSlope))
+    print('Average Cheek Slope :: {}'.format(averageCheekSlope))
+    print('AverageScleraSlope :: {}'.format(averageScleraSlope))
+
+    averageSkinSlopeWB = averageSkinSlope / propBGR
+    averageCheekSlopeWB = averageCheekSlope  / propBGR
+    averageScleraSlopeWB = averageScleraSlope / propBGR
+
+    print('Average Skin Slope WB:: {}'.format(averageSkinSlopeWB))
+    print('Average Cheek Slope WB:: {}'.format(averageCheekSlopeWB))
+    print('AverageScleraSlope WB:: {}'.format(averageScleraSlopeWB))
+
+
     channelRatio = averageSkinSlope / averageReflectionSlope
     hue = 60 * ((channelRatio[1] - channelRatio[0]) / (channelRatio[2])) % 6
     sat = (max(channelRatio) - min(channelRatio)) / max(channelRatio) 
