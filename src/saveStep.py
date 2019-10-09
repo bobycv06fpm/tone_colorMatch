@@ -112,7 +112,7 @@ class State:
         exposurePoints = [meta['exposurePoint'] for meta in self.capture_metadata]
         print('EXPOSURE POINTS :: {}'.format(exposurePoints))
 
-        filtered = [img[0] for img in images]
+        filtered = [np.copy(img[0]) for img in images]
 
         drawn = []
         for img, point in zip(filtered, exposurePoints):

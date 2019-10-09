@@ -3,6 +3,7 @@ import cv2
 import extractMask
 import colorTools
 import colorsys
+from matplotlib import pyplot as plt
 
 class FaceRegions:
 
@@ -13,6 +14,54 @@ class FaceRegions:
         self.rightCheekPolygon = capture.landmarks.getRightCheekPoints()
         self.chinPolygon = capture.landmarks.getChinPoints()
         self.foreheadPolygon = capture.landmarks.getForeheadPoints()
+
+        #print(self.capture.faceImage)
+        #linear = colorTools.convert_sBGR_to_linearBGR_float_fast(self.capture.faceImage / 255)
+        #hsv = colorTools.naiveBGRtoHSV(linear)
+        #hsv = cv2.GaussianBlur(hsv, (5, 5), 0)
+        #
+        #masked_hsv = extractMask.getMaskedImage(hsv, self.capture.faceMask, [self.leftCheekPolygon, self.rightCheekPolygon, self.foreheadPolygon])#, self.chinPolygon])
+
+        #sat = masked_hsv[:, :, 1]
+        #hue = masked_hsv[:, :, 0]
+        #val = masked_hsv[:, :, 2]
+
+        ##sat = cv2.GaussianBlur(sat, (5, 5), 0)
+        ##hue = cv2.GaussianBlur(hue, (5, 5), 0)
+
+        #masked_region_rough = sat != 0
+        #minSat = np.min(sat[masked_region_rough])
+        #minHue = np.min(hue[masked_region_rough])
+        #minVal = np.min(val[masked_region_rough])
+        #maxSat = np.max(sat)
+        #maxHue = np.max(hue)
+        #maxVal = np.max(val)
+
+        #sat[masked_region_rough] = (sat[masked_region_rough] - minSat) / (maxSat - minSat)
+        #hue[masked_region_rough] = (hue[masked_region_rough] - minHue) / (maxHue - minHue)
+        #val[masked_region_rough] = (val[masked_region_rough] - minVal) / (maxVal - minVal)
+
+        ##mix = sat + (1 - val)
+        #mix = sat - val
+        #maxMix = np.max(mix)
+        #minMix = np.min(mix[masked_region_rough])
+        #mix[masked_region_rough] = (mix[masked_region_rough] - minMix) / (maxMix - minMix)
+
+
+        ##plt.hist(sat[masked_region_rough].ravel(),256)
+        ##plt.hist(hue[masked_region_rough].ravel(),256)
+        ##plt.hist(val[masked_region_rough].ravel(),256)
+        #plt.hist(mix[masked_region_rough].ravel(),256)
+        #plt.show()
+        ##plt.hist(hue[i*3].ravel(),256)
+
+        #joint = np.hstack([sat, val, mix])
+        ##cv2.imshow('masked Sat', sat)
+        ##cv2.imshow('masked Hue', hue)
+        ##cv2.imshow('masked Val', val)
+        ##cv2.imshow('masked Mix', mix)
+        #cv2.imshow('masked Joint', joint)
+        #cv2.waitKey(0)
 
         self.leftCheekPoints, self.leftCheekCleanRatio = extractMask.extractPolygonPoints(capture.faceImage, capture.faceMask, self.leftCheekPolygon)
         self.rightCheekPoints, self.rightCheekCleanRatio = extractMask.extractPolygonPoints(capture.faceImage, capture.faceMask, self.rightCheekPolygon)
@@ -25,10 +74,14 @@ class FaceRegions:
         self.linearChinPoints = colorTools.convert_sBGR_to_linearBGR_float_fast(self.chinPoints)
         self.linearForeheadPoints = colorTools.convert_sBGR_to_linearBGR_float_fast(self.foreheadPoints)
 
-        self.linearLeftCheekMedian = np.median(self.linearLeftCheekPoints, axis=0)
-        self.linearRightCheekMedian = np.median(self.linearRightCheekPoints, axis=0)
-        self.linearChinMedian = np.median(self.linearChinPoints, axis=0)
-        self.linearForeheadMedian = np.median(self.linearForeheadPoints, axis=0)
+        #self.linearLeftCheekMedian = np.median(self.linearLeftCheekPoints, axis=0)
+        self.linearLeftCheekMean = np.mean(self.linearLeftCheekPoints, axis=0)
+        #self.linearRightCheekMedian = np.median(self.linearRightCheekPoints, axis=0)
+        self.linearRightCheekMean = np.mean(self.linearRightCheekPoints, axis=0)
+        #self.linearChinMedian = np.median(self.linearChinPoints, axis=0)
+        self.linearChinMean = np.mean(self.linearChinPoints, axis=0)
+        #self.linearForeheadMedian = np.median(self.linearForeheadPoints, axis=0)
+        self.linearForeheadMean = np.mean(self.linearForeheadPoints, axis=0)
 
     def getRegionMapValue(self):
         value = {}
@@ -52,7 +105,8 @@ class FaceRegions:
         return [len(regionPoints) for regionPoints in regionsPoints]
 
     def getRegionMedians(self):
-        return np.array([self.linearLeftCheekMedian, self.linearRightCheekMedian, self.linearChinMedian, self.linearForeheadMedian])
+        #return np.array([self.linearLeftCheekMedian, self.linearRightCheekMedian, self.linearChinMedian, self.linearForeheadMedian])
+        return np.array([self.linearLeftCheekMean, self.linearRightCheekMean, self.linearChinMean, self.linearForeheadMean])
 
     def getRegionMedianHSV(self):
         return [colorsys.rgb_to_hsv(r, g, b) for b, g, r in self.getRegionMedians()]

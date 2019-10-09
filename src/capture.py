@@ -53,16 +53,16 @@ class Capture:
 
     #    self.image = self.image * (255 / value)
 
-    def whiteBalanceImageToD65(self):
-        self.faceImage = colorTools.whitebalance_from_asShot_to_d65(self.faceImage, self.whiteBalance['x'], self.whiteBalance['y'])
-        self.leftEyeImage = colorTools.whitebalance_from_asShot_to_d65(self.leftEyeImage, self.whiteBalance['x'], self.whiteBalance['y'])
-        self.rightEyeImage = colorTools.whitebalance_from_asShot_to_d65(self.rightEyeImage, self.whiteBalance['x'], self.whiteBalance['y'])
+    #def whiteBalanceImageToD65(self):
+    #    self.faceImage = colorTools.whitebalance_from_asShot_to_d65(self.faceImage, self.whiteBalance['x'], self.whiteBalance['y'])
+    #    self.leftEyeImage = colorTools.whitebalance_from_asShot_to_d65(self.leftEyeImage, self.whiteBalance['x'], self.whiteBalance['y'])
+    #    self.rightEyeImage = colorTools.whitebalance_from_asShot_to_d65(self.rightEyeImage, self.whiteBalance['x'], self.whiteBalance['y'])
 
-    def getWhiteBalancedImageToD65(self):
-        faceImageWB = colorTools.whitebalance_from_asShot_to_d65(self.faceImage, self.whiteBalance['x'], self.whiteBalance['y'])
-        leftEyeImageWB = colorTools.whitebalance_from_asShot_to_d65(self.leftEyeImage, self.whiteBalance['x'], self.whiteBalance['y'])
-        rightEyeImageWB = colorTools.whitebalance_from_asShot_to_d65(self.rightEyeImage, self.whiteBalance['x'], self.whiteBalance['y'])
-        return [faceImageWB, leftEyeImageWB, rightEyeImageWB]#np.clip(whiteBalanced * 255, 0, 255).astype('uint8')
+   # def getWhiteBalancedImageToD65(self):
+   #     faceImageWB = colorTools.whitebalance_from_asShot_to_d65(self.faceImage, self.whiteBalance['x'], self.whiteBalance['y'])
+   #     leftEyeImageWB = colorTools.whitebalance_from_asShot_to_d65(self.leftEyeImage, self.whiteBalance['x'], self.whiteBalance['y'])
+   #     rightEyeImageWB = colorTools.whitebalance_from_asShot_to_d65(self.rightEyeImage, self.whiteBalance['x'], self.whiteBalance['y'])
+   #     return [faceImageWB, leftEyeImageWB, rightEyeImageWB]#np.clip(whiteBalanced * 255, 0, 255).astype('uint8')
 
     def getAsShotWhiteBalance(self):
         return [self.whiteBalance['x'], self.whiteBalance['y']]

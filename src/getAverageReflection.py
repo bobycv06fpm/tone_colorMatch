@@ -86,7 +86,7 @@ def getEyeWhiteMask(eyes, reflection_bb, wb, label):
 
     #print("Reflection BB :: {}".format(reflection_bb))  
     #print("Size :: {}".format(eyes[0][:, :, 0].shape))
-    primarySpecularReflectionBB = reflection_bb
+    primarySpecularReflectionBB = np.copy(reflection_bb)
     primarySpecularReflectionBB[0:2] -= reflection_bb[2:4]
     primarySpecularReflectionBB[2:4] *= 3
     primarySpecularReflectionMask = bbToMask(primarySpecularReflectionBB, eyes[0][:, :, 0].shape)
@@ -578,6 +578,19 @@ def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, 
     refinedLeftReflectionBBs = np.vstack(leftReflectionStats[:, 3])
     refinedRightReflectionBBs = np.vstack(rightReflectionStats[:, 3])
 
+
+    TOLERANCE = 0.20
+    leftReflectionBBAreas = [r[2] * r[3] for r in refinedLeftReflectionBBs]
+    leftReflectionBBAreasMedian = np.median(leftReflectionBBAreas)
+    leftMask = np.abs(leftReflectionBBAreas - leftReflectionBBAreasMedian) > (TOLERANCE * leftReflectionBBAreasMedian)
+
+    rightReflectionBBAreas = [r[2] * r[3] for r in refinedRightReflectionBBs]
+    rightReflectionBBAreasMedian = np.median(rightReflectionBBAreas)
+    rightMask = np.abs(rightReflectionBBAreas - rightReflectionBBAreasMedian) > (TOLERANCE * rightReflectionBBAreasMedian)
+
+    blurryMask = np.logical_and(leftMask, rightMask)
+
+
     annotatedEyeStrips = [getAnnotatedEyeStrip2(leftReflectionBBrefined, leftEyeWhiteContour, leftEyeCrop, rightReflectionBBrefined, rightEyeWhiteContour, rightEyeCrop) for leftEyeCrop, rightEyeCrop, leftReflectionBBrefined, rightReflectionBBrefined in zip(leftEyeCrops, rightEyeCrops, refinedLeftReflectionBBs, refinedRightReflectionBBs)]
 
     stackedAnnotatedEyeStrips = np.vstack(annotatedEyeStrips)
@@ -635,5 +648,5 @@ def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, 
     logger.info('LEFT FLUXISH :: {} | AREA ::  {} | LUMINOSITY :: {}'.format(leftFluxish, leftReflectionArea, leftHalfReflectionLuminance))
     logger.info('RIGHT FLUXISH :: {} | AREA ::  {} | LUMINOSITY :: {}'.format(rightFluxish, rightReflectionArea, rightHalfReflectionLuminance))
 
-    return [averageReflections[middleIndex], averageReflectionArea, wbLeftReflections, wbRightReflections, leftEyeScleraPoints, rightEyeScleraPoints]
+    return [averageReflections[middleIndex], averageReflectionArea, wbLeftReflections, wbRightReflections, leftEyeScleraPoints, rightEyeScleraPoints, blurryMask]
 
