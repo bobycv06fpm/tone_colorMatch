@@ -18,22 +18,27 @@ def getMaskedImage(image, clippedMask, polygons):
     return maskedImage#.astype('uint8')
 
 
-def extractPolygonPoints(image, clippedMask, polygon):
-    regionMask = np.zeros(clippedMask.shape, dtype='uint8')
+def extractPolygonPoints(image, mask, polygon):
+    regionMask = np.zeros(mask.shape, dtype='uint8')
 
     hull = cv2.convexHull(polygon)
     regionMask = cv2.fillConvexPoly(regionMask, hull, 1)
     regionMask = regionMask.astype('bool')
-    clippedRegionMask = np.logical_and(regionMask, np.logical_not(clippedMask))
+    #clippedRegionMask = np.logical_and(regionMask, np.logical_not(clippedMask))
+    filteredRegionMask = np.logical_and(regionMask, mask)
+#    cv2.imshow('region mask', regionMask.astype('uint8') * 255)
+#    cv2.imshow('mask', mask.astype('uint8') * 255)
+#    cv2.imshow('combined mask', filteredRegionMask.astype('uint8') * 255)
+#    cv2.waitKey(0)
 
     unfilteredRegionPoints = image[regionMask]
-    filteredRegionPoints = image[clippedRegionMask]
+    filteredRegionPoints = image[filteredRegionMask]
 
     cleanClippedRatio = filteredRegionPoints.size / unfilteredRegionPoints.size
 
-    cutoff = 0.1
-    if cleanClippedRatio < cutoff:
-        raise NameError('Not enough clean non-clipped pixels. Ratio :: ' + str(cleanClippedRatio))
+    #cutoff = 0.1
+    #if cleanClippedRatio < cutoff:
+    #    raise NameError('Not enough clean non-clipped pixels. Ratio :: ' + str(cleanClippedRatio))
 
     return [filteredRegionPoints, cleanClippedRatio]
 

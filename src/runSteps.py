@@ -738,6 +738,105 @@ def getReflectionColor(reflectionPoints):
     proportionalBGR = colorTools.hueSatToProportionalBGR(hue, sat)
     return np.asarray(proportionalBGR)
 
+def extractSkinReflectionMask3(brightestCapture, dimmestCapture, wb_ratios):
+    brightest = colorTools.convert_sBGR_to_linearBGR_float_fast(brightestCapture.faceImage)
+    dimmest = colorTools.convert_sBGR_to_linearBGR_float_fast(dimmestCapture.faceImage)
+
+    brightest_wb = brightest / wb_ratios
+    dimmest_wb = dimmest / wb_ratios
+
+    #wb = np.hstack([dimmest_wb, brightest_wb])
+    #no_wb = np.hstack([dimmest, brightest])
+    #comp = np.vstack([no_wb, wb])
+    #cv2.imshow('WB', comp)
+    #cv2.waitKey(0)
+
+    brightest = cv2.GaussianBlur(brightest_wb, (5, 5), 0)
+    dimmest = cv2.GaussianBlur(dimmest_wb, (5, 5), 0)
+
+    diff = brightest - dimmest
+    subZero = diff < 0
+    subzeroMask = np.sum(subZero.astype('uint8'), axis=2) > 0
+    diff[subzeroMask] = [0, 0, 0]
+
+    leftCheekPolygon = brightestCapture.landmarks.getLeftCheekPoints()
+    rightCheekPolygon = brightestCapture.landmarks.getRightCheekPoints()
+    chinPolygon = brightestCapture.landmarks.getChinPoints()
+    foreheadPolygon = brightestCapture.landmarks.getForeheadPoints()
+
+
+    hsv = colorTools.naiveBGRtoHSV(diff)
+    brightv2 = np.mean(diff, axis=2)
+    hsv[:, :, 2] = brightv2
+
+
+    masked_hsv = extractMask.getMaskedImage(hsv, brightestCapture.faceMask, [leftCheekPolygon, rightCheekPolygon, chinPolygon, foreheadPolygon])
+    masked_region_rough = masked_hsv[:, :, 1] != 0
+
+    print('MIN HUE :: {}'.format(np.min(masked_hsv[masked_region_rough, 0])))
+    print('MAX HUE :: {}'.format(np.max(masked_hsv[masked_region_rough, 0])))
+    print('MIN SAT :: {}'.format(np.min(masked_hsv[masked_region_rough, 1])))
+    print('MAX SAT :: {}'.format(np.max(masked_hsv[masked_region_rough, 1])))
+    print('---')
+    rotateHue = masked_hsv[:, :, 0] + 0.25
+    rotateHue[rotateHue > 1] -= 1
+
+    masked_hsv[masked_region_rough, 0] = rotateHue[masked_region_rough]
+
+    print('MIN HUE :: {}'.format(np.min(masked_hsv[masked_region_rough, 0])))
+    print('MAX HUE :: {}'.format(np.max(masked_hsv[masked_region_rough, 0])))
+    print('MIN SAT :: {}'.format(np.min(masked_hsv[masked_region_rough, 1])))
+    print('MAX SAT :: {}'.format(np.max(masked_hsv[masked_region_rough, 1])))
+
+    print('Hue Len :: {}'.format(len(masked_hsv[masked_region_rough, 0].ravel())))
+    print('Sat Len :: {}'.format(len(masked_hsv[masked_region_rough, 1].ravel())))
+
+    #plt.hist(masked_hsv[masked_region_rough, 0].ravel(),256)
+    #plt.hist(masked_hsv[masked_region_rough, 1].ravel(),256)
+    #plt.show()
+
+    hue_median = np.median(masked_hsv[masked_region_rough, 0])
+    hue_std = np.std(masked_hsv[masked_region_rough, 0])
+
+    sat_median = np.median(masked_hsv[masked_region_rough, 1])
+    sat_std = np.std(masked_hsv[masked_region_rough, 1])
+
+    print('Hue - Median :: {} | STD :: {}'.format(hue_median, hue_std))
+    print('Sat - Median :: {} | STD :: {}'.format(sat_median, sat_std))
+
+    mask_template = np.zeros(masked_hsv.shape[0:2], dtype='bool')
+
+    hue_lower_mask = np.copy(mask_template)
+    hue_upper_mask = np.copy(mask_template)
+    sat_lower_mask = np.copy(mask_template)
+    sat_upper_mask = np.copy(mask_template)
+
+    multiplier = 0.5
+    hue_range = multiplier * hue_std
+    hue_lower_mask[masked_region_rough] = masked_hsv[masked_region_rough, 0] > (hue_median - hue_range)
+    hue_upper_mask[masked_region_rough] = masked_hsv[masked_region_rough, 0] < (hue_median + hue_range)
+    hue_mask = np.logical_and(hue_lower_mask, hue_upper_mask)
+
+    sat_range = multiplier * sat_std
+    sat_lower_mask[masked_region_rough] = masked_hsv[masked_region_rough, 1] > (sat_median - sat_range)
+    sat_upper_mask[masked_region_rough] = masked_hsv[masked_region_rough, 1] < (sat_median + sat_range)
+    sat_mask = np.logical_and(sat_lower_mask, sat_upper_mask)
+
+    points_mask = np.logical_and(sat_mask, hue_mask)
+
+    #cv2.imshow('Hue', masked_hsv[:, :, 0])
+    #cv2.imshow('Hue_mask', hue_mask.astype('uint8') * 255)
+    #cv2.imshow('Saturation', masked_hsv[:, :, 1])
+    #cv2.imshow('sat_mask', sat_mask.astype('uint8') * 255)
+    #cv2.waitKey(0)
+
+    #testImg = np.copy(brightestCapture.faceImage)
+    #testImg[np.logical_not(points_mask)] = [0, 0, 0]
+    #cv2.imshow('Masked', testImg)
+    #cv2.waitKey(0)
+
+    return points_mask
+
 
 def extractSkinReflectionMask2(brightestCapture, dimmestCapture, wb_ratios):
     brightest = colorTools.convert_sBGR_to_linearBGR_float_fast(brightestCapture.faceImage)
@@ -868,7 +967,7 @@ def extractSkinReflectionMask2(brightestCapture, dimmestCapture, wb_ratios):
     cv2.imshow('masked Joint', joint)
     cv2.waitKey(0)
 
-def extractSkinReflectionMask(brightestCapture, dimmestCapture):
+def extractSkinReflectionMask(brightestCapture, dimmestCapture, wb):
     print('brightest :: {}'.format(brightestCapture.faceImage))
     brightest = colorTools.convert_sBGR_to_linearBGR_float_fast(brightestCapture.faceImage)
     dimmest = colorTools.convert_sBGR_to_linearBGR_float_fast(dimmestCapture.faceImage)
@@ -876,6 +975,8 @@ def extractSkinReflectionMask(brightestCapture, dimmestCapture):
     brightest = cv2.GaussianBlur(brightest, (5, 5), 0)
     dimmest = cv2.GaussianBlur(dimmest, (5, 5), 0)
     diff =  brightest - dimmest 
+
+    diff /= wb
 
     leftCheekPolygon = brightestCapture.landmarks.getLeftCheekPoints()
     rightCheekPolygon = brightestCapture.landmarks.getRightCheekPoints()
@@ -885,15 +986,37 @@ def extractSkinReflectionMask(brightestCapture, dimmestCapture):
     hsv = colorTools.naiveBGRtoHSV(diff)
     v2 = np.mean(diff, axis=2)
     hsv[:, :, 2] = v2
-    
 
-    masked_hsv = extractMask.getMaskedImage(hsv, brightestCapture.faceMask, [leftCheekPolygon, rightCheekPolygon, chinPolygon, foreheadPolygon])
+
+    #masked_hsv = extractMask.getMaskedImage(hsv, brightestCapture.faceMask, [leftCheekPolygon, rightCheekPolygon, chinPolygon, foreheadPolygon])
+    masked_hsv = extractMask.getMaskedImage(hsv, brightestCapture.faceMask, [chinPolygon])
+
 
     hue = masked_hsv[:, :, 0]
+    hue += 0.25
+    hue[hue > 1] -= 1
+
     sat = masked_hsv[:, :, 1]
     val = masked_hsv[:, :, 2]
 
     masked_region_rough = sat != 0
+
+    hsv_prepped = np.array(masked_hsv * [180, 256, 256]).astype('uint8')
+
+    min_hue = np.min(hsv_prepped[masked_region_rough][:, 0])
+    max_hue = np.max(hsv_prepped[masked_region_rough][:, 0])
+
+    min_sat = np.min(hsv_prepped[masked_region_rough][:, 1])
+    max_sat = np.max(hsv_prepped[masked_region_rough][:, 1])
+    print('Min/Max Hue :: {}, {}'.format(min_hue, max_hue))
+    print('Min/Max Sat :: {}, {}'.format(min_sat, max_sat))
+    #cv2.imshow('diff', diff / np.max(diff))
+
+    hist = cv2.calcHist(np.array([[hsv_prepped[masked_region_rough]]]), [0, 1], None, [50, 100], [40, 50, 150, 220])
+    #hist = cv2.calcHist(np.array([[hsv_prepped[masked_region_rough]]]), [0, 2], None, [180, 256], [0, 180, 0, 256])
+    #hist = cv2.calcHist(np.array([[hsv_prepped[masked_region_rough]]]), [1, 2], None, [256, 256], [0, 256, 0, 256])
+    plt.imshow(hist, interpolation='nearest')
+    plt.show()
 
     minHue = np.min(hue[masked_region_rough])
     minSat = np.min(sat[masked_region_rough])
@@ -922,9 +1045,9 @@ def extractSkinReflectionMask(brightestCapture, dimmestCapture):
 
 
     #plt.hist(sat[masked_region_rough].ravel(),256)
-    ##plt.hist(hue[masked_region_rough].ravel(),256)
+    plt.hist(hue[masked_region_rough].ravel(),256)
     #plt.hist(val[masked_region_rough].ravel(),256)
-    plt.hist(mix_int[masked_region_rough].ravel(),256)
+    #plt.hist(mix_int[masked_region_rough].ravel(),256)
     plt.show()
     #plt.hist(hue[i*3].ravel(),256)
 
@@ -933,8 +1056,8 @@ def extractSkinReflectionMask(brightestCapture, dimmestCapture):
     #cv2.imshow('masked Hue', hue)
     #cv2.imshow('masked Val', val)
     #cv2.imshow('masked Mix', mix)
-    cv2.imshow('masked Joint', joint)
-    cv2.waitKey(0)
+    #cv2.imshow('masked Joint', joint)
+    #cv2.waitKey(0)
 
 
 def run2(user_id, capture_id=None, isProduction=False):
@@ -987,14 +1110,6 @@ def run2(user_id, capture_id=None, isProduction=False):
         if failOnError: raise
         return getResponse(state.imageName(), False)
 
-    try:
-        faceRegions = np.array([FaceRegions(capture) for capture in captures])
-    except Exception as err:
-        logger.error('User :: {} | Image :: {} | Error :: {} | Details ::\n{}'.format(state.user_id, state.imageName(), 'Error extracting Points for Recovered Mask', err))
-        state.errorProccessing()
-        if failOnError: raise
-        return getResponse(state.imageName(), False)
-
     leftEyePropBGR = getReflectionColor(leftEyeReflections)
     rightEyePropBGR = getReflectionColor(rightEyeReflections)
 
@@ -1003,7 +1118,15 @@ def run2(user_id, capture_id=None, isProduction=False):
     #propBGR = propBGR / max(propBGR)
     #print('Scaled To Brightest PROP BGR :: {}'.format(propBGR))
 
-    #extractSkinReflectionMask2(captures[0], captures[-1], propBGR)
+    mask = extractSkinReflectionMask3(captures[0], captures[-1], propBGR)
+
+    try:
+        faceRegions = np.array([FaceRegions(capture, mask) for capture in captures])
+    except Exception as err:
+        logger.error('User :: {} | Image :: {} | Error :: {} | Details ::\n{}'.format(state.user_id, state.imageName(), 'Error extracting Points for Recovered Mask', err))
+        state.errorProccessing()
+        if failOnError: raise
+        return getResponse(state.imageName(), False)
 
     logger.info('Finished Image Processing - Beginning Analysis')
     state.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')
