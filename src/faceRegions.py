@@ -40,10 +40,10 @@ class FaceRegions:
 
     def getRegionMapValue(self):
         value = {}
-        value['left'] = [float(value) for value in self.linearLeftCheekMedian]
-        value['right'] = [float(value) for value in self.linearRightCheekMedian]
-        value['chin'] = [float(value) for value in self.linearChinMedian]
-        value['forehead'] = [float(value) for value in self.linearForeheadMedian]
+        value['left'] = [float(value) for value in self.linearLeftCheekMean]
+        value['right'] = [float(value) for value in self.linearRightCheekMean]
+        value['chin'] = [float(value) for value in self.linearChinMean]
+        value['forehead'] = [float(value) for value in self.linearForeheadMean]
         return value
 
     def maxSubpixelValue(self):

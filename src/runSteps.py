@@ -1182,16 +1182,21 @@ def run2(user_id, capture_id=None, isProduction=False):
     averageSkinSlopeWB = averageSkinSlope / propBGR
     averageCheekSlopeWB = averageCheekSlope  / propBGR
     averageScleraSlopeWB = averageScleraSlope / propBGR
+    #approxScleraValue = max(averageScleraSlopeWB) * np.array([1.0, 1.0, 1.0])
 
     print('Average Skin Slope WB:: {}'.format(averageSkinSlopeWB))
     print('Average Cheek Slope WB:: {}'.format(averageCheekSlopeWB))
     print('AverageScleraSlope WB:: {}'.format(averageScleraSlopeWB))
 
+    faceRatio = averageCheekSlopeWB[2] / averageScleraSlopeWB[2]
 
-    channelRatio = averageSkinSlope / averageReflectionSlope
+    print('Ratio :: {}'.format(faceRatio))
+
+
+    channelRatio = averageSkinSlopeWB #averageSkinSlope / averageReflectionSlope
     hue = 60 * ((channelRatio[1] - channelRatio[0]) / (channelRatio[2])) % 6
     sat = (max(channelRatio) - min(channelRatio)) / max(channelRatio) 
-    val = colorTools.getRelativeLuminance([channelRatio])[0]
+    val = faceRatio#colorTools.getRelativeLuminance([channelRatio])[0]
     #val = sum(channelRatio) / 3
 
     #print('AVERAGE REFLECION SLOPE :: ' + str(averageReflectionSlope))
