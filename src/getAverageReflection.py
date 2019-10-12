@@ -70,6 +70,140 @@ def simpleMaskBB(mask):
 
     return np.array([xStart, yStart, xEnd - xStart, yEnd - yStart])
 
+def bbToMask(bb, imgShape):
+    img = np.zeros(imgShape)
+    img[bb[1]:(bb[1]+bb[3]), bb[0]:(bb[0]+bb[2])] = 1
+    return img.astype('bool')
+
+def getEyeWhiteMask(eyes, reflection_bb, wb, label):
+    for index, eye in enumerate(eyes):
+        if eye.shape[0] * eye.shape[1] == 0:
+            raise ValueError('Cannot Find #{} Eye'.format(index))
+
+    eyes = [colorTools.convert_sBGR_to_linearBGR_float_fast(eye) for eye in eyes]
+    eyes = [colorTools.whitebalance_from_asShot_to_d65(eye, *wb) for eye in eyes]
+    ###TESTING
+
+    #print("Reflection BB :: {}".format(reflection_bb))  
+    #print("Size :: {}".format(eyes[0][:, :, 0].shape))
+    primarySpecularReflectionBB = np.copy(reflection_bb)
+    primarySpecularReflectionBB[0:2] -= reflection_bb[2:4]
+    primarySpecularReflectionBB[2:4] *= 3
+    primarySpecularReflectionMask = bbToMask(primarySpecularReflectionBB, eyes[0][:, :, 0].shape)
+    #print('masked :: {}'.format(primarySpecularReflectionMask.astype('uint8') * 255))
+    #cv2.imshow('masked', primarySpecularReflectionMask.astype('uint8') * 255)
+
+
+    #eye_blur = [cv2.medianBlur(eye, 5) for eye in eyes]
+    eye_blur = [cv2.blur(eye, (5, 5)) for eye in eyes]
+    eyes_hsv = [colorTools.naiveBGRtoHSV(eye) for eye in eye_blur]
+    eye_s = []
+    for eye in eyes_hsv:
+        sat = 1 - eye[:, :, 1]
+        val = eye[:, :, 2]
+
+        sat[primarySpecularReflectionMask] = 0
+        val[primarySpecularReflectionMask] = 0
+
+        sat = sat * val
+
+        eye[:, :, 0] = sat
+        eye[:, :, 1] = sat
+        eye[:, :, 2] = sat
+        eye_s.append(eye)
+
+    #cv2.imshow('s', np.vstack([np.hstack(eye_s[0:4]), np.hstack(eye_s[4:])]))
+    #cv2.imshow('brightest {}'.format(label), eye_s[0])
+    #cv2.imshow('dimmest {}'.format(label), eye_s[-1])
+
+    diff = eye_s[0] - eye_s[-1]
+    diff = np.clip(diff, 0, 255)
+    min_diff = np.min(diff)
+    max_diff = np.max(diff)
+
+    scaled_diff = (diff - min_diff) / (max_diff - min_diff)
+    scaled_diff = np.clip(scaled_diff * 255, 0, 255).astype('uint8')
+    #cv2.imshow('scaled_diff {}'.format(label), scaled_diff)
+
+    ret, thresh = cv2.threshold(scaled_diff[:, :, 0], 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    #xBlock = int(scaled_diff[:, :, 0].shape[0] / 4)
+    #xBlock = xBlock if xBlock % 2 != 0 else xBlock + 1
+    #yBlock = int(scaled_diff[:, :, 0].shape[1] / 4)
+    #yBlock = yBlock if yBlock % 2 != 0 else yBlock + 1
+    #thresh = cv2.adaptiveThreshold(scaled_diff[:, :, 0], 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, xBlock, yBlock)
+    #cv2.waitKey(0)
+    kernel = np.ones((9, 9), np.uint8)
+    thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+    thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+    #cv2.imshow('thresh {}'.format(label), thresh)
+
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    areas = [cv2.contourArea(c) for c in contours]
+    totalArea = thresh.shape[0] * thresh.shape[1]
+    areaPercents = np.array(areas) / totalArea
+    areasMask = areaPercents > 0.01
+    #print('Image Area :: {}'.format(totalArea))
+    #print('Areas :: {}'.format(areas))
+    #print('Areas % :: {}'.format(areaPercents))
+    #print('Area Masks :: {}'.format(areasMask))
+
+    possibleContourIndexes = np.arange(len(contours))[areasMask]
+    #print('PossibleContourIndexes :: {}'.format(possibleContourIndexes))
+
+    medians = []
+    for index in possibleContourIndexes:
+        target = np.zeros(thresh.shape, dtype='uint8')
+        mask =  cv2.drawContours(target, contours, index, 255, cv2.FILLED)
+        med = np.median(eye_s[0][mask.astype('bool')])
+        medians.append(med)
+
+    #print('Median Values :: {}'.format(medians))
+    max_index = possibleContourIndexes[np.argmax(medians)]
+
+    #max_index = np.argmax(areas)
+    target = np.zeros(thresh.shape, dtype='uint8')
+    sclera_mask =  cv2.drawContours(target, contours, max_index, 255, cv2.FILLED)
+
+
+    masked_scaled_diff = scaled_diff[:, :, 0]
+    masked_scaled_diff[np.logical_not(sclera_mask)] = 0
+    #print(sclera_mask)
+    median = np.median(masked_scaled_diff[sclera_mask.astype('bool')])
+    #print('MEDIAN :: {}'.format(median))
+
+    #cv2.imshow('masked scaled - {}'.format(label), masked_scaled_diff)
+    #ret, thresh2 = cv2.threshold(masked_scaled_diff, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    masked_scaled_diff = cv2.GaussianBlur(masked_scaled_diff,(5,5),0)
+    ret, thresh2 = cv2.threshold(masked_scaled_diff, median, 255, cv2.THRESH_BINARY)#+cv2.THRESH_OTSU)
+
+    thresh2 = cv2.morphologyEx(thresh2, cv2.MORPH_OPEN, kernel)
+    thresh2 = cv2.morphologyEx(thresh2, cv2.MORPH_CLOSE, kernel)
+    #cv2.imshow('thresh 2 - {}'.format(label), thresh2)
+    
+    contoursRefined, hierarchy = cv2.findContours(thresh2, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    areasRefined = [cv2.contourArea(c) for c in contoursRefined]
+    maxIndex = np.argmax(areasRefined)
+    #print('MAX INDEX :: {}'.format(maxIndex))
+    target = np.zeros(thresh.shape, dtype='uint8')
+    maskRefined =  cv2.drawContours(target, contoursRefined, maxIndex, 255, cv2.FILLED).astype('bool')
+
+    #cv2.imshow('mask 2 - {}'.format(label), maskRefined)
+     #= np.stack((maskRefined, maskRefined, maskRefined), axis=-1)
+
+    masked_eyes = np.copy(eyes)
+    masked_eyes[:, np.logical_not(maskRefined)] = [0, 0, 0]
+
+    #cv2.imshow('diff', scaled_diff)
+    #cv2.imshow('thresh', thresh)
+    #cv2.imshow('sclera', sclera_mask)
+    #cv2.imshow('sclera {}'.format(label), np.vstack([np.hstack(masked_eyes[0:4]), np.hstack(masked_eyes[4:])]))
+    #cv2.waitKey(0)
+
+    return [maskRefined, contoursRefined[maxIndex]]
+
+
+    ##END TESTING
+
 def maskReflectionBB(eyes, wb):
     for index, eye in enumerate(eyes):
         if eye.shape[0] * eye.shape[1] == 0:
@@ -79,6 +213,7 @@ def maskReflectionBB(eyes, wb):
     eyes = [colorTools.whitebalance_from_asShot_to_d65(eye, *wb) for eye in eyes]
     #greyEyes = np.array([np.mean(eye, axis=2) for eye in eyes])
     greyEyes = np.array([np.mean(eye[:, :, 0:2], axis=2) for eye in eyes])
+
 
     eyeCropY1 = int(0.15 * greyEyes[0].shape[0])
     eyeCropY2 = int(0.85 * greyEyes[0].shape[0])
@@ -90,6 +225,7 @@ def maskReflectionBB(eyes, wb):
 
     totalChange = np.sum(croppedGreyEyes[:-1] - croppedGreyEyes[1:], axis=0)
     totalChange = totalChange / np.max(totalChange)
+
     kernel = np.ones((9, 9), np.uint8)
 
     totalChangeMask = totalChange > (np.median(totalChange) + np.std(totalChange))
@@ -262,7 +398,7 @@ def maskReflectionBB(eyes, wb):
 #    [x, y, w, h] = bb
 #    return image[y:y+h, x:x+w]
 
-def getAnnotatedEyeStrip2(leftReflectionBB, leftEyeCrop, rightReflectionBB, rightEyeCrop):
+def getAnnotatedEyeStrip2(leftReflectionBB, leftScleraContour, leftEyeCrop, rightReflectionBB, rightScleraContour, rightEyeCrop):
 
     leftReflectionP1 = leftReflectionBB[0:2]
     leftReflectionP2 = leftReflectionP1 + leftReflectionBB[2:4]
@@ -279,6 +415,9 @@ def getAnnotatedEyeStrip2(leftReflectionBB, leftEyeCrop, rightReflectionBB, righ
 
     cv2.rectangle(leftEyeCropCopy, leftReflectionP1, leftReflectionP2, (0, 0, 255), 1)
     cv2.rectangle(rightEyeCropCopy, rightReflectionP1, rightReflectionP2, (0, 0, 255), 1)
+    #mask =  cv2.drawContours(target, contours, index, 255, cv2.FILLED)
+    cv2.drawContours(leftEyeCropCopy, [leftScleraContour], 0, (0, 255, 0), 1)
+    cv2.drawContours(rightEyeCropCopy, [rightScleraContour], 0, (0, 255, 0), 1)
 
     canvasShape = np.max([leftEyeCrop.shape, rightEyeCrop.shape], axis=0)
 
@@ -320,6 +459,17 @@ def calculateRepresentativeReflectionPoint(reflectionPoints):
     newRepValue = [topMedianBlue, topMedianGreen, topMedianRed]
     #print('Old :: {} | New :: {}'.format(old, newRepValue))
     return np.array(newRepValue)
+
+def extractScleraPoints(eyes, scleraMask):
+    eyePoints = [eye[scleraMask] for eye in eyes]
+    greyEyePoints = [np.mean(eye, axis=1) for eye in eyePoints]
+    topTenthIndex = int(len(greyEyePoints[0]) * 0.9)
+    brightestThresholds = [math.floor(sorted(points)[topTenthIndex]) for points in greyEyePoints]
+    brightestPointsMasks = [greyPoints > threshold for greyPoints, threshold in zip(greyEyePoints, brightestThresholds)]
+    brightestMeans = [np.mean(points[brightestMask], axis=0) for points, brightestMask in zip(eyePoints, brightestPointsMasks)]
+    #print('eye points :: {}'.format(brightestThresholds))
+    print('Means :: {}'.format(brightestMeans))
+    return np.array(brightestMeans) / 255
 
 def extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
 
@@ -386,6 +536,9 @@ def getEyeWidth(capture):
 
     return (leftEyeWidth + rightEyeWidth) / 2
 
+def getEyeWhiteSample(eye, leftPoint, rightPoint):
+    return None
+
 def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, saveStep):
     wb = captures[0].getAsShotWhiteBalance()
     isSpecialCase = [capture.isNoFlash for capture in captures]
@@ -396,6 +549,9 @@ def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, 
     leftEyeCrops, leftOffsets = cropTools.cropImagesToOffsets(leftEyeCrops, leftEyeOffsets)
     leftEyeMasks, offsets = cropTools.cropImagesToOffsets(leftEyeMasks, leftEyeOffsets)
 
+    #cv2.imshow('left eye', np.vstack(leftEyeCrops))
+    #cv2.waitKey(0)
+
     rightEyeCrops = [capture.rightEyeImage for capture in captures]
     rightEyeMasks = [capture.rightEyeMask for capture in captures]
 
@@ -404,6 +560,13 @@ def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, 
 
     leftReflectionBB = maskReflectionBB(leftEyeCrops, wb)
     rightReflectionBB = maskReflectionBB(rightEyeCrops, wb)
+
+    leftEyeWhiteMask, leftEyeWhiteContour  = getEyeWhiteMask(leftEyeCrops, leftReflectionBB, wb, 'left')
+    rightEyeWhiteMask, rightEyeWhiteContour = getEyeWhiteMask(rightEyeCrops, rightReflectionBB, wb, 'right')
+
+    leftEyeScleraPoints = extractScleraPoints(leftEyeCrops, leftEyeWhiteMask)
+    rightEyeScleraPoints = extractScleraPoints(rightEyeCrops, rightEyeWhiteMask)
+    #cv2.waitKey(0)
 
     #leftEyeCoords[:, 0:2] += leftOffsets
     #rightEyeCoords[:, 0:2] += rightOffsets
@@ -415,7 +578,20 @@ def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, 
     refinedLeftReflectionBBs = np.vstack(leftReflectionStats[:, 3])
     refinedRightReflectionBBs = np.vstack(rightReflectionStats[:, 3])
 
-    annotatedEyeStrips = [getAnnotatedEyeStrip2(leftReflectionBBrefined, leftEyeCrop, rightReflectionBBrefined, rightEyeCrop) for leftEyeCrop, rightEyeCrop, leftReflectionBBrefined, rightReflectionBBrefined in zip(leftEyeCrops, rightEyeCrops, refinedLeftReflectionBBs, refinedRightReflectionBBs)]
+
+    TOLERANCE = 0.20
+    leftReflectionBBAreas = [r[2] * r[3] for r in refinedLeftReflectionBBs]
+    leftReflectionBBAreasMedian = np.median(leftReflectionBBAreas)
+    leftMask = np.abs(leftReflectionBBAreas - leftReflectionBBAreasMedian) > (TOLERANCE * leftReflectionBBAreasMedian)
+
+    rightReflectionBBAreas = [r[2] * r[3] for r in refinedRightReflectionBBs]
+    rightReflectionBBAreasMedian = np.median(rightReflectionBBAreas)
+    rightMask = np.abs(rightReflectionBBAreas - rightReflectionBBAreasMedian) > (TOLERANCE * rightReflectionBBAreasMedian)
+
+    blurryMask = np.logical_and(leftMask, rightMask)
+
+
+    annotatedEyeStrips = [getAnnotatedEyeStrip2(leftReflectionBBrefined, leftEyeWhiteContour, leftEyeCrop, rightReflectionBBrefined, rightEyeWhiteContour, rightEyeCrop) for leftEyeCrop, rightEyeCrop, leftReflectionBBrefined, rightReflectionBBrefined in zip(leftEyeCrops, rightEyeCrops, refinedLeftReflectionBBs, refinedRightReflectionBBs)]
 
     stackedAnnotatedEyeStrips = np.vstack(annotatedEyeStrips)
     saveStep.saveReferenceImageBGR(stackedAnnotatedEyeStrips, 'eyeStrips')
@@ -472,5 +648,5 @@ def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, 
     logger.info('LEFT FLUXISH :: {} | AREA ::  {} | LUMINOSITY :: {}'.format(leftFluxish, leftReflectionArea, leftHalfReflectionLuminance))
     logger.info('RIGHT FLUXISH :: {} | AREA ::  {} | LUMINOSITY :: {}'.format(rightFluxish, rightReflectionArea, rightHalfReflectionLuminance))
 
-    return [averageReflections[middleIndex], averageReflectionArea, wbLeftReflections, wbRightReflections]
+    return [averageReflections[middleIndex], averageReflectionArea, wbLeftReflections, wbRightReflections, leftEyeScleraPoints, rightEyeScleraPoints, blurryMask]
 

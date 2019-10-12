@@ -1,43 +1,86 @@
+import json
 import argparse
+import psycopg2
+import time
 import runSteps
 
-#def strToBool(v):
-#    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-#        return True
-#    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-#        return False
-#    else:
-#        raise argparse.ArgumentError('Boolean value expected. i.e. true, false, yes, no')
+#Do not love storing password in plain text in code....
+conn = psycopg2.connect(dbname="ebdb",
+                        host="aa7a9qu9bzxsgc.cz5sm4eeyiaf.us-west-2.rds.amazonaws.com",
+                        user="toneDatabase",
+                        port="5432",
+                        password="mr9pkatYVlX5pD9HjGRDJEzJ0NFpoC")
+
+def getMessageForCaptureId(capture_id, session_id, user_id):
+    colorMatchMessage = {}
+    colorMatchMessage['user_id'] = user_id
+    colorMatchMessage['session_id'] = session_id
+    colorMatchMessage['capture_id'] = capture_id
+    return colorMatchMessage
+
+def getMessagesForSessionId(session_id, user_id):
+    allCapturesForSessionQuery = 'SELECT capture_id, session_id, user_id FROM captures WHERE (user_id=%s AND session_id=%s)'
+    data = (user_id, session_id)
+
+    with conn.cursor() as cursor:
+            cursor.execute(allCapturesForSessionQuery, data)
+            captures = capture = cursor.fetchall()
+
+    return [getMessageForCaptureId(*capture) for capture in captures]
+
+def getMessagesForUserId(user_id):
+    print("Getting Messages for user_id {}".format(user_id))
+    allCapturesForSessionQuery = 'SELECT capture_id, session_id, user_id FROM captures WHERE (user_id=%s)'
+    data = (user_id)
+
+    with conn.cursor() as cursor:
+            cursor.execute(allCapturesForSessionQuery, data)
+            captures = capture = cursor.fetchall()
+
+    #print("Raw Captures :: {}".format(captures))
+    return [getMessageForCaptureId(*capture) for capture in captures]
 
 ap = argparse.ArgumentParser()
-#ap.add_argument("-p", "--shape-predictor", required=True, help="path to facial landmark predictor")
-#ap.add_argument("-u", "--username", required=True, default="false", help="The Users user name...")
-#ap.add_argument("-n", "--name", required=True, help="path and root name of image, i.e. images/doug")
-#ap.add_argument("-s", "--step", required=False, default="1", help="step to run processing from")
-#ap.add_argument("-p", "--plot", required=False, default="true", help="plot color values at end")
-#ap.add_argument("-f", "--fast", required=False, default="false", help="Speed up processing. Does not save intermediate values")
-#ap.add_argument("-b", "--benchmark", required=False, default="false", help="Record k means at different steps in the pipeline")
-#ap.add_argument("-z", "--baseline", required=False, default="false", help="record baseline values run k means on base image")
-#ap.add_argument("-v", "--save", required=False, default="false", help="Save the data to image stats")
-ap.add_argument("-u", "--user_id", required=True, default="false", help="The Users user name...")
+
+ap.add_argument("-u", "--user_id", required=True, help="The user id you want to process")
+ap.add_argument("-s", "--session_id", required=False, help="The session id you want to process")
+ap.add_argument("-c", "--capture_id", required=False, help="The capture id you want to process")
+
+# Capture # -> Process this capture
+# Session # -> Process all captures for this session
+# User # -> Process all captures for this user
+
 args = vars(ap.parse_args())
 
-#imageName = args["name"]
-#username = args["username"]
-#step = int(args["step"])
-#shouldPlot = strToBool(args["plot"])
-#fast = strToBool(args["fast"])
-#benchmark = strToBool(args["benchmark"])
-#baseline = strToBool(args["baseline"])
-#save = strToBool(args["save"])
-failOnError = True
-user_id = args["user_id"]
+messages = []
 
-#if not baseline:
-#    error = runSteps.run(username, imageName, fast, save, failOnError)
+if (args["capture_id"] is not None) and (args["session_id"] is not None) and (args["user_id"] is not None):
+    user_id = args["user_id"]
+    session_id = args["session_id"]
+    capture_id = args["capture_id"]
+    message = getMessageForCaptureId(capture_id, session_id, user_id)
+    messages.append(message)
+elif (args["session_id"] is not None) and (args["user_id"] is not None):
+    user_id = args["user_id"]
+    session_id = args["session_id"]
+    messages += getMessagesForSessionId(session_id, user_id)
+elif (args["user_id"] is not None):
+    user_id = args["user_id"]
+    messages += getMessagesForUserId(user_id)
+else:
+    print("Incorrect Argumets")
 
-response = runSteps.run2(user_id)
-if response is None:
-    print('Error....')
+print('Messages :: {}'.format(messages))
 
+for message in messages:
+    #addMessageToSQS(message)
 
+    try:
+        response = runSteps.run2(message['user_id'], message['capture_id'])
+    except Exception as err:
+        logger.error(err)
+        pass
+
+    #time.sleep(10)
+
+print("Done")

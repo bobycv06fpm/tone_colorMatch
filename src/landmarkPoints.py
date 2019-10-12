@@ -253,6 +253,7 @@ class Landmarks:
         topPoint = self.landmarkPoints[32]
         bottomPoint = self.landmarkPoints[33]
         return (topPoint + bottomPoint) / 2
+        #return self.landmarkPoints[32]
 
     def getForeheadPoints(self):
         bottomY = min(self.landmarkPoints[11:19, 1]) #Bottom Row of forehead sample
@@ -281,8 +282,12 @@ class Landmarks:
         outterEye = self.landmarkPoints[28]
         lowerNose = self.landmarkPoints[33]
 
-        bottomPointX = outterEye[0] + ((outterLip[0] - outterEye[0]) / 2)
-        bottomPointY = outterNose[1] + ((outterLip[1] - outterNose[1]) / 2)
+        #bottomPointX = outterEye[0] + ((outterLip[0] - outterEye[0]) / 2)
+        #bottomPointY = outterNose[1] + ((outterLip[1] - outterNose[1]) / 2)
+
+        bottomPointX = outterEye[0]
+        #bottomPointX = self.landmarkPoints[18][0]
+        bottomPointY = outterLip[1]
 
         outterNoseX = outterNose[0] - ((outterNose[0] - bottomPointX) / 4)
 
@@ -303,8 +308,12 @@ class Landmarks:
         outterEye = self.landmarkPoints[19]
         lowerNose = self.landmarkPoints[33]
 
-        bottomPointX = outterEye[0] + ((outterLip[0] - outterEye[0]) / 2)
-        bottomPointY = outterNose[1] + ((outterLip[1] - outterNose[1]) / 2)
+        #bottomPointX = outterEye[0] + ((outterLip[0] - outterEye[0]) / 2)
+        #bottomPointY = outterNose[1] + ((outterLip[1] - outterNose[1]) / 2)
+
+        bottomPointX = outterEye[0]
+        #bottomPointX = self.landmarkPoints[11][0]
+        bottomPointY = outterLip[1]
 
         outterNoseX = outterNose[0] + ((bottomPointX - outterNose[0]) / 4)
 

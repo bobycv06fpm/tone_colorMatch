@@ -10,6 +10,11 @@ import getVersion
 import boto3
 from logger import getLogger
 
+#COMMENT OUT FOR PROD
+import sys
+sys.path.append(os.path.abspath('../../boto_local_cache/'))
+import boto_local_cache as boto3 
+
 logger = getLogger(__name__)
 TONE_USER_CAPTURES_BUCKET = 'tone-user-captures'
 
@@ -103,6 +108,32 @@ class State:
 
         return decoded
 
+    def saveExposurePointImage(self, key, images):
+        exposurePoints = [meta['exposurePoint'] for meta in self.capture_metadata]
+        print('EXPOSURE POINTS :: {}'.format(exposurePoints))
+
+        filtered = [np.copy(img[0]) for img in images]
+
+        drawn = []
+        for img, point in zip(filtered, exposurePoints):
+            width, height, p = img.shape
+            print('{} ,{}, {}'.format(width, height, p))
+
+            exposureX = int(width * point[1])
+            exposureY = int(height * point[0])
+
+            print('{}, {}'.format(exposureX, exposureY))
+
+
+            cv2.circle(img, (exposureY, exposureX), 5, (255, 0, 0))
+            drawn.append(img)
+
+        stacked = np.hstack(drawn)
+        key = self.referencePathBuilder('exposurePoints', '.png')
+        self.storeImage(key, stacked)
+        #cv2.imshow('stacked', stacked)
+        #cv2.waitKey(0)
+
     def storeImage(self, key, img, extension='.png'):
         img_encoded = io.BytesIO(cv2.imencode(extension, img)[1]).getvalue()
         self.s3.put_object(Bucket=TONE_USER_CAPTURES_BUCKET, Key=key, Body=img_encoded)
@@ -114,6 +145,7 @@ class State:
 
         imageSets = []
         for capture_number in range(1, 9):
+        #for capture_number in range(1, 15):
             faceFile = faceFileTemplate.format(capture_number)
             leftEyeFile = leftEyeFileTemplate.format(capture_number)
             rightEyeFile = rightEyeFileTemplate.format(capture_number)

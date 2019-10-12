@@ -11,6 +11,7 @@ import math
 import matplotlib.pyplot as plt
 import cropTools
 import getSharpness
+import extractMask
 from capture import Capture 
 from faceRegions import FaceRegions
 from logger import getLogger
@@ -24,6 +25,11 @@ logger = getLogger(__name__)
 def fitLine(A, B):
     A_prepped = np.vstack([A, np.ones(len(A))]).T
     return np.linalg.lstsq(A_prepped, B, rcond=None)
+
+def fitLine2(A, B):
+    return np.polyfit(A, B, 1)
+    #A_prepped = np.vstack([A, np.ones(len(A))]).T
+    #return np.linalg.lstsq(A_prepped, B, rcond=None)
 
 def samplePoints(pointsA, pointsB):
     sampleSize = 1000
@@ -389,8 +395,9 @@ def plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflec
     axs[1, 0].set_ylabel('Scaled to Red Reflection Mag')
     saveStep.savePlot('ScaledRegionLinearity', plt)
 
-def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, saveStep):
+def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, blurryMask, saveStep):
     logger.info('PLOTTING: Region Linearity')
+    #blurryMask = [False for isBlurry in blurryMask]
     captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
     flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
     numberOfRegions = captureFaceRegions.shape[1]
@@ -403,7 +410,7 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
     isBlurryColor = (0, 0, 0)
 
     #fig, axs = plt.subplots(2, 3, sharex=True, sharey=True, tight_layout=True)
-    fig, axs = plt.subplots(2, 3, sharex=False, sharey=False, tight_layout=True)
+    fig, axs = plt.subplots(3, 3, sharex=False, sharey=False, tight_layout=True)
 
     for regionIndex in range(0, numberOfRegions):
         #print('Regions :: ' + str(captureFaceRegions[:, regionIndex]))
@@ -413,17 +420,28 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
         plotBGR(axs[0, 1], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 1], blurryMask)
         plotBGR(axs[0, 2], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 0], blurryMask)
 
-    plotBGR(axs[1, 0], colors[0], 1, flashRatios, rightEyeReflections[:, 2], blurryMask)
-    plotBGR(axs[1, 0], colors[2], 1, flashRatios, leftEyeReflections[:, 2], blurryMask)
-    #plotBGR(axs[1, 0], colors[3], 1, flashRatios, averageEyeReflections[:, 2])
+    # ---- SCLERA -----
+    plotBGR(axs[1, 0], colors[0], 1, flashRatios, rightSclera[:, 2], blurryMask)
+    plotBGR(axs[1, 0], colors[2], 1, flashRatios, leftSclera[:, 2], blurryMask)
 
-    plotBGR(axs[1, 1], colors[0], 1, flashRatios, rightEyeReflections[:, 1], blurryMask)
-    plotBGR(axs[1, 1], colors[2], 1, flashRatios, leftEyeReflections[:, 1], blurryMask)
-    #plotBGR(axs[1, 1], colors[3], 1, flashRatios, averageEyeReflections[:, 1])
+    plotBGR(axs[1, 1], colors[0], 1, flashRatios, rightSclera[:, 1], blurryMask)
+    plotBGR(axs[1, 1], colors[2], 1, flashRatios, leftSclera[:, 1], blurryMask)
 
-    plotBGR(axs[1, 2], colors[0], 1, flashRatios, rightEyeReflections[:, 0], blurryMask)
-    plotBGR(axs[1, 2], colors[2], 1, flashRatios, leftEyeReflections[:, 0], blurryMask)
-    #plotBGR(axs[1, 2], colors[3], 1, flashRatios, averageEyeReflections[:, 0])
+    plotBGR(axs[1, 2], colors[0], 1, flashRatios, rightSclera[:, 0], blurryMask)
+    plotBGR(axs[1, 2], colors[2], 1, flashRatios, leftSclera[:, 0], blurryMask)
+
+    # ---- REFLECTIONS -----
+    plotBGR(axs[2, 0], colors[0], 1, flashRatios, rightEyeReflections[:, 2], blurryMask)
+    plotBGR(axs[2, 0], colors[2], 1, flashRatios, leftEyeReflections[:, 2], blurryMask)
+    #plotBGR(axs[2, 0], colors[3], 1, flashRatios, averageEyeReflections[:, 2])
+
+    plotBGR(axs[2, 1], colors[0], 1, flashRatios, rightEyeReflections[:, 1], blurryMask)
+    plotBGR(axs[2, 1], colors[2], 1, flashRatios, leftEyeReflections[:, 1], blurryMask)
+    #plotBGR(axs[2, 1], colors[3], 1, flashRatios, averageEyeReflections[:, 1])
+
+    plotBGR(axs[2, 2], colors[0], 1, flashRatios, rightEyeReflections[:, 0], blurryMask)
+    plotBGR(axs[2, 2], colors[2], 1, flashRatios, leftEyeReflections[:, 0], blurryMask)
+    #plotBGR(axs[2, 2], colors[3], 1, flashRatios, averageEyeReflections[:, 0])
 
     axs[0, 0].set_title('Red')
     axs[0, 1].set_title('Green')
@@ -432,9 +450,47 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
     axs[0, 0].set_xlabel('Screen Flash Ratio')
     axs[0, 0].set_ylabel('Channel Mag')
 
-    axs[1, 0].set_xlabel('Screen Flash Ratio')
-    axs[1, 0].set_ylabel('Measured Reflection Mag')
+    axs[1, 0].set_ylabel('Sclera Mag')
+
+    axs[2, 0].set_xlabel('Screen Flash Ratio')
+    axs[2, 0].set_ylabel('Reflection Mag')
     saveStep.savePlot('RegionLinearity', plt)
+
+def plotPerRegionLinearityAlt(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, saveStep):
+    logger.info('PLOTTING: Region Linearity')
+    captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
+    flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
+
+    numberOfRegions = captureFaceRegions.shape[1]
+
+    averageEyeReflections = (leftEyeReflections + rightEyeReflections) / 2
+    print('Average Eye Reflections :: {}'.format(averageEyeReflections))
+
+    blurryMask = np.zeros(len(blurryMask)).astype('bool')
+
+    size=1
+    colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1)]
+    isBlurryColor = (0, 0, 0)
+
+    #fig, axs = plt.subplots(2, 3, sharex=True, sharey=True, tight_layout=True)
+    fig, axs = plt.subplots(1, 3, sharex=False, sharey=False, tight_layout=True)
+
+    for regionIndex in range(0, numberOfRegions):
+        #print('Regions :: ' + str(captureFaceRegions[:, regionIndex]))
+        #tempBlurryMask = np.zeros(len(blurryMask)).astype('bool')
+        #tempBlurryMask = blurryMask
+        plotBGR(axs[0], colors[regionIndex], size, averageEyeReflections[:, 2], captureFaceRegions[:, regionIndex, 2], blurryMask)
+        plotBGR(axs[1], colors[regionIndex], size, averageEyeReflections[:, 1], captureFaceRegions[:, regionIndex, 1], blurryMask)
+        plotBGR(axs[2], colors[regionIndex], size, averageEyeReflections[:, 0], captureFaceRegions[:, regionIndex, 0], blurryMask)
+
+    axs[0].set_title('Red')
+    axs[1].set_title('Green')
+    axs[2].set_title('Blue')
+
+    axs[0].set_xlabel('Screen Flash Ratio')
+    axs[0].set_ylabel('Channel Mag')
+
+    saveStep.savePlot('RegionLinearityAlt', plt)
 
 #def plotPerRegionPoints(faceRegionsSets, saveStep):
 #    print('PLOTTING: Per Region Points')
@@ -483,6 +539,8 @@ def isMetadataValid(metadata):
         wb = captureMetadata["whiteBalance"]
 
         if (iso != expectedISO) or (exposure != expectedExposure) or (wb['x'] != expectedWB['x']) or (wb['y'] != expectedWB['y']):
+            print("White Balance Does Not Match")
+            print("Expected :: {} | Received :: {}".format(expectedWB, wb))
             return False
         
     return True
@@ -511,14 +569,24 @@ def scoreLinearFit(linearFit):
     return score
 
 
-def getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMask):
+def getLinearFits(leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, faceRegions, blurryMask):
     flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
+    print('Flash Ratios :: {}'.format(flashRatios))
 
     filteredFlashRatios = flashRatios[np.logical_not(blurryMask)]
+
     filteredLeftEyeReflections = leftEyeReflections[np.logical_not(blurryMask)]
     filteredRightEyeReflections = rightEyeReflections[np.logical_not(blurryMask)]
 
+    filteredLeftSclera = leftSclera[np.logical_not(blurryMask)]
+    filteredRightSclera = rightSclera[np.logical_not(blurryMask)]
+
+
     leftEyeLinearFitFull = np.array([fitLine(filteredFlashRatios, filteredLeftEyeReflections[:, subPixel]) for subPixel in range(0, 3)])
+    #leftEyeLinearFitFullTest = np.array([fitLine2(filteredFlashRatios, filteredLeftEyeReflections[:, subPixel]) for subPixel in range(0, 3)])
+
+    print('Left Eye Linear Fit Full :: {}'.format(leftEyeLinearFitFull))
+    #print('Left Eye Linear Fit Full Test :: {}'.format(leftEyeLinearFitFullTest))
 
     leftEyeLinearFit = np.vstack(leftEyeLinearFitFull[:, 0])
     leftEyeScores = scoreLinearFit(leftEyeLinearFitFull)
@@ -527,6 +595,12 @@ def getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMa
 
     rightEyeLinearFit = np.vstack(rightEyeLinearFitFull[:, 0])
     rightEyeScores = scoreLinearFit(rightEyeLinearFitFull)
+
+    leftScleraLinearFitFull = np.array([fitLine(filteredFlashRatios, filteredRightSclera[:, subPixel]) for subPixel in range(0, 3)])
+    leftScleraLinearFit = np.vstack(leftScleraLinearFitFull[:, 0])
+
+    rightScleraLinearFitFull = np.array([fitLine(filteredFlashRatios, filteredRightSclera[:, subPixel]) for subPixel in range(0, 3)])
+    rightScleraLinearFit = np.vstack(rightScleraLinearFitFull[:, 0])
 
     captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
     filteredCaptureFaceRegions = captureFaceRegions[np.logical_not(blurryMask)]
@@ -581,6 +655,10 @@ def getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMa
     linearFits["regions"]["forehead"] = list(captureFaceRegionsLinearFit[3, :, 0])
     linearFits["regions"]["linearityScore"] = list(maxFaceRegionScores)
 
+    linearFits["sclera"] = {}
+    linearFits["sclera"]["left"] = list(leftScleraLinearFit[:, 0])
+    linearFits["sclera"]["right"] = list(rightScleraLinearFit[:, 0])
+
     #formatString = '\nLINEAR FITS :: {}\n\tEYES\n\t\tSCORE \t\t{} \n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\tFACE\n\t\tSCORE \t\t{}\n\t\tLEFT \t\t{}\n\t\tRIGHT \t\t{}\n\t\tCHIN \t\t{}\n\t\tFOREHEAD \t{}\n'
     #formatString = '\nLINEAR FITS :: {}\n\tEYES\n\t\tSCORE \t{}\n\tFACE\n\t\tSCORE \t{}\n'
     #formatted = formatString.format('BGR', maxReflectionScores, maxFaceRegionScores)
@@ -590,6 +668,31 @@ def getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMa
     #print(formattedHSV)
 
     return linearFits
+
+#def getLinearFitExperimental(leftEyeReflections, rightEyeReflections, faceRegions, blurryMask):
+#    flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
+#    print('Flash Ratios :: {}'.format(flashRatios))
+#
+#    filteredFlashRatios = flashRatios[np.logical_not(blurryMask)]
+#    filteredLeftEyeReflections = leftEyeReflections[np.logical_not(blurryMask)]
+#    filteredRightEyeReflections = rightEyeReflections[np.logical_not(blurryMask)]
+#    averageEyeReflections = leftEyeRE
+#
+#    captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
+#    filteredCaptureFaceRegions = captureFaceRegions[np.logical_not(blurryMask)]
+#
+#    filteredRegion0 = filteredCaptureFaceRegions[:, 0]
+#    filteredRegion1 = filteredCaptureFaceRegions[:, 1]
+#    filteredRegion2 = filteredCaptureFaceRegions[:, 2]
+#    filteredRegion3 = filteredCaptureFaceRegions[:, 3]
+#
+#    slope = np.array([fitLine2(filteredFlashRatios, filteredLeftEyeReflections[:, subPixel])[0] for subPixel in range(0, 3)])
+#    slope = np.array([fitLine2(filteredFlashRatios, filteredLeftEyeReflections[:, subPixel])[0] for subPixel in range(0, 3)])
+#    slope = np.array([fitLine2(filteredFlashRatios, filteredLeftEyeReflections[:, subPixel])[0] for subPixel in range(0, 3)])
+#    slope = np.array([fitLine2(filteredFlashRatios, filteredLeftEyeReflections[:, subPixel])[0] for subPixel in range(0, 3)])
+#
+    return linearFits
+
 
 def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
     leftEyeDiffReflectionMedian = getMedianDiff(leftEyeReflections)
@@ -627,8 +730,339 @@ def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
 
     return medianDiffs
 
+def getReflectionColor(reflectionPoints):
+    reflectionHSV = colorTools.naiveBGRtoHSV(np.array([reflectionPoints]))[0]
+    medianHSV = np.median(reflectionHSV, axis=0)
+    hue, sat, val = medianHSV
+
+    proportionalBGR = colorTools.hueSatToProportionalBGR(hue, sat)
+    return np.asarray(proportionalBGR)
+
+def extractSkinReflectionMask3(brightestCapture, dimmestCapture, wb_ratios):
+    brightest = colorTools.convert_sBGR_to_linearBGR_float_fast(brightestCapture.faceImage)
+    dimmest = colorTools.convert_sBGR_to_linearBGR_float_fast(dimmestCapture.faceImage)
+
+    brightest_wb = brightest / wb_ratios
+    dimmest_wb = dimmest / wb_ratios
+
+    #wb = np.hstack([dimmest_wb, brightest_wb])
+    #no_wb = np.hstack([dimmest, brightest])
+    #comp = np.vstack([no_wb, wb])
+    #cv2.imshow('WB', comp)
+    #cv2.waitKey(0)
+
+    brightest = cv2.GaussianBlur(brightest_wb, (5, 5), 0)
+    dimmest = cv2.GaussianBlur(dimmest_wb, (5, 5), 0)
+
+    diff = brightest - dimmest
+    subZero = diff < 0
+    subzeroMask = np.sum(subZero.astype('uint8'), axis=2) > 0
+    diff[subzeroMask] = [0, 0, 0]
+
+    leftCheekPolygon = brightestCapture.landmarks.getLeftCheekPoints()
+    rightCheekPolygon = brightestCapture.landmarks.getRightCheekPoints()
+    chinPolygon = brightestCapture.landmarks.getChinPoints()
+    foreheadPolygon = brightestCapture.landmarks.getForeheadPoints()
+
+
+    hsv = colorTools.naiveBGRtoHSV(diff)
+    brightv2 = np.mean(diff, axis=2)
+    hsv[:, :, 2] = brightv2
+
+
+    masked_hsv = extractMask.getMaskedImage(hsv, brightestCapture.faceMask, [leftCheekPolygon, rightCheekPolygon, chinPolygon, foreheadPolygon])
+    masked_region_rough = masked_hsv[:, :, 1] != 0
+
+    print('MIN HUE :: {}'.format(np.min(masked_hsv[masked_region_rough, 0])))
+    print('MAX HUE :: {}'.format(np.max(masked_hsv[masked_region_rough, 0])))
+    print('MIN SAT :: {}'.format(np.min(masked_hsv[masked_region_rough, 1])))
+    print('MAX SAT :: {}'.format(np.max(masked_hsv[masked_region_rough, 1])))
+    print('---')
+    rotateHue = masked_hsv[:, :, 0] + 0.25
+    rotateHue[rotateHue > 1] -= 1
+
+    masked_hsv[masked_region_rough, 0] = rotateHue[masked_region_rough]
+
+    print('MIN HUE :: {}'.format(np.min(masked_hsv[masked_region_rough, 0])))
+    print('MAX HUE :: {}'.format(np.max(masked_hsv[masked_region_rough, 0])))
+    print('MIN SAT :: {}'.format(np.min(masked_hsv[masked_region_rough, 1])))
+    print('MAX SAT :: {}'.format(np.max(masked_hsv[masked_region_rough, 1])))
+
+    print('Hue Len :: {}'.format(len(masked_hsv[masked_region_rough, 0].ravel())))
+    print('Sat Len :: {}'.format(len(masked_hsv[masked_region_rough, 1].ravel())))
+
+    #plt.hist(masked_hsv[masked_region_rough, 0].ravel(),256)
+    #plt.hist(masked_hsv[masked_region_rough, 1].ravel(),256)
+    #plt.show()
+
+    hue_median = np.median(masked_hsv[masked_region_rough, 0])
+    hue_std = np.std(masked_hsv[masked_region_rough, 0])
+
+    sat_median = np.median(masked_hsv[masked_region_rough, 1])
+    sat_std = np.std(masked_hsv[masked_region_rough, 1])
+
+    print('Hue - Median :: {} | STD :: {}'.format(hue_median, hue_std))
+    print('Sat - Median :: {} | STD :: {}'.format(sat_median, sat_std))
+
+    mask_template = np.zeros(masked_hsv.shape[0:2], dtype='bool')
+
+    hue_lower_mask = np.copy(mask_template)
+    hue_upper_mask = np.copy(mask_template)
+    sat_lower_mask = np.copy(mask_template)
+    sat_upper_mask = np.copy(mask_template)
+
+    multiplier = 0.5
+    hue_range = multiplier * hue_std
+    hue_lower_mask[masked_region_rough] = masked_hsv[masked_region_rough, 0] > (hue_median - hue_range)
+    hue_upper_mask[masked_region_rough] = masked_hsv[masked_region_rough, 0] < (hue_median + hue_range)
+    hue_mask = np.logical_and(hue_lower_mask, hue_upper_mask)
+
+    sat_range = multiplier * sat_std
+    sat_lower_mask[masked_region_rough] = masked_hsv[masked_region_rough, 1] > (sat_median - sat_range)
+    sat_upper_mask[masked_region_rough] = masked_hsv[masked_region_rough, 1] < (sat_median + sat_range)
+    sat_mask = np.logical_and(sat_lower_mask, sat_upper_mask)
+
+    points_mask = np.logical_and(sat_mask, hue_mask)
+
+    #cv2.imshow('Hue', masked_hsv[:, :, 0])
+    #cv2.imshow('Hue_mask', hue_mask.astype('uint8') * 255)
+    #cv2.imshow('Saturation', masked_hsv[:, :, 1])
+    #cv2.imshow('sat_mask', sat_mask.astype('uint8') * 255)
+    #cv2.waitKey(0)
+
+    #testImg = np.copy(brightestCapture.faceImage)
+    #testImg[np.logical_not(points_mask)] = [0, 0, 0]
+    #cv2.imshow('Masked', testImg)
+    #cv2.waitKey(0)
+
+    return points_mask
+
+
+def extractSkinReflectionMask2(brightestCapture, dimmestCapture, wb_ratios):
+    brightest = colorTools.convert_sBGR_to_linearBGR_float_fast(brightestCapture.faceImage)
+    dimmest = colorTools.convert_sBGR_to_linearBGR_float_fast(dimmestCapture.faceImage)
+
+    brightest_wb = brightest / wb_ratios
+    dimmest_wb = dimmest / wb_ratios
+
+    #wb = np.hstack([dimmest_wb, brightest_wb])
+    #no_wb = np.hstack([dimmest, brightest])
+    #comp = np.vstack([no_wb, wb])
+    #cv2.imshow('WB', comp)
+    #cv2.waitKey(0)
+
+    brightest = cv2.GaussianBlur(brightest_wb, (5, 5), 0)
+    dimmest = cv2.GaussianBlur(dimmest_wb, (5, 5), 0)
+
+    leftCheekPolygon = brightestCapture.landmarks.getLeftCheekPoints()
+    rightCheekPolygon = brightestCapture.landmarks.getRightCheekPoints()
+    chinPolygon = brightestCapture.landmarks.getChinPoints()
+    foreheadPolygon = brightestCapture.landmarks.getForeheadPoints()
+
+    brightestHsv = colorTools.naiveBGRtoHSV(brightest)
+    brightv2 = np.mean(brightestHsv, axis=2)
+    brightestHsv[:, :, 2] = brightv2
+
+    dimmestHsv = colorTools.naiveBGRtoHSV(dimmest)
+    dimv2 = np.mean(dimmestHsv, axis=2)
+    dimmestHsv[:, :, 2] = dimv2
+    
+
+    masked_hsv_b = extractMask.getMaskedImage(brightestHsv, brightestCapture.faceMask, [leftCheekPolygon, rightCheekPolygon, chinPolygon, foreheadPolygon])
+    masked_hsv_d = extractMask.getMaskedImage(dimmestHsv, brightestCapture.faceMask, [leftCheekPolygon, rightCheekPolygon, chinPolygon, foreheadPolygon])
+
+    hue_b = masked_hsv_b[:, :, 0]
+    sat_b = masked_hsv_b[:, :, 1]
+    val_b = masked_hsv_b[:, :, 2]
+
+    hue_d = masked_hsv_d[:, :, 0]
+    sat_d = masked_hsv_d[:, :, 1]
+    val_d = masked_hsv_d[:, :, 2]
+
+    masked_region_rough = sat_b != 0
+
+    hue_diff = hue_b - hue_d
+
+    plt.hist(hue_diff[masked_region_rough].ravel(),256)
+    plt.show()
+
+
+
+    sat_diff = hue_diff#sat_b - sat_d
+    val_diff = val_b - val_d
+    cv2.imshow('sat diff', np.hstack([hue_diff, sat_diff, val_diff]))
+    print('diff :: {}'.format(sat_diff))
+    neg_chan_mask = sat_diff < 0
+    pos_chan_mask = np.logical_not(neg_chan_mask)
+
+    blank = np.zeros(sat_diff.shape, dtype='float')
+    pos_chan = np.copy(blank)
+    neg_chan = np.copy(blank)
+
+    pos_chan[pos_chan_mask] = sat_diff[pos_chan_mask]
+    print('pos :: {}'.format(pos_chan))
+    neg_chan[neg_chan_mask] = np.abs(sat_diff[neg_chan_mask])
+    print('neg :: {}'.format(neg_chan))
+
+    diff_synth = np.stack([blank, pos_chan, neg_chan], axis=-1)
+
+    maxSatDiff = np.max(diff_synth)
+    minSatDiff = np.min(diff_synth[masked_region_rough])
+    diff_synth[masked_region_rough] = (diff_synth[masked_region_rough] - minSatDiff) / (maxSatDiff - minSatDiff)
+
+    print('comb :: {}'.format(diff_synth))
+    cv2.imshow('diff', diff_synth)
+
+    #sats = np.hstack([sat_d, sat_b, sat_diff])
+    #cv2.imshow('masked sats', sats)
+    cv2.waitKey(0)
+
+    
+
+    hue = masked_hsv[:, :, 0]
+    sat = masked_hsv[:, :, 1]
+    val = masked_hsv[:, :, 2]
+
+    masked_region_rough = sat != 0
+
+    minHue = np.min(hue[masked_region_rough])
+    minSat = np.min(sat[masked_region_rough])
+    minVal = np.min(val[masked_region_rough])
+
+    maxHue = np.max(hue)
+    maxSat = np.max(sat)
+    maxVal = np.max(val)
+
+    hue[masked_region_rough] = (hue[masked_region_rough] - minHue) / (maxHue - minHue)
+    sat[masked_region_rough] = (sat[masked_region_rough] - minSat) / (maxSat - minSat)
+    val[masked_region_rough] = (val[masked_region_rough] - minVal) / (maxVal - minVal)
+
+    #mix = sat + (1 - val)
+    mix = sat - val
+    maxMix = np.max(mix)
+    minMix = np.min(mix[masked_region_rough])
+    mix[masked_region_rough] = (mix[masked_region_rough] - minMix) / (maxMix - minMix)
+
+    mix_int = np.clip(mix * 255, 0, 255).astype('uint8')
+
+    med = np.median(mix_int[masked_region_rough])
+    print('MEDIAN :: {}'.format(med))
+    ret,thr = cv2.threshold(mix_int,med,255,cv2.THRESH_BINARY)
+    #thr = cv2.adaptiveThreshold(mix_int, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+
+    diff =  brightest - dimmest 
+
+    #plt.hist(sat[masked_region_rough].ravel(),256)
+    ##plt.hist(hue[masked_region_rough].ravel(),256)
+    #plt.hist(val[masked_region_rough].ravel(),256)
+    plt.hist(mix_int[masked_region_rough].ravel(),256)
+    plt.show()
+    #plt.hist(hue[i*3].ravel(),256)
+
+    joint = np.hstack([sat, val, mix, thr])
+    #cv2.imshow('masked Sat', sat)
+    #cv2.imshow('masked Hue', hue)
+    #cv2.imshow('masked Val', val)
+    #cv2.imshow('masked Mix', mix)
+    cv2.imshow('masked Joint', joint)
+    cv2.waitKey(0)
+
+def extractSkinReflectionMask(brightestCapture, dimmestCapture, wb):
+    print('brightest :: {}'.format(brightestCapture.faceImage))
+    brightest = colorTools.convert_sBGR_to_linearBGR_float_fast(brightestCapture.faceImage)
+    dimmest = colorTools.convert_sBGR_to_linearBGR_float_fast(dimmestCapture.faceImage)
+
+    brightest = cv2.GaussianBlur(brightest, (5, 5), 0)
+    dimmest = cv2.GaussianBlur(dimmest, (5, 5), 0)
+    diff =  brightest - dimmest 
+
+    diff /= wb
+
+    leftCheekPolygon = brightestCapture.landmarks.getLeftCheekPoints()
+    rightCheekPolygon = brightestCapture.landmarks.getRightCheekPoints()
+    chinPolygon = brightestCapture.landmarks.getChinPoints()
+    foreheadPolygon = brightestCapture.landmarks.getForeheadPoints()
+
+    hsv = colorTools.naiveBGRtoHSV(diff)
+    v2 = np.mean(diff, axis=2)
+    hsv[:, :, 2] = v2
+
+
+    #masked_hsv = extractMask.getMaskedImage(hsv, brightestCapture.faceMask, [leftCheekPolygon, rightCheekPolygon, chinPolygon, foreheadPolygon])
+    masked_hsv = extractMask.getMaskedImage(hsv, brightestCapture.faceMask, [chinPolygon])
+
+
+    hue = masked_hsv[:, :, 0]
+    hue += 0.25
+    hue[hue > 1] -= 1
+
+    sat = masked_hsv[:, :, 1]
+    val = masked_hsv[:, :, 2]
+
+    masked_region_rough = sat != 0
+
+    hsv_prepped = np.array(masked_hsv * [180, 256, 256]).astype('uint8')
+
+    min_hue = np.min(hsv_prepped[masked_region_rough][:, 0])
+    max_hue = np.max(hsv_prepped[masked_region_rough][:, 0])
+
+    min_sat = np.min(hsv_prepped[masked_region_rough][:, 1])
+    max_sat = np.max(hsv_prepped[masked_region_rough][:, 1])
+    print('Min/Max Hue :: {}, {}'.format(min_hue, max_hue))
+    print('Min/Max Sat :: {}, {}'.format(min_sat, max_sat))
+    #cv2.imshow('diff', diff / np.max(diff))
+
+    hist = cv2.calcHist(np.array([[hsv_prepped[masked_region_rough]]]), [0, 1], None, [50, 100], [40, 50, 150, 220])
+    #hist = cv2.calcHist(np.array([[hsv_prepped[masked_region_rough]]]), [0, 2], None, [180, 256], [0, 180, 0, 256])
+    #hist = cv2.calcHist(np.array([[hsv_prepped[masked_region_rough]]]), [1, 2], None, [256, 256], [0, 256, 0, 256])
+    plt.imshow(hist, interpolation='nearest')
+    plt.show()
+
+    minHue = np.min(hue[masked_region_rough])
+    minSat = np.min(sat[masked_region_rough])
+    minVal = np.min(val[masked_region_rough])
+
+    maxHue = np.max(hue)
+    maxSat = np.max(sat)
+    maxVal = np.max(val)
+
+    hue[masked_region_rough] = (hue[masked_region_rough] - minHue) / (maxHue - minHue)
+    sat[masked_region_rough] = (sat[masked_region_rough] - minSat) / (maxSat - minSat)
+    val[masked_region_rough] = (val[masked_region_rough] - minVal) / (maxVal - minVal)
+
+    mix = sat + (1 - val)
+    mix = sat - val
+    maxMix = np.max(mix)
+    minMix = np.min(mix[masked_region_rough])
+    mix[masked_region_rough] = (mix[masked_region_rough] - minMix) / (maxMix - minMix)
+
+    mix_int = np.clip(mix * 255, 0, 255).astype('uint8')
+
+    med = np.median(mix_int[masked_region_rough])
+    print('MEDIAN :: {}'.format(med))
+    ret,thr = cv2.threshold(mix_int,med,255,cv2.THRESH_BINARY)
+    #thr = cv2.adaptiveThreshold(mix_int, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+
+
+    #plt.hist(sat[masked_region_rough].ravel(),256)
+    plt.hist(hue[masked_region_rough].ravel(),256)
+    #plt.hist(val[masked_region_rough].ravel(),256)
+    #plt.hist(mix_int[masked_region_rough].ravel(),256)
+    plt.show()
+    #plt.hist(hue[i*3].ravel(),256)
+
+    joint = np.hstack([sat, val, mix, thr])
+    #cv2.imshow('masked Sat', sat)
+    #cv2.imshow('masked Hue', hue)
+    #cv2.imshow('masked Val', val)
+    #cv2.imshow('masked Mix', mix)
+    #cv2.imshow('masked Joint', joint)
+    #cv2.waitKey(0)
+
+
 def run2(user_id, capture_id=None, isProduction=False):
     failOnError = True
+    #failOnError = False
     logger.info('BEGINNING COLOR MATCH PROCESSING FOR USER {} CAPTURE {}'.format(user_id, capture_id if capture_id is not None else '-1'))
     state = State(user_id, capture_id, isProduction)
     logger.info('IS PRODUCTION :: {}'.format(isProduction))
@@ -640,6 +1074,8 @@ def run2(user_id, capture_id=None, isProduction=False):
         if failOnError: raise
         return getResponse(state.imageName(), False)
 
+    state.saveExposurePointImage('exposurePoints', images)
+
     metadata = state.getMetadata()
 
     if not isMetadataValid(metadata):
@@ -650,7 +1086,7 @@ def run2(user_id, capture_id=None, isProduction=False):
 
     captures = [Capture(image, meta) for image, meta in zip(images, metadata)]
     getSharpness.labelSharpestCaptures(captures)
-    blurryMask = [capture.isBlurry for capture in captures]
+    #blurryMask = [capture.isBlurry for capture in captures]
 
     try:
         leftEyeCropOffsets, rightEyeCropOffsets, faceCropOffsets = alignImages.getCaptureEyeOffsets2(captures)
@@ -665,16 +1101,27 @@ def run2(user_id, capture_id=None, isProduction=False):
     for capture in captures:
         capture.landmarks = captures[0].landmarks
 
+
     try:
-        averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections = getAverageScreenReflectionColor2(captures, leftEyeCropOffsets, rightEyeCropOffsets, state)
+        averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, blurryMask = getAverageScreenReflectionColor2(captures, leftEyeCropOffsets, rightEyeCropOffsets, state)
     except Exception as err:
         logger.error('User :: {} | Image :: {} | Error :: {} | Details ::\n{}'.format(state.user_id, state.imageName(), 'Error Extracting Reflection', err))
         state.errorProccessing()
         if failOnError: raise
         return getResponse(state.imageName(), False)
 
+    leftEyePropBGR = getReflectionColor(leftEyeReflections)
+    rightEyePropBGR = getReflectionColor(rightEyeReflections)
+
+    propBGR = (leftEyePropBGR + rightEyePropBGR) / 2
+    print('Average Reflection PROP BGR :: {}'.format(propBGR))
+    #propBGR = propBGR / max(propBGR)
+    #print('Scaled To Brightest PROP BGR :: {}'.format(propBGR))
+
+    mask = extractSkinReflectionMask3(captures[0], captures[-1], propBGR)
+
     try:
-        faceRegions = np.array([FaceRegions(capture) for capture in captures])
+        faceRegions = np.array([FaceRegions(capture, mask) for capture in captures])
     except Exception as err:
         logger.error('User :: {} | Image :: {} | Error :: {} | Details ::\n{}'.format(state.user_id, state.imageName(), 'Error extracting Points for Recovered Mask', err))
         state.errorProccessing()
@@ -685,7 +1132,8 @@ def run2(user_id, capture_id=None, isProduction=False):
     state.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')
 
     #--TEMP FOR DEBUG?---
-    plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, state)
+    plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, blurryMask, state)
+    plotPerRegionLinearityAlt(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, state)
     plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflections, state)
     plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, state)
     #--END TEMP FOR DEBUG?---
@@ -713,17 +1161,42 @@ def run2(user_id, capture_id=None, isProduction=False):
     #linearFits["regions"]["chin"] = list(captureFaceRegionsLinearFit[2, :, 0])
     #linearFits["regions"]["forehead"] = list(captureFaceRegionsLinearFit[3, :, 0])
     #linearFits["regions"]["linearityScore"] = list(maxFaceRegionScores)
-    #print('Left Eye Reflections :: ' + str(leftEyeReflections))
+    print('Left Eye Reflections :: ' + str(leftEyeReflections))
     #print('Right Eye Reflections :: ' + str(rightEyeReflections))
     #print('Face Regions :: ' + str(faceRegions))
-    linearFitSets = getLinearFits(leftEyeReflections, rightEyeReflections, faceRegions, blurryMask)
+    linearFitSets = getLinearFits(leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, faceRegions, blurryMask)
+    #linearFitExperimental = getLinearFitExperimental(leftEyeReflections, rightEyeReflections, faceRegions, blurryMask)
 
-    averageReflectionSlope = (np.array(linearFitSets["reflections"]["left"]) + np.array(linearFitSets["reflections"]["right"])) / 2
+    print('Left Eye Reflection Slope :: ' + str(linearFitSets["reflections"]["left"]))
+    #averageReflectionSlope = (np.array(linearFitSets["reflections"]["left"]) + np.array(linearFitSets["reflections"]["right"])) / 2
     averageSkinSlope = (np.array(linearFitSets["regions"]["left"]) + np.array(linearFitSets["regions"]["right"]) + np.array(linearFitSets["regions"]["chin"]) + np.array(linearFitSets["regions"]["forehead"])) / 4
-    channelRatio = averageSkinSlope / averageReflectionSlope
+    averageCheekSlope = (np.array(linearFitSets["regions"]["left"]) + np.array(linearFitSets["regions"]["right"])) / 2
+    averageScleraSlope = (np.array(linearFitSets["sclera"]["left"]) + np.array(linearFitSets["sclera"]["right"])) / 2
+
+    print('Reflection Proprtional BGR :: {}'.format(propBGR))
+
+    print('Average Skin Slope :: {}'.format(averageSkinSlope))
+    print('Average Cheek Slope :: {}'.format(averageCheekSlope))
+    print('AverageScleraSlope :: {}'.format(averageScleraSlope))
+
+    averageSkinSlopeWB = averageSkinSlope / propBGR
+    averageCheekSlopeWB = averageCheekSlope  / propBGR
+    averageScleraSlopeWB = averageScleraSlope / propBGR
+    #approxScleraValue = max(averageScleraSlopeWB) * np.array([1.0, 1.0, 1.0])
+
+    print('Average Skin Slope WB:: {}'.format(averageSkinSlopeWB))
+    print('Average Cheek Slope WB:: {}'.format(averageCheekSlopeWB))
+    print('AverageScleraSlope WB:: {}'.format(averageScleraSlopeWB))
+
+    faceRatio = averageCheekSlopeWB[2] / averageScleraSlopeWB[2]
+
+    print('Ratio :: {}'.format(faceRatio))
+
+
+    channelRatio = averageSkinSlopeWB #averageSkinSlope / averageReflectionSlope
     hue = 60 * ((channelRatio[1] - channelRatio[0]) / (channelRatio[2])) % 6
     sat = (max(channelRatio) - min(channelRatio)) / max(channelRatio) 
-    val = colorTools.getRelativeLuminance([channelRatio])[0]
+    val = faceRatio#colorTools.getRelativeLuminance([channelRatio])[0]
     #val = sum(channelRatio) / 3
 
     #print('AVERAGE REFLECION SLOPE :: ' + str(averageReflectionSlope))

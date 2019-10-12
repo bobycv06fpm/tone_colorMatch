@@ -69,6 +69,32 @@ def convertBGRToHSVAndScale(points, averageFlashContribution):
     converted = np.apply_along_axis(bgr_to_hsv, 1, points)
     return converted
 
+# https://www.rapidtables.com/convert/color/hsv-to-rgb.html Modified to Scaled Value. Check notes October 3, 2019
+def hueSatToProportionalBGR(hue, sat): 
+    #Prime just means V is divided out
+    c_prime = sat
+    x_prime = sat * (1 - abs((((hue * 360) / 60) % 2) - 1))
+
+    if hue < (60 / 360):
+        (r_prime, g_prime, b_prime) = (c_prime, x_prime, 0)
+    elif hue < (120 / 360):
+        (r_prime, g_prime, b_prime) = (x_prime, c_prime, 0)
+    elif hue < (180 / 360):
+        (r_prime, g_prime, b_prime) = (0, c_prime, x_prime)
+    elif hue < (240 / 360):
+        (r_prime, g_prime, b_prime) = (0, x_prime, c_prime)
+    elif hue < (300 / 360):
+        (r_prime, g_prime, b_prime) = (x_prime, 0, c_prime)
+    elif hue < (360 / 360):
+        (r_prime, g_prime, b_prime) = (c_prime, 0, x_prime)
+    else:
+        print('ERROR EXTRACTING HUE SAT')
+
+    r = 1
+    g = (g_prime + 1 - sat) / (r_prime + 1 - sat)
+    b = (b_prime + 1 - sat) / (r_prime + 1 - sat)
+
+    return [b, g, r]
 
 H = B = 0
 S = G = 1
@@ -112,22 +138,19 @@ def naiveBGRtoHSV(bgrImage, isFloat=True):
     hsvImage[mask_maxIsRed, H] = ((bgrImage[:, :, G] - bgrImage[:, :, B]) / delta)[mask_maxIsRed]
 
     hsvImage[:, :, H] *= 60
-
-    hsvImage[mask_maxIsBlue][:, H] += 240
-    hsvImage[mask_maxIsGreen][:, H] += 120
-
+    hsvImage[mask_maxIsBlue, H] += 240
+    hsvImage[mask_maxIsGreen, H] += 120
     mask_negativeHue = hsvImage[:, :, H] < 0
-    hsvImage[mask_negativeHue][:, H] += 360
-
+    hsvImage[mask_negativeHue, H] += 360
     hsvImage[:, :, H] = hsvImage[:, :, H] / 360
     
     #Return Not So Early Statement from Saturation
-    hsvImage[mask_deltaAlmostZero][:, H] = 0
-    hsvImage[mask_deltaAlmostZero][:, S] = 0
+    hsvImage[mask_deltaAlmostZero, H] = 0
+    hsvImage[mask_deltaAlmostZero, S] = 0
 
-    hsvImage[mask_zeroMax][:, H] = 0
-    hsvImage[mask_zeroMax][:, S] = 0#float('nan')
-    hsvImage[mask_zeroMax][:, V] = 0
+    hsvImage[mask_zeroMax, H] = 0
+    hsvImage[mask_zeroMax, S] = 0#float('nan')
+    hsvImage[mask_zeroMax, V] = 0
 
     return hsvImage
 
