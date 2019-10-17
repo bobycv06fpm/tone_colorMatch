@@ -109,7 +109,7 @@ def plotPerRegionDistribution(faceRegionsSets, saveStep):
 
     saveStep.savePlot('Regions_Scatter', plt)
 
-def plotBGR(axs, color, size, x, y, blurryMask, pointRange=None):
+def plotBGR(axs, color, size, x, y, blurryMask, pointRange=None, fit=True):
     
     x_sample, y_sample = samplePoints(x, y)
 
@@ -119,7 +119,10 @@ def plotBGR(axs, color, size, x, y, blurryMask, pointRange=None):
     colorList = np.repeat([list(color)], len(x_sample), axis=0).astype('float32')
     colorList[blurryMask] = [1, 0.4, 0.7] #pink... idk why... why not
 
-    axs.scatter(x_sample, y_sample, size, colorList)
+    if fit:
+        axs.scatter(x_sample, y_sample, size, colorList)
+    else:
+        axs.plot(x_sample, y_sample, 'ro-')
 
     x_sample = np.array(x_sample)
     y_sample = np.array(y_sample)
@@ -127,12 +130,13 @@ def plotBGR(axs, color, size, x, y, blurryMask, pointRange=None):
     x_sampleFiltered = x_sample[np.logical_not(blurryMask)]
     y_sampleFiltered = y_sample[np.logical_not(blurryMask)]
 
-    if pointRange is not None:
-        m, c = fitLine(x_sampleFiltered[pointRange[0]:pointRange[1]], y_sampleFiltered[pointRange[0]:pointRange[1]])[0]
-    else:
-        m, c = fitLine(x_sampleFiltered, y_sampleFiltered)[0]
+    if fit:
+        if pointRange is not None:
+            m, c = fitLine(x_sampleFiltered[pointRange[0]:pointRange[1]], y_sampleFiltered[pointRange[0]:pointRange[1]])[0]
+        else:
+            m, c = fitLine(x_sampleFiltered, y_sampleFiltered)[0]
 
-    axs.plot([start_x, end_x], [(m * start_x + c), (m * end_x + c)], color=color)
+        axs.plot([start_x, end_x], [(m * start_x + c), (m * end_x + c)], color=color)
 
 #def plotPerEyeReflectionBrightness(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
 #    logger.info('PLOTTING: Per Eye Reflection Brightness')
@@ -416,9 +420,13 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
         #print('Regions :: ' + str(captureFaceRegions[:, regionIndex]))
         #tempBlurryMask = np.zeros(len(blurryMask)).astype('bool')
         #tempBlurryMask = blurryMask
-        plotBGR(axs[0, 0], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 2], blurryMask)
-        plotBGR(axs[0, 1], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 1], blurryMask)
-        plotBGR(axs[0, 2], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 0], blurryMask)
+        #plotBGR(axs[0, 0], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 2], blurryMask)
+        #plotBGR(axs[0, 1], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 1], blurryMask)
+        #plotBGR(axs[0, 2], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 0], blurryMask)
+
+        plotBGR(axs[0, 0], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 2], blurryMask, None, False)
+        plotBGR(axs[0, 1], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 1], blurryMask, None, False)
+        plotBGR(axs[0, 2], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 0], blurryMask, None, False)
 
     # ---- SCLERA -----
     plotBGR(axs[1, 0], colors[0], 1, flashRatios, rightSclera[:, 2], blurryMask)
@@ -454,6 +462,7 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
 
     axs[2, 0].set_xlabel('Screen Flash Ratio')
     axs[2, 0].set_ylabel('Reflection Mag')
+    plt.show()
     saveStep.savePlot('RegionLinearity', plt)
 
 def plotPerRegionLinearityAlt(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, saveStep):
@@ -1059,6 +1068,16 @@ def extractSkinReflectionMask(brightestCapture, dimmestCapture, wb):
     #cv2.imshow('masked Joint', joint)
     #cv2.waitKey(0)
 
+def showGroup(images):
+    show = np.hstack(images)
+    cv2.imshow('imgs', show)
+    cv2.waitKey(0)
+
+def synthesis(captures):
+    images = [capture.faceImage for capture in captures]
+    linearImages = [colorTools.convert_sBGR_to_linearBGR_float_fast(image) for image in images]
+    showGroup(images)
+
 
 def run2(user_id, capture_id=None, isProduction=False):
     failOnError = True
@@ -1089,18 +1108,21 @@ def run2(user_id, capture_id=None, isProduction=False):
     #blurryMask = [capture.isBlurry for capture in captures]
 
     try:
-        leftEyeCropOffsets, rightEyeCropOffsets, faceCropOffsets = alignImages.getCaptureEyeOffsets2(captures)
+        leftEyeCropOffsets, rightEyeCropOffsets, faceLandmarkCropOffsets, faceCropOffsets = alignImages.getCaptureEyeOffsets2(captures)
     except Exception as err:
         logger.error('User :: {} | Image :: {} | Error :: {} | Details ::\n{}'.format(state.user_id, state.imageName(), 'Error Cropping and Aligning Images', err))
         state.errorProccessing()
         if failOnError: raise
         return getResponse(state.imageName(), False)
 
+    print('Left \n {} \n Right \n {} \n Face \n {}'.format(leftEyeCropOffsets, rightEyeCropOffsets, faceCropOffsets))
+    print('average \n {}'.format((leftEyeCropOffsets + rightEyeCropOffsets) / 2))
     updatedAverageOffset = cropTools.cropCapturesToOffsets(captures, faceCropOffsets)
     #All offsets are relative to capture[0]
     for capture in captures:
         capture.landmarks = captures[0].landmarks
 
+    #synthesis(captures)
 
     try:
         averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, blurryMask = getAverageScreenReflectionColor2(captures, leftEyeCropOffsets, rightEyeCropOffsets, state)

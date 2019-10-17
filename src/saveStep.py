@@ -11,9 +11,9 @@ import boto3
 from logger import getLogger
 
 #COMMENT OUT FOR PROD
-#import sys
-#sys.path.append(os.path.abspath('../../boto_local_cache/'))
-#import boto_local_cache as boto3 
+import sys
+sys.path.append(os.path.abspath('../../boto_local_cache/'))
+import boto_local_cache as boto3 
 
 logger = getLogger(__name__)
 TONE_USER_CAPTURES_BUCKET = 'tone-user-captures'
@@ -145,7 +145,7 @@ class State:
 
         imageSets = []
         for capture_number in range(1, 9):
-        #for capture_number in range(1, 15):
+        #for capture_number in range(1, 16):
             faceFile = faceFileTemplate.format(capture_number)
             leftEyeFile = leftEyeFileTemplate.format(capture_number)
             rightEyeFile = rightEyeFileTemplate.format(capture_number)

@@ -635,7 +635,8 @@ def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, 
     reflectionHeightRatio = max(leftReflectionHeight, rightReflectionHeight) / min(leftReflectionHeight, rightReflectionHeight)
 
     if (reflectionWidthRatio > 1.5) or (reflectionHeightRatio > 1.25):
-        raise ValueError('Reflection Sizes are too different!')
+        #raise ValueError('Reflection Sizes are too different!')
+        print('Reflection Sizes are too different!')
 
     middleIndex = math.floor(len(captures) / 2)
 

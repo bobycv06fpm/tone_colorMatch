@@ -93,17 +93,25 @@ def getCaptureEyeOffsets2(captures):
     scaledLeftEyeOffsets = leftEyeOffsets * scaleRatio
     scaledRightEyeOffsets = rightEyeOffsets * scaleRatio
 
+    scaledAverageOffsets = np.round(np.mean([scaledLeftEyeOffsets, scaledRightEyeOffsets], axis=0)).astype('int32')
+
     alignedCoordLeft = leftEyeBBOrigins + scaledLeftEyeOffsets
     alignedCoordRight = rightEyeBBOrigins + scaledRightEyeOffsets
 
     leftFaceOffsets = alignedCoordLeft - alignedCoordLeft[0]
     rightFaceOffsets = alignedCoordRight - alignedCoordRight[0]
 
-    averageFaceOffsets = np.round(np.mean([leftFaceOffsets, rightFaceOffsets], axis=0)).astype('int32')
+    averageFaceLandmarksOffsets = np.round(np.mean([leftFaceOffsets, rightFaceOffsets], axis=0)).astype('int32')
 
     logger.info('L Eye Offset ::\n{}'.format(leftEyeOffsets))
     logger.info('R Eye Offset ::\n{}'.format(rightEyeOffsets))
-    logger.info('L/R Eye Offset Averages ::\n{}'.format(averageFaceOffsets))
+    logger.info('L/R Eye Offset Averages ::\n{}'.format(averageFaceLandmarksOffsets))
+    logger.info('L/R TEST Eye Offset Averages ::\n{}'.format(scaledAverageOffsets))
 
-    return [leftEyeOffsets, rightEyeOffsets, averageFaceOffsets]
+    print('L Eye Offset ::\n{}'.format(leftEyeOffsets))
+    print('R Eye Offset ::\n{}'.format(rightEyeOffsets))
+    print('L/R Eye Offset Averages ::\n{}'.format(averageFaceLandmarksOffsets))
+    print('L/R TEST Eye Offset Averages ::\n{}'.format(scaledAverageOffsets))
+
+    return [leftEyeOffsets, rightEyeOffsets, averageFaceLandmarksOffsets, scaledAverageOffsets]
 
