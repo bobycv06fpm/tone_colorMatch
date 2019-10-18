@@ -145,6 +145,7 @@ class State:
 
         imageSets = []
         for capture_number in range(1, 9):
+        #for capture_number in range(1, 9, 2):
         #for capture_number in range(1, 16):
             faceFile = faceFileTemplate.format(capture_number)
             leftEyeFile = leftEyeFileTemplate.format(capture_number)

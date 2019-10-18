@@ -1073,24 +1073,116 @@ def showGroup(images):
     cv2.imshow('imgs', 20*show)
     cv2.waitKey(0)
 
+def multilayerMedianBlur(alignedImages, size):
+    alignedImages = np.array(alignedImages)
+    if size%2 != 1:
+        print('Median Blur must be odd')
+        return None
+
+    segment = np.floor(size / 2).astype('uint8')
+
+    imgCount, height, width, chan = alignedImages.shape
+    print('Aligned Images shape :: {}'.format(alignedImages.shape))
+
+    output = np.copy(alignedImages[0])
+    output[:, :] = [0, 0, 0]
+
+    for h in range(segment, height-segment):
+        print('{} / {}'.format(h, height-segment))
+        for w in range(segment, width-segment):
+            medians = np.median(alignedImages[:, h-segment:h+segment, w-segment:w+segment], axis=[0,1,2])
+            output[h+segment, w+segment] = medians
+
+    #cv2.imshow('multi', output)
+    #cv2.waitKey(0)
+    return output
+
+
 def synthesis(captures):
+    #Just Temp ... figure out robust way to do this?
+    scale = 10
+    scaleOld = 20
+    scaleTest = 7
+
     images = [capture.faceImage for capture in captures]
     linearImages = np.array([colorTools.convert_sBGR_to_linearBGR_float_fast(image) for image in images])
-    linearImagesBlur = np.array([cv2.GaussianBlur(img, (11, 11), 0) for img in linearImages])
+    #linearImagesBlur = np.array([cv2.GaussianBlur(img, (3, 3), 0) for img in linearImages])
 
-    linearImagesDiffs = linearImagesBlur[1:] - linearImagesBlur[:-1]
+    #linearImagesDiffsOld = linearImages[:-1] - linearImages[1:]
 
-    linearImageSynth = np.median(linearImagesDiffs, axis=0)
+    oddMask = (np.arange(len(captures)) % 2).astype('bool')
+    evenMask = np.logical_not(oddMask)
 
-    #minSynth = np.min(linearImageSynth) 
-    #maxSynth = np.max(linearImageSynth)
+    diff1 = linearImages[oddMask][:-1] - linearImages[oddMask][1:]
+    diff2 = linearImages[evenMask][:-1] - linearImages[evenMask][1:]
 
-    #linearImageSynthStretch = (linearImageSynth - minSynth) / (maxSynth - minSynth)
-    #linearImageSynthStretch = np.clip(linearImageSynthStretch * 255, 0, 255).astype('uint8')
+    #showGroup(diff2)
+    linearImagesDiffs = np.concatenate((diff1, diff2), axis=0)
+
+    #maskA = (np.arange(len(captures)) % 3) == 0
+    #maskB = (np.arange(len(captures)) % 3) == 1
+    #maskC = (np.arange(len(captures)) % 3) == 2
+    #print('Mask A :: {}'.format(maskA))
+    #print('Mask B :: {}'.format(maskB))
+    #print('Mask C :: {}'.format(maskC))
+    ##evenMask = np.logical_not(oddMask)
+    #diffA = linearImages[maskA][:-1] - linearImages[maskA][1:]
+    #diffB = linearImages[maskB][:-1] - linearImages[maskB][1:]
+    #diffC = linearImages[maskC][:-1] - linearImages[maskC][1:]
+    #linearImagesDiffsTest = np.concatenate((diffA, diffB, diffC), axis=0)
+    #showGroup(linearImagesDiffsTest)
 
 
-    cv2.imshow('linearImageSynth', 20 * linearImageSynth)
-    showGroup(linearImagesDiffs)
+    #linearImageSynth = multilayerMedianBlur(linearImagesDiffs, 3)
+
+    #linearImageSynthTransform = np.clip(np.round(linearImageSynth * scale * 255), 0, 255).astype('uint8')
+    #linearImageSynthTransformMedianBlur = cv2.medianBlur(linearImageSynthTransform, 3)
+    #show = np.hstack([linearImageSynthTransform, linearImageSynthTransformMedianBlur])
+    #showSBGR = colorTools.convert_linearBGR_float_to_sBGR(show / 255).astype('uint8')
+
+
+
+    linearImageSynth = np.median(linearImagesDiffs, axis=0).astype('float32')
+    linearImageSynthMedianBlur = cv2.medianBlur(linearImageSynth, 5)
+
+    linearImageSynthTransform = np.clip(np.round(linearImageSynth * scale * 255), 0, 255).astype('uint8')
+    linearImageSynthTransformMedianBlur = cv2.medianBlur(linearImageSynthTransform, 5)
+
+    show = np.hstack([linearImageSynthTransform, linearImageSynthTransformMedianBlur])
+    showSBGR = colorTools.convert_linearBGR_float_to_sBGR(show / 255).astype('uint8')
+
+    shows = np.vstack([show, showSBGR])
+
+    #Start test
+    #linearImageSynthOld = np.median(linearImagesDiffsOld, axis=0).astype('float32')
+    #linearImageSynthMedianBlurOld = cv2.medianBlur(linearImageSynthOld, 5)
+
+    #linearImageSynthTransformOld = np.clip(np.round(linearImageSynthOld * scaleOld * 255), 0, 255).astype('uint8')
+    #linearImageSynthTransformMedianBlurOld = cv2.medianBlur(linearImageSynthTransformOld, 5)
+
+    #showOld = np.hstack([linearImageSynthTransformOld, linearImageSynthTransformMedianBlurOld])
+    #showSBGROld = colorTools.convert_linearBGR_float_to_sBGR(showOld / 255).astype('uint8')
+
+    #showsOld = np.vstack([showOld, showSBGROld])
+    #End test
+
+    #Start test 2
+    #linearImageSynthTest = np.median(linearImagesDiffsTest, axis=0).astype('float32')
+    #linearImageSynthMedianBlurTest = cv2.medianBlur(linearImageSynthTest, 5)
+
+    #linearImageSynthTransformTest = np.clip(np.round(linearImageSynthTest * scaleTest * 255), 0, 255).astype('uint8')
+    #linearImageSynthTransformMedianBlurTest = cv2.medianBlur(linearImageSynthTransformTest, 5)
+
+    #showTest = np.hstack([linearImageSynthTransformTest, linearImageSynthTransformMedianBlurTest])
+    #showSBGRTest = colorTools.convert_linearBGR_float_to_sBGR(showTest / 255).astype('uint8')
+
+    #showsTest = np.vstack([showTest, showSBGRTest])
+    #End test 2
+
+    #cv2.imshow('Linear Vs SBR vs Blur', shows)
+    #cv2.waitKey(0)
+    #showGroup(linearImagesDiffs)
+    return [linearImageSynthMedianBlur, shows]
 
 
 def run2(user_id, capture_id=None, isProduction=False):
@@ -1136,7 +1228,8 @@ def run2(user_id, capture_id=None, isProduction=False):
     for capture in captures:
         capture.landmarks = captures[0].landmarks
 
-    synthesis(captures)
+    synth, displaySynth = synthesis(captures)
+    state.saveReferenceImageBGR(displaySynth, captures[0].name + '_synth')
 
     try:
         averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, blurryMask = getAverageScreenReflectionColor2(captures, leftEyeCropOffsets, rightEyeCropOffsets, state)
