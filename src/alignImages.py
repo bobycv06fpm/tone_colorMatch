@@ -85,6 +85,31 @@ def getCaptureEyeOffsets2(captures):
     leftEyeOffsets = getEyeOffsets(leftEyeCrops, sharpestIndex, wb)
     rightEyeOffsets = getEyeOffsets(rightEyeCrops, sharpestIndex, wb)
 
+    leftEyeBBs = np.array([capture.landmarks.getLeftEyeBB() for capture in captures])
+    leftEyeBBPoints = np.array([[bb[0], bb[1], bb[0] + bb[2], bb[1] + bb[3]] for bb in leftEyeBBs])
+    leftJointBB = [np.min(leftEyeBBPoints[:, 0]), np.min(leftEyeBBPoints[:, 1]), np.max(leftEyeBBPoints[:, 2]), np.max(leftEyeBBPoints[:, 3])]
+    leftEyeJointCrops = [capture.faceImage[leftJointBB[1]:leftJointBB[3], leftJointBB[0]:leftJointBB[2]] for capture in captures]
+    leftEyeJointOffsets = getEyeOffsets(leftEyeJointCrops, sharpestIndex, wb)
+    #cv2.imshow('left', np.vstack(leftEyeJointCrops))
+
+
+    rightEyeBBs = np.array([capture.landmarks.getRightEyeBB() for capture in captures])
+    rightEyeBBPoints = np.array([[bb[0], bb[1], bb[0] + bb[2], bb[1] + bb[3]] for bb in rightEyeBBs])
+    rightJointBB = [np.min(rightEyeBBPoints[:, 0]), np.min(rightEyeBBPoints[:, 1]), np.max(rightEyeBBPoints[:, 2]), np.max(rightEyeBBPoints[:, 3])]
+    rightEyeJointCrops = [capture.faceImage[rightJointBB[1]:rightJointBB[3], rightJointBB[0]:rightJointBB[2]] for capture in captures]
+    rightEyeJointOffsets = getEyeOffsets(rightEyeJointCrops, sharpestIndex, wb)
+    #cv2.imshow('right', np.vstack(rightEyeJointCrops))
+
+    print('L {} | R {}'.format(leftEyeBBs, rightEyeBBs))
+    print('L Points {} | R Points {}'.format(leftEyeBBPoints, rightEyeBBPoints))
+    print('L Joint {} | R Joint {}'.format(leftJointBB, rightJointBB))
+    print('L Offsets {} | R Offsets {}'.format(leftEyeJointOffsets, rightEyeJointOffsets))
+
+    averageJointOffset = np.round((leftEyeJointOffsets + rightEyeJointOffsets) / 2).astype('int32')
+    print('Average {}'.format(averageJointOffset))
+
+    #cv2.waitKey(0)
+
     leftEyeBBOrigins = np.array([capture.leftEyeBB[0] for capture in captures])
     rightEyeBBOrigins = np.array([capture.rightEyeBB[0] for capture in captures])
 
@@ -93,7 +118,7 @@ def getCaptureEyeOffsets2(captures):
     scaledLeftEyeOffsets = leftEyeOffsets * scaleRatio
     scaledRightEyeOffsets = rightEyeOffsets * scaleRatio
 
-    scaledAverageOffsets = np.round(np.mean([scaledLeftEyeOffsets, scaledRightEyeOffsets], axis=0)).astype('int32')
+    scaledAverageOffsets = averageJointOffset#np.round(np.mean([scaledLeftEyeOffsets, scaledRightEyeOffsets], axis=0)).astype('int32')
 
     alignedCoordLeft = leftEyeBBOrigins + scaledLeftEyeOffsets
     alignedCoordRight = rightEyeBBOrigins + scaledRightEyeOffsets

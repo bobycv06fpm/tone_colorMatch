@@ -1070,13 +1070,27 @@ def extractSkinReflectionMask(brightestCapture, dimmestCapture, wb):
 
 def showGroup(images):
     show = np.hstack(images)
-    cv2.imshow('imgs', show)
+    cv2.imshow('imgs', 20*show)
     cv2.waitKey(0)
 
 def synthesis(captures):
     images = [capture.faceImage for capture in captures]
-    linearImages = [colorTools.convert_sBGR_to_linearBGR_float_fast(image) for image in images]
-    showGroup(images)
+    linearImages = np.array([colorTools.convert_sBGR_to_linearBGR_float_fast(image) for image in images])
+    linearImagesBlur = np.array([cv2.GaussianBlur(img, (11, 11), 0) for img in linearImages])
+
+    linearImagesDiffs = linearImagesBlur[1:] - linearImagesBlur[:-1]
+
+    linearImageSynth = np.median(linearImagesDiffs, axis=0)
+
+    #minSynth = np.min(linearImageSynth) 
+    #maxSynth = np.max(linearImageSynth)
+
+    #linearImageSynthStretch = (linearImageSynth - minSynth) / (maxSynth - minSynth)
+    #linearImageSynthStretch = np.clip(linearImageSynthStretch * 255, 0, 255).astype('uint8')
+
+
+    cv2.imshow('linearImageSynth', 20 * linearImageSynth)
+    showGroup(linearImagesDiffs)
 
 
 def run2(user_id, capture_id=None, isProduction=False):
@@ -1122,7 +1136,7 @@ def run2(user_id, capture_id=None, isProduction=False):
     for capture in captures:
         capture.landmarks = captures[0].landmarks
 
-    #synthesis(captures)
+    synthesis(captures)
 
     try:
         averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, blurryMask = getAverageScreenReflectionColor2(captures, leftEyeCropOffsets, rightEyeCropOffsets, state)
