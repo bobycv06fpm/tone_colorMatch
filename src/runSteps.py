@@ -462,7 +462,7 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
 
     axs[2, 0].set_xlabel('Screen Flash Ratio')
     axs[2, 0].set_ylabel('Reflection Mag')
-    plt.show()
+    #plt.show()
     saveStep.savePlot('RegionLinearity', plt)
 
 def plotPerRegionLinearityAlt(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, saveStep):
@@ -1229,7 +1229,7 @@ def run2(user_id, capture_id=None, isProduction=False):
         capture.landmarks = captures[0].landmarks
 
     synth, displaySynth = synthesis(captures)
-    state.saveReferenceImageBGR(displaySynth, captures[0].name + '_synth')
+    #state.saveReferenceImageBGR(displaySynth, captures[0].name + '_synth')
 
     try:
         averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, blurryMask = getAverageScreenReflectionColor2(captures, leftEyeCropOffsets, rightEyeCropOffsets, state)
@@ -1335,6 +1335,33 @@ def run2(user_id, capture_id=None, isProduction=False):
 
     #reflectionBestGuess, faceBestGuess = getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections)
     bestGuess = getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections)
+
+    synthWB = synth / propBGR
+
+    synthComp = np.hstack([synth * 10, synthWB * 10])
+    synthWB *= 10
+
+    maxVal = np.max(synthComp)
+    if maxVal > 1.0:
+        synthComp /= maxVal
+
+    maxVal = np.max(synthWB)
+    if maxVal > 1.0:
+        synthWB /= maxVal
+
+    synthCompGamma = colorTools.convert_linearBGR_to_sBGR_float_fast(np.copy(synthComp))
+    synthCompGamma = np.clip(np.round(synthCompGamma * 255), 0, 255).astype('uint8')
+
+    synthWBGamma = colorTools.convert_linearBGR_to_sBGR_float_fast(np.copy(synthWB))
+    synthWBGamma = np.clip(np.round(synthWBGamma * 255), 0, 255).astype('uint8')
+
+    displaySynth = np.vstack([displaySynth, synthCompGamma])
+
+    state.saveReferenceImageBGR(displaySynth, captures[0].name + '_synthComp')
+    state.saveReferenceImageBGR(synthWBGamma, captures[0].name + '_synth')
+    #cv2.imshow('synth', synthWBGamma)
+    #cv2.imshow('synth Gamma', displaySynth)
+    #cv2.waitKey(0)
 
     #x = metadata[0]["whiteBalance"]["x"]
     #y = metadata[0]["whiteBalance"]["y"]

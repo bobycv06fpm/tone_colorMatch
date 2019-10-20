@@ -265,6 +265,17 @@ def convert_sBGR_to_linearBGR_float_fast(image):
 
     return image_float
 
+def convert_linearBGR_to_sBGR_float_fast(image):
+    smallValuesMask = (image <= .0031308)
+
+    convertedLargeValues = linearBGR_to_sBGR_image_largeValues(image)
+    image *= Small_Values_Const
+
+    convertedLargeValues *= (~smallValuesMask)
+    image *= smallValuesMask
+
+    return image + convertedLargeValues
+
 def convert_linearBGR_float_to_sBGR(image):
     #print('Starting :: linearBGR float -> sBGR')
     smallValuesMask = (image <= .0031308)
