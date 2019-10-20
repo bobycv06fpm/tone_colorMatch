@@ -1336,10 +1336,16 @@ def run2(user_id, capture_id=None, isProduction=False):
     #reflectionBestGuess, faceBestGuess = getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections)
     bestGuess = getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections)
 
+
+
+    print('Average Sclera Sclope WB :: {}'.format(averageScleraSlopeWB))
+    targetSlope = 0.80
+    multiplier = targetSlope / np.max(averageScleraSlopeWB)
+
     synthWB = synth / propBGR
 
-    synthComp = np.hstack([synth * 10, synthWB * 10])
-    synthWB *= 10
+    synthComp = np.hstack([synth * multiplier, synthWB * multiplier])
+    synthWB *= multiplier
 
     maxVal = np.max(synthComp)
     if maxVal > 1.0:
