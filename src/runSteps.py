@@ -1074,7 +1074,7 @@ def showGroup(images):
     cv2.waitKey(0)
 
 def multilayerMedianBlur(alignedImages, size):
-    alignedImages = np.array(alignedImages)
+    alignedImages = np.asarray(alignedImages)
     if size%2 != 1:
         print('Median Blur must be odd')
         return None
@@ -1105,19 +1105,42 @@ def synthesis(captures):
     scaleTest = 7
 
     images = [capture.faceImage for capture in captures]
-    linearImages = np.array([colorTools.convert_sBGR_to_linearBGR_float_fast(image) for image in images])
+    linearImages = np.asarray([colorTools.convert_sBGR_to_linearBGR_float_fast(image) for image in images], dtype='float32')
     #linearImagesBlur = np.array([cv2.GaussianBlur(img, (3, 3), 0) for img in linearImages])
 
     #linearImagesDiffsOld = linearImages[:-1] - linearImages[1:]
 
+    count = np.arange(len(captures))
     oddMask = (np.arange(len(captures)) % 2).astype('bool')
     evenMask = np.logical_not(oddMask)
 
-    diff1 = linearImages[oddMask][:-1] - linearImages[oddMask][1:]
-    diff2 = linearImages[evenMask][:-1] - linearImages[evenMask][1:]
+    oddMaskBrighter = np.copy(oddMask)
+    oddMaskBrighter[max(count[oddMaskBrighter])] = False
+    oddMaskDarker = np.copy(oddMask)
+    oddMaskDarker[min(count[oddMaskBrighter])] = False
+
+    evenMaskBrighter = np.copy(evenMask)
+    evenMaskBrighter[max(count[evenMaskBrighter])] = False
+    evenMaskDarker = np.copy(evenMask)
+    evenMaskDarker[min(count[evenMaskBrighter])] = False
+
+    #print('OddMask :: {}'.format(oddMask))
+    #print('OddMaskBrighter :: {}'.format(oddMaskBrighter))
+    #print('OddMaskDarker :: {}'.format(oddMaskDarker))
+
+    #print('EvenMask :: {}'.format(evenMask))
+    #print('EvenMaskBrighter :: {}'.format(evenMaskBrighter))
+    #print('EvenMaskDarker :: {}'.format(evenMaskDarker))
+
+
+    #diff1 = linearImages[oddMask][:-1] - linearImages[oddMask][1:]
+    #diff2 = linearImages[evenMask][:-1] - linearImages[evenMask][1:]
+    #linearImagesDiffs = np.concatenate((diff1, diff2), axis=0)
+
+    linearImages[oddMaskBrighter] -= linearImages[oddMaskDarker]
+    linearImages[evenMaskBrighter] -= linearImages[evenMaskDarker]
 
     #showGroup(diff2)
-    linearImagesDiffs = np.concatenate((diff1, diff2), axis=0)
 
     #maskA = (np.arange(len(captures)) % 3) == 0
     #maskB = (np.arange(len(captures)) % 3) == 1
@@ -1142,7 +1165,8 @@ def synthesis(captures):
 
 
 
-    linearImageSynth = np.median(linearImagesDiffs, axis=0).astype('float32')
+    #linearImageSynth = np.median(linearImagesDiffs, axis=0)
+    linearImageSynth = np.median(linearImages[:-2], axis=0)
     linearImageSynthMedianBlur = cv2.medianBlur(linearImageSynth, 5)
 
     linearImageSynthTransform = np.clip(np.round(linearImageSynth * scale * 255), 0, 255).astype('uint8')
