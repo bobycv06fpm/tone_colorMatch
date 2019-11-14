@@ -1347,6 +1347,8 @@ def run2(user_id, capture_id=None, isProduction=False):
 
 
     channelRatio = averageSkinSlopeWB #averageSkinSlope / averageReflectionSlope
+    print('\n----\nChannel Ratio :: {}'.format(channelRatio))
+    print('B - G Channel Ratio :: {}\n---\n'.format(channelRatio[0] / channelRatio[1]))
     hue = 60 * ((channelRatio[1] - channelRatio[0]) / (channelRatio[2])) % 6
     sat = (max(channelRatio) - min(channelRatio)) / max(channelRatio) 
     val = faceRatio#colorTools.getRelativeLuminance([channelRatio])[0]
