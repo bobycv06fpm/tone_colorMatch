@@ -71,7 +71,7 @@ def getEyeOffsets(eyes, sharpestIndex, wb=None):
 
     return np.array(eyeOffsets)
 
-def getCaptureEyeOffsets2(captures):
+def getCaptureEyeOffsets(captures):
     wb = captures[0].getAsShotWhiteBalance()
     sharpestMask = np.array([capture.isSharpest for capture in captures])
     sharpestIndex = np.arange(len(sharpestMask))[sharpestMask][0]
@@ -80,7 +80,7 @@ def getCaptureEyeOffsets2(captures):
     rightEyeCrops = [capture.rightEyeImage for capture in captures]
 
     if (not leftEyeCrops) or (not rightEyeCrops):
-        return getCaptureEyeOffsets(captures)
+        raise ValueError('Eye Capture Missing')
 
     leftEyeOffsets = getEyeOffsets(leftEyeCrops, sharpestIndex, wb)
     rightEyeOffsets = getEyeOffsets(rightEyeCrops, sharpestIndex, wb)
