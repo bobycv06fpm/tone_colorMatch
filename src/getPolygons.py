@@ -1,29 +1,11 @@
 import numpy as np
 import cv2
 import utils
-import saveStep
+import state
 
 def drawSpot(image, location):
     (y, x) = location
     cv2.circle(image, (x, y), 3, (0, 0, 255), -1)
-
-#def drawPolygons(username, img, polygons, imageName):
-#    overlay = img.copy()
-#    output = img.copy()
-#
-#    colors = np.array([(19, 199, 109), (79, 76, 240), (230, 159, 23),
-#	      (168, 100, 168), (158, 163, 32), (163, 38, 32), (180, 42, 220)])
-#
-#    colors = colors / 255
-#
-#    for (index, polygon) in enumerate(polygons):
-#        print(polygon)
-#
-#        hull = cv2.convexHull(np.asarray(polygon))
-#        cv2.drawContours(overlay, [hull], -1, colors[index], -1)
-#
-#    cv2.addWeighted(overlay, .75, output, .25, 0, output)
-#    saveStep.saveReferenceImageBGR(username, imageName, output, 'polygons')
 
 #Coordinates same as align step
 # Image is an array of rows
@@ -103,29 +85,11 @@ def getJawShape(capture):
 
 def getPolygons(capture):
     print('starting get polygons')
-    #points = []
     polygons = []
 
     [leftEyeLeft, leftEyeRight, rightEyeLeft, rightEyeRight] = getEyePoints(capture)
     [mouthTopLeft, mouthTopRight, mouthBottomLeft, mouthBottomRight] = getMouthPoints(capture)
     [jawTopLeft, jawTopRight, jawBottomLeft, jawBottomRight] = getJawShape(capture)
-
-    #Ordering defines boundary (traced point to point)
-    #points.append(leftEyeLeft)
-    #points.append(leftEyeRight)
-
-    #points.append(mouthTopLeft)
-    #points.append(mouthBottomLeft)
-    #points.append(mouthBottomRight)
-    #points.append(mouthTopRight)
-
-    #points.append(rightEyeLeft)
-    #points.append(rightEyeRight)
-
-    #points.append(jawTopRight)
-    #points.append(jawBottomRight)
-    #points.append(jawBottomLeft)
-    #points.append(jawTopLeft)
 
     #RIGHT TOP CHEEK
     (rightCheekSlope, rightCheekIntercept) = utils.getLineConsts(rightEyeRight, jawTopRight)

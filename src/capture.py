@@ -2,7 +2,6 @@ import numpy as np
 import cv2
 import thresholdMask
 import colorTools
-import saveStep
 from landmarkPoints import Landmarks
 from logger import getLogger
 
@@ -94,7 +93,6 @@ class Capture:
         #noiseBlurred = cv2.GaussianBlur(noise, (blurSize2, blurSize2), 0)
 
         return noise
-        #saveStep.saveReferenceImageBGR(noise, '{}Noise'.format(capture.name))
 
     def showMasked(self, wait=True):
         masked = np.copy(self.getFormattedImage())

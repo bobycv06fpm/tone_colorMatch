@@ -1,6 +1,6 @@
 import alignImages
 from getAverageReflection import getAverageScreenReflectionColor2
-from saveStep import State
+from state import State
 from getPolygons import getPolygons, getFullFacePolygon
 import colorTools
 import plotTools
@@ -16,11 +16,10 @@ from capture import Capture
 from faceRegions import FaceRegions
 from logger import getLogger
 
-
 import json
 import colorsys
 
-logger = None
+logger = getLogger(__name__, 'app')
 
 def getReflectionMap(leftReflection, rightReflection):
     value = {}
@@ -50,13 +49,6 @@ def getResponse(imageName, successful, captureSets=None, linearFits=None, bestGu
 
     return response
 
-def getDiffs(points):
-    diffs = []
-    for index in range(1, len(points)):
-        diffs.append(points[index - 1] - points[index])
-
-    return np.array(diffs)
-
 #Best Guess is an alternative to linear fit. Just uses the median slopes
 # Do not think there is any promise in this
 def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
@@ -71,16 +63,16 @@ def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
     scaledCaptureFaceRegions = []
 
     for regionIndex in range(0, numberOfRegions):
-        diff = getDiffs(captureFaceRegions[3:-1, regionIndex, :])
+        diff = plotTools.getDiffs(captureFaceRegions[3:-1, regionIndex, :])
         scaledCaptureFaceRegion = diff #/ (np.ones(3) * np.reshape(diff[:, 2], (diff.shape[0], 1)))
         scaledCaptureFaceRegions.append(scaledCaptureFaceRegion)
 
     scaledCaptureFaceRegions = np.vstack(scaledCaptureFaceRegions)
     #logger.info('SCALED DIFFS CAPTURE FACE REGIONS :: ' + str(scaledCaptureFaceRegions))
 
-    leftEyeDiffs = getDiffs(leftEyeReflections[3:-1])
+    leftEyeDiffs = plotTools.getDiffs(leftEyeReflections[3:-1])
     #leftEyeDiffs = getDiffs(leftEyeReflections[-4:-1])
-    rightEyeDiffs = getDiffs(rightEyeReflections[3:-1])
+    rightEyeDiffs = plotTools.getDiffs(rightEyeReflections[3:-1])
     #rightEyeDiffs = getDiffs(rightEyeReflections[-4:-1])
     leftEyeDiffs[:, 2][leftEyeDiffs[:, 2] == 0] = 0.001
     rightEyeDiffs[:, 2][rightEyeDiffs[:, 2] == 0] = 0.001
@@ -617,12 +609,12 @@ def synthesis(captures):
     return [linearImageSynthMedianBlur, shows]
 
 def run(user_id, capture_id=None, isProduction=False):
-    logger = getLogger(__name__, 'app')
     failOnError = True
     #failOnError = False
     logger.info('BEGINNING COLOR MATCH PROCESSING FOR USER {} CAPTURE {}'.format(user_id, capture_id if capture_id is not None else '-1'))
     state = State(user_id, capture_id, isProduction)
     logger.info('IS PRODUCTION :: {}'.format(isProduction))
+
     try:
         images = state.loadImages()
     except Exception as err:

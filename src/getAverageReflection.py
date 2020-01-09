@@ -1,5 +1,5 @@
 import utils
-import saveStep
+import state
 import cv2
 import numpy as np
 import colorTools
@@ -539,7 +539,7 @@ def getEyeWidth(capture):
 def getEyeWhiteSample(eye, leftPoint, rightPoint):
     return None
 
-def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, saveStep):
+def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, state):
     wb = captures[0].getAsShotWhiteBalance()
     isSpecialCase = [capture.isNoFlash for capture in captures]
 
@@ -594,12 +594,12 @@ def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, 
     annotatedEyeStrips = [getAnnotatedEyeStrip2(leftReflectionBBrefined, leftEyeWhiteContour, leftEyeCrop, rightReflectionBBrefined, rightEyeWhiteContour, rightEyeCrop) for leftEyeCrop, rightEyeCrop, leftReflectionBBrefined, rightReflectionBBrefined in zip(leftEyeCrops, rightEyeCrops, refinedLeftReflectionBBs, refinedRightReflectionBBs)]
 
     stackedAnnotatedEyeStrips = np.vstack(annotatedEyeStrips)
-    saveStep.saveReferenceImageBGR(stackedAnnotatedEyeStrips, 'eyeStrips')
+    state.saveReferenceImageBGR(stackedAnnotatedEyeStrips, 'eyeStrips')
 
     leftReflectionImages = np.hstack(leftReflectionStats[:, 2])
     rightReflectionImages = np.hstack(rightReflectionStats[:, 2])
-    saveStep.saveReferenceImageSBGR(leftReflectionImages, 'Left Reflections')
-    saveStep.saveReferenceImageSBGR(rightReflectionImages, 'Right Reflections')
+    state.saveReferenceImageSBGR(leftReflectionImages, 'Left Reflections')
+    state.saveReferenceImageSBGR(rightReflectionImages, 'Right Reflections')
 
     averageReflections = (leftReflectionStats[:, 0] + rightReflectionStats[:, 0]) / 2
     averageReflections = [(averageReflection if np.all(averageReflection.astype('bool')) else (averageReflection + np.array([1, 1, 1]))) for averageReflection in averageReflections]

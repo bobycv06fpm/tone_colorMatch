@@ -1,6 +1,17 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
+from logger import getLogger
+
+logger = getLogger(__name__, 'app')
+
+def getDiffs(points):
+    diffs = []
+    for index in range(1, len(points)):
+        diffs.append(points[index - 1] - points[index])
+
+    return np.array(diffs)
+
 
 def plotPoints(pixels, markers=[[]]):
     step = 100
@@ -112,7 +123,7 @@ def samplePoints(pointsA, pointsB):
 
     return [list(pointsA), list(pointsB)]
 
-#def plotPerRegionDistribution(faceRegionsSets, saveStep):
+#def plotPerRegionDistribution(faceRegionsSets, state):
 #    logger.info('PLOTTING: Per Region Distribution')
 #    faceRegionsSetsLuminance = np.array([faceRegionSet.getRegionLuminance() for faceRegionSet in faceRegionsSets])
 #    faceRegionsSetsHSV = np.array([faceRegionSet.getRegionHSV() for faceRegionSet in faceRegionsSets])
@@ -180,7 +191,7 @@ def samplePoints(pointsA, pointsB):
 #
 #    axs[numRegions, chartRow].scatter(allRegionsX, allRegionsY, size, color)
 #
-#    saveStep.savePlot('Regions_Scatter', plt)
+#    state.savePlot('Regions_Scatter', plt)
 
 def plotBGR(axs, color, size, x, y, blurryMask, pointRange=None, fit=True):
     
@@ -211,7 +222,7 @@ def plotBGR(axs, color, size, x, y, blurryMask, pointRange=None, fit=True):
 
         axs.plot([start_x, end_x], [(m * start_x + c), (m * end_x + c)], color=color)
 
-def plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
+def plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, state):
     captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
     flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
     numberOfRegions = captureFaceRegions.shape[1]
@@ -260,9 +271,9 @@ def plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, sav
 
     axs[1, 0].set_xlabel('Screen Flash Ratio')
     axs[1, 0].set_ylabel('Measured Reflection Slope Mag')
-    saveStep.savePlot('RegionDiffs', plt)
+    state.savePlot('RegionDiffs', plt)
 
-def plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
+def plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflections, state):
     logger.info('PLOTTING: Region Scaled Linearity')
     captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
     flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
@@ -311,9 +322,9 @@ def plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflec
 
     axs[1, 0].set_xlabel('Screen Flash Ratio')
     axs[1, 0].set_ylabel('Scaled to Red Reflection Mag')
-    saveStep.savePlot('ScaledRegionLinearity', plt)
+    state.savePlot('ScaledRegionLinearity', plt)
 
-def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, blurryMask, saveStep):
+def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, blurryMask, state):
     logger.info('PLOTTING: Region Linearity')
     #blurryMask = [False for isBlurry in blurryMask]
     captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
@@ -370,9 +381,9 @@ def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections,
     axs[2, 0].set_xlabel('Screen Flash Ratio')
     axs[2, 0].set_ylabel('Reflection Mag')
     #plt.show()
-    saveStep.savePlot('RegionLinearity', plt)
+    state.savePlot('RegionLinearity', plt)
 
-def plotPerRegionLinearityAlt(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, saveStep):
+def plotPerRegionLinearityAlt(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, state):
     logger.info('PLOTTING: Region Linearity')
     captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
     flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
@@ -403,4 +414,4 @@ def plotPerRegionLinearityAlt(faceRegions, leftEyeReflections, rightEyeReflectio
     axs[0].set_xlabel('Screen Flash Ratio')
     axs[0].set_ylabel('Channel Mag')
 
-    saveStep.savePlot('RegionLinearityAlt', plt)
+    state.savePlot('RegionLinearityAlt', plt)
