@@ -69,8 +69,9 @@ def convertBGRToHSVAndScale(points, averageFlashContribution):
     converted = np.apply_along_axis(bgr_to_hsv, 1, points)
     return converted
 
+#TODO: NOT SURE THIS IS SOMETHING YOU CAN DO...
 # https://www.rapidtables.com/convert/color/hsv-to-rgb.html Modified to Scaled Value. Check notes October 3, 2019
-def hueSatToProportionalBGR(hue, sat): 
+def hueSatToProportionalBGR(hue, sat):
     #Prime just means V is divided out
     c_prime = sat
     x_prime = sat * (1 - abs((((hue * 360) / 60) % 2) - 1))
