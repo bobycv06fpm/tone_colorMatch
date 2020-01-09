@@ -22,122 +22,6 @@ import colorsys
 
 logger = None
 
-def fitLine(A, B):
-    A_prepped = np.vstack([A, np.ones(len(A))]).T
-    return np.linalg.lstsq(A_prepped, B, rcond=None)
-
-#def fitLine2(A, B):
-#    return np.polyfit(A, B, 1)
-#    #A_prepped = np.vstack([A, np.ones(len(A))]).T
-#    #return np.linalg.lstsq(A_prepped, B, rcond=None)
-
-def samplePoints(pointsA, pointsB):
-    sampleSize = 1000
-    if len(pointsA) > sampleSize:
-        sample = np.random.choice(len(pointsA), sampleSize)
-        return [np.take(pointsA, sample, axis=0), np.take(pointsB, sample, axis=0)]
-
-    return [list(pointsA), list(pointsB)]
-
-#def plotPerRegionDistribution(faceRegionsSets, saveStep):
-#    logger.info('PLOTTING: Per Region Distribution')
-#    faceRegionsSetsLuminance = np.array([faceRegionSet.getRegionLuminance() for faceRegionSet in faceRegionsSets])
-#    faceRegionsSetsHSV = np.array([faceRegionSet.getRegionHSV() for faceRegionSet in faceRegionsSets])
-#
-#    numCaptures = len(faceRegionsSets)
-#    numRegions = len(faceRegionsSets[0].getRegionMedians())
-#
-#    size = 1
-#    color = (1, 0, 0)
-#    fig, axs = plt.subplots(numRegions + 1, 3, sharey=False, tight_layout=True) #Extra region for cumulative region
-#
-#    #Luminance VS Saturation
-#    chartRow = 0
-#    allRegionsX = []
-#    allRegionsY = []
-#    for region in range(0, numRegions):
-#        for capture in range(0, numCaptures):
-#            xValues = faceRegionsSetsLuminance[capture, region][:]
-#            yValues = faceRegionsSetsHSV[capture, region][:, 1]
-#
-#            xValues, yValues = samplePoints(xValues, yValues)
-#
-#            axs[region, chartRow].scatter(xValues, yValues, size, color)
-#
-#            allRegionsX.append(xValues)
-#            allRegionsY.append(yValues)
-#
-#    axs[numRegions, chartRow].scatter(allRegionsX, allRegionsY, size, color)
-#
-#    #Luminance VS Hue
-#    chartRow = 1
-#    allRegionsX = []
-#    allRegionsY = []
-#    for region in range(0, numRegions):
-#        for capture in range(0, numCaptures):
-#            xValues = faceRegionsSetsLuminance[capture, region][:]
-#            yValues = faceRegionsSetsHSV[capture, region][:, 0]
-#
-#            xValues, yValues = samplePoints(xValues, yValues)
-#            yValues = colorTools.rotateHue(yValues)
-#
-#            axs[region, chartRow].scatter(xValues, yValues, size, color)
-#
-#            allRegionsX.append(xValues)
-#            allRegionsY.append(yValues)
-#
-#    axs[numRegions, chartRow].scatter(allRegionsX, allRegionsY, size, color)
-#
-#    #Hue VS Saturation
-#    chartRow = 2
-#    allRegionsX = []
-#    allRegionsY = []
-#    for region in range(0, numRegions):
-#        for capture in range(0, numCaptures):
-#            xValues = faceRegionsSetsHSV[capture, region][:, 0]
-#            yValues = faceRegionsSetsHSV[capture, region][:, 1]
-#
-#            xValues, yValues = samplePoints(xValues, yValues)
-#            xValues = colorTools.rotateHue(xValues)
-#
-#            axs[region, chartRow].scatter(xValues, yValues, size, color)
-#
-#            allRegionsX.append(xValues)
-#            allRegionsY.append(yValues)
-#
-#    axs[numRegions, chartRow].scatter(allRegionsX, allRegionsY, size, color)
-#
-#    saveStep.savePlot('Regions_Scatter', plt)
-
-def plotBGR(axs, color, size, x, y, blurryMask, pointRange=None, fit=True):
-    
-    x_sample, y_sample = samplePoints(x, y)
-
-    start_x = 0#min(x_sample)
-    end_x = max(x_sample)
-
-    colorList = np.repeat([list(color)], len(x_sample), axis=0).astype('float32')
-    colorList[blurryMask] = [1, 0.4, 0.7] #pink... idk why... why not
-
-    if fit:
-        axs.scatter(x_sample, y_sample, size, colorList)
-    else:
-        axs.plot(x_sample, y_sample, 'ro-')
-
-    x_sample = np.array(x_sample)
-    y_sample = np.array(y_sample)
-
-    x_sampleFiltered = x_sample[np.logical_not(blurryMask)]
-    y_sampleFiltered = y_sample[np.logical_not(blurryMask)]
-
-    if fit:
-        if pointRange is not None:
-            m, c = fitLine(x_sampleFiltered[pointRange[0]:pointRange[1]], y_sampleFiltered[pointRange[0]:pointRange[1]])[0]
-        else:
-            m, c = fitLine(x_sampleFiltered, y_sampleFiltered)[0]
-
-        axs.plot([start_x, end_x], [(m * start_x + c), (m * end_x + c)], color=color)
-
 def getReflectionMap(leftReflection, rightReflection):
     value = {}
     value['left'] = [float(value) for value in leftReflection]
@@ -172,57 +56,6 @@ def getDiffs(points):
         diffs.append(points[index - 1] - points[index])
 
     return np.array(diffs)
-
-def plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
-    captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
-    flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
-    numberOfRegions = captureFaceRegions.shape[1]
-    numberOfCaptures = captureFaceRegions.shape[0]
-
-    captureFaceRegionsDiffs = []
-    for region in range(0, captureFaceRegions.shape[1]):
-        diff = getDiffs(captureFaceRegions[:, region, :]) * (numberOfCaptures - 1)
-        captureFaceRegionsDiffs.append(diff)
-
-    leftEyeDiffs = getDiffs(leftEyeReflections) * (numberOfCaptures - 1)
-    rightEyeDiffs = getDiffs(rightEyeReflections) * (numberOfCaptures - 1)
-
-    captureFaceRegionsDiffs = np.array(captureFaceRegionsDiffs)
-
-    logger.info('PLOTTING: Region Diffs')
-
-    ##averageEyeReflections = (leftEyeReflections + rightEyeReflections) / 2
-
-    size=1
-    colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1)]
-    fig, axs = plt.subplots(2, 3, sharex=True, sharey=True, tight_layout=True)
-
-    #logger.info('Flash Ratio vs Face Region Diff :: ' + str(flashRatios) + ' ' + str(captureFaceRegionsDiffs[:, 0, 0]))
-
-    for regionIndex in range(0, numberOfRegions):
-        axs[0, 0].plot(flashRatios[1:], captureFaceRegionsDiffs[regionIndex, :, 2], color=colors[regionIndex])
-        axs[0, 1].plot(flashRatios[1:], captureFaceRegionsDiffs[regionIndex, :, 1], color=colors[regionIndex])
-        axs[0, 2].plot(flashRatios[1:], captureFaceRegionsDiffs[regionIndex, :, 0], color=colors[regionIndex])
-
-    axs[1, 0].plot(flashRatios[1:], rightEyeDiffs[:, 2], color=colors[0])
-    axs[1, 0].plot(flashRatios[1:], leftEyeDiffs[:, 2], color=colors[2])
-
-    axs[1, 1].plot(flashRatios[1:], rightEyeDiffs[:, 1], color=colors[0])
-    axs[1, 1].plot(flashRatios[1:], leftEyeDiffs[:, 1], color=colors[2])
-
-    axs[1, 2].plot(flashRatios[1:], rightEyeDiffs[:, 0], color=colors[0])
-    axs[1, 2].plot(flashRatios[1:], leftEyeDiffs[:, 0], color=colors[2])
-
-    axs[0, 0].set_title('Red')
-    axs[0, 1].set_title('Green')
-    axs[0, 2].set_title('Blue')
-
-    axs[0, 0].set_xlabel('Screen Flash Ratio')
-    axs[0, 0].set_ylabel('Channel Slope Mag')
-
-    axs[1, 0].set_xlabel('Screen Flash Ratio')
-    axs[1, 0].set_ylabel('Measured Reflection Slope Mag')
-    saveStep.savePlot('RegionDiffs', plt)
 
 #Best Guess is an alternative to linear fit. Just uses the median slopes
 # Do not think there is any promise in this
@@ -259,149 +92,6 @@ def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
     medianScaledDiffFace = list(np.median(scaledCaptureFaceRegions, axis=0))
     medianScaledDiffReflections = list(np.median(scaledDiffReflections, axis=0))
     return [medianScaledDiffReflections, medianScaledDiffFace]
-
-def plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflections, saveStep):
-    logger.info('PLOTTING: Region Scaled Linearity')
-    captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
-    flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
-    numberOfRegions = captureFaceRegions.shape[1]
-    numberOfCaptures = captureFaceRegions.shape[0]
-
-    size=1
-    colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1)]
-
-    #fig, axs = plt.subplots(2, 3, sharex=True, sharey=True, tight_layout=True)
-    fig, axs = plt.subplots(2, 3, sharex=False, sharey=False, tight_layout=True)
-
-    for regionIndex in range(0, numberOfRegions):
-        diff = getDiffs(captureFaceRegions[:, regionIndex, :])
-        diff[diff == 0] = 0.0001 #Kinda shitty work around for divide by 0. Still makes the divide by zero stand out on the chart
-        scaledCaptureFaceRegion = diff / (np.ones(3) * np.reshape(diff[:, 2], (diff.shape[0], 1)))
-
-        axs[0, 0].plot(flashRatios[1:], scaledCaptureFaceRegion[:, 2], color=colors[regionIndex])
-        axs[0, 1].plot(flashRatios[1:], scaledCaptureFaceRegion[:, 1], color=colors[regionIndex])
-        axs[0, 2].plot(flashRatios[1:], scaledCaptureFaceRegion[:, 0], color=colors[regionIndex])
-
-
-    #logger.info('LEFT EYE REFLECTIONS :: ' + str(leftEyeReflections[:, 2]))
-    leftEyeDiffs = getDiffs(leftEyeReflections)
-    rightEyeDiffs = getDiffs(rightEyeReflections)
-    leftEyeDiffs[:, 2][leftEyeDiffs[:, 2] == 0] = 0.001
-    rightEyeDiffs[:, 2][rightEyeDiffs[:, 2] == 0] = 0.001
-    scaledLeftEyeReflections = leftEyeDiffs / (np.ones(3) * np.reshape(leftEyeDiffs[:, 2], (leftEyeDiffs.shape[0], 1)))
-    scaledRightEyeReflections = rightEyeDiffs / (np.ones(3) * np.reshape(rightEyeDiffs[:, 2], (rightEyeDiffs.shape[0], 1)))
-
-    axs[1, 0].plot(flashRatios[1:], scaledRightEyeReflections[:, 2], color=colors[0])
-    axs[1, 0].plot(flashRatios[1:], scaledLeftEyeReflections[:, 2], color=colors[2])
-
-    axs[1, 1].plot(flashRatios[1:], scaledRightEyeReflections[:, 1], color=colors[0])
-    axs[1, 1].plot(flashRatios[1:], scaledLeftEyeReflections[:, 1], color=colors[2])
-
-    axs[1, 2].plot(flashRatios[1:], scaledRightEyeReflections[:, 0], color=colors[0])
-    axs[1, 2].plot(flashRatios[1:], scaledLeftEyeReflections[:, 0], color=colors[2])
-
-    axs[0, 0].set_title('Red')
-    axs[0, 1].set_title('Green')
-    axs[0, 2].set_title('Blue')
-
-    axs[0, 0].set_xlabel('Screen Flash Ratio')
-    axs[0, 0].set_ylabel('Scaled to Red Channel Mag')
-
-    axs[1, 0].set_xlabel('Screen Flash Ratio')
-    axs[1, 0].set_ylabel('Scaled to Red Reflection Mag')
-    saveStep.savePlot('ScaledRegionLinearity', plt)
-
-def plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, blurryMask, saveStep):
-    logger.info('PLOTTING: Region Linearity')
-    #blurryMask = [False for isBlurry in blurryMask]
-    captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
-    flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
-    numberOfRegions = captureFaceRegions.shape[1]
-    numberOfCaptures = captureFaceRegions.shape[0]
-
-    #averageEyeReflections = (leftEyeReflections + rightEyeReflections) / 2
-
-    size=1
-    colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1)]
-    isBlurryColor = (0, 0, 0)
-
-    #fig, axs = plt.subplots(2, 3, sharex=True, sharey=True, tight_layout=True)
-    fig, axs = plt.subplots(3, 3, sharex=False, sharey=False, tight_layout=True)
-
-    for regionIndex in range(0, numberOfRegions):
-        plotBGR(axs[0, 0], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 2], blurryMask, None, False)
-        plotBGR(axs[0, 1], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 1], blurryMask, None, False)
-        plotBGR(axs[0, 2], colors[regionIndex], size, flashRatios, captureFaceRegions[:, regionIndex, 0], blurryMask, None, False)
-
-    # ---- SCLERA -----
-    plotBGR(axs[1, 0], colors[0], 1, flashRatios, rightSclera[:, 2], blurryMask)
-    plotBGR(axs[1, 0], colors[2], 1, flashRatios, leftSclera[:, 2], blurryMask)
-
-    plotBGR(axs[1, 1], colors[0], 1, flashRatios, rightSclera[:, 1], blurryMask)
-    plotBGR(axs[1, 1], colors[2], 1, flashRatios, leftSclera[:, 1], blurryMask)
-
-    plotBGR(axs[1, 2], colors[0], 1, flashRatios, rightSclera[:, 0], blurryMask)
-    plotBGR(axs[1, 2], colors[2], 1, flashRatios, leftSclera[:, 0], blurryMask)
-
-    # ---- REFLECTIONS -----
-    plotBGR(axs[2, 0], colors[0], 1, flashRatios, rightEyeReflections[:, 2], blurryMask)
-    plotBGR(axs[2, 0], colors[2], 1, flashRatios, leftEyeReflections[:, 2], blurryMask)
-    #plotBGR(axs[2, 0], colors[3], 1, flashRatios, averageEyeReflections[:, 2])
-
-    plotBGR(axs[2, 1], colors[0], 1, flashRatios, rightEyeReflections[:, 1], blurryMask)
-    plotBGR(axs[2, 1], colors[2], 1, flashRatios, leftEyeReflections[:, 1], blurryMask)
-    #plotBGR(axs[2, 1], colors[3], 1, flashRatios, averageEyeReflections[:, 1])
-
-    plotBGR(axs[2, 2], colors[0], 1, flashRatios, rightEyeReflections[:, 0], blurryMask)
-    plotBGR(axs[2, 2], colors[2], 1, flashRatios, leftEyeReflections[:, 0], blurryMask)
-    #plotBGR(axs[2, 2], colors[3], 1, flashRatios, averageEyeReflections[:, 0])
-
-    axs[0, 0].set_title('Red')
-    axs[0, 1].set_title('Green')
-    axs[0, 2].set_title('Blue')
-
-    axs[0, 0].set_xlabel('Screen Flash Ratio')
-    axs[0, 0].set_ylabel('Channel Mag')
-
-    axs[1, 0].set_ylabel('Sclera Mag')
-
-    axs[2, 0].set_xlabel('Screen Flash Ratio')
-    axs[2, 0].set_ylabel('Reflection Mag')
-    #plt.show()
-    saveStep.savePlot('RegionLinearity', plt)
-
-def plotPerRegionLinearityAlt(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, saveStep):
-    logger.info('PLOTTING: Region Linearity')
-    captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
-    flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
-
-    numberOfRegions = captureFaceRegions.shape[1]
-
-    averageEyeReflections = (leftEyeReflections + rightEyeReflections) / 2
-    print('Average Eye Reflections :: {}'.format(averageEyeReflections))
-
-    blurryMask = np.zeros(len(blurryMask)).astype('bool')
-
-    size=1
-    colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1)]
-    isBlurryColor = (0, 0, 0)
-
-    #fig, axs = plt.subplots(2, 3, sharex=True, sharey=True, tight_layout=True)
-    fig, axs = plt.subplots(1, 3, sharex=False, sharey=False, tight_layout=True)
-
-    for regionIndex in range(0, numberOfRegions):
-        plotBGR(axs[0], colors[regionIndex], size, averageEyeReflections[:, 2], captureFaceRegions[:, regionIndex, 2], blurryMask)
-        plotBGR(axs[1], colors[regionIndex], size, averageEyeReflections[:, 1], captureFaceRegions[:, regionIndex, 1], blurryMask)
-        plotBGR(axs[2], colors[regionIndex], size, averageEyeReflections[:, 0], captureFaceRegions[:, regionIndex, 0], blurryMask)
-
-    axs[0].set_title('Red')
-    axs[1].set_title('Green')
-    axs[2].set_title('Blue')
-
-    axs[0].set_xlabel('Screen Flash Ratio')
-    axs[0].set_ylabel('Channel Mag')
-
-    saveStep.savePlot('RegionLinearityAlt', plt)
 
 def isMetadataValid(metadata):
     expectedISO = metadata[0]["iso"]
@@ -446,7 +136,6 @@ def scoreLinearFit(linearFit):
     #print('\nLinear Fit Residuals for range {} :: {}\nSCORE :: {}\n'.format(valueRange, residuals, score))
     return score
 
-
 def getLinearFits(leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, faceRegions, blurryMask):
     flashRatios = np.array([regions.capture.flashRatio for regions in faceRegions])
     print('Flash Ratios :: {}'.format(flashRatios))
@@ -460,7 +149,7 @@ def getLinearFits(leftEyeReflections, rightEyeReflections, leftSclera, rightScle
     filteredRightSclera = rightSclera[np.logical_not(blurryMask)]
 
 
-    leftEyeLinearFitFull = np.array([fitLine(filteredFlashRatios, filteredLeftEyeReflections[:, subPixel]) for subPixel in range(0, 3)])
+    leftEyeLinearFitFull = np.array([plotTools.fitLine(filteredFlashRatios, filteredLeftEyeReflections[:, subPixel]) for subPixel in range(0, 3)])
     #leftEyeLinearFitFullTest = np.array([fitLine2(filteredFlashRatios, filteredLeftEyeReflections[:, subPixel]) for subPixel in range(0, 3)])
 
     print('Left Eye Linear Fit Full :: {}'.format(leftEyeLinearFitFull))
@@ -469,15 +158,15 @@ def getLinearFits(leftEyeReflections, rightEyeReflections, leftSclera, rightScle
     leftEyeLinearFit = np.vstack(leftEyeLinearFitFull[:, 0])
     leftEyeScores = scoreLinearFit(leftEyeLinearFitFull)
 
-    rightEyeLinearFitFull = np.array([fitLine(filteredFlashRatios, filteredRightEyeReflections[:, subPixel]) for subPixel in range(0, 3)])
+    rightEyeLinearFitFull = np.array([plotTools.fitLine(filteredFlashRatios, filteredRightEyeReflections[:, subPixel]) for subPixel in range(0, 3)])
 
     rightEyeLinearFit = np.vstack(rightEyeLinearFitFull[:, 0])
     rightEyeScores = scoreLinearFit(rightEyeLinearFitFull)
 
-    leftScleraLinearFitFull = np.array([fitLine(filteredFlashRatios, filteredRightSclera[:, subPixel]) for subPixel in range(0, 3)])
+    leftScleraLinearFitFull = np.array([plotTools.fitLine(filteredFlashRatios, filteredRightSclera[:, subPixel]) for subPixel in range(0, 3)])
     leftScleraLinearFit = np.vstack(leftScleraLinearFitFull[:, 0])
 
-    rightScleraLinearFitFull = np.array([fitLine(filteredFlashRatios, filteredRightSclera[:, subPixel]) for subPixel in range(0, 3)])
+    rightScleraLinearFitFull = np.array([plotTools.fitLine(filteredFlashRatios, filteredRightSclera[:, subPixel]) for subPixel in range(0, 3)])
     rightScleraLinearFit = np.vstack(rightScleraLinearFitFull[:, 0])
 
     captureFaceRegions = np.array([regions.getRegionMedians() for regions in faceRegions])
@@ -486,9 +175,8 @@ def getLinearFits(leftEyeReflections, rightEyeReflections, leftSclera, rightScle
     captureFaceRegionsLinearFit = []
     captureFaceRegionsScores = []
 
-
     for regionIndex in range(0, captureFaceRegions.shape[1]):
-        linearFitFull = np.array([fitLine(filteredFlashRatios, filteredCaptureFaceRegions[:, regionIndex, subPixel]) for subPixel in range(0, 3)])
+        linearFitFull = np.array([plotTools.fitLine(filteredFlashRatios, filteredCaptureFaceRegions[:, regionIndex, subPixel]) for subPixel in range(0, 3)])
 
         linearFit = np.vstack(linearFitFull[:, 0])
         scores = scoreLinearFit(linearFitFull)
@@ -649,7 +337,6 @@ def extractSkinReflectionMask3(brightestCapture, dimmestCapture, wb_ratios):
     points_mask = np.logical_and(sat_mask, hue_mask)
 
     return points_mask
-
 
 def extractSkinReflectionMask2(brightestCapture, dimmestCapture, wb_ratios):
     brightest = colorTools.convert_sBGR_to_linearBGR_float_fast(brightestCapture.faceImage)
@@ -888,7 +575,6 @@ def multilayerMedianBlur(alignedImages, size):
     #cv2.waitKey(0)
     return output
 
-
 def synthesis(captures):
     #Just Temp ... figure out robust way to do this?
     scale = 10
@@ -929,7 +615,6 @@ def synthesis(captures):
     shows = np.vstack([show, showSBGR])
 
     return [linearImageSynthMedianBlur, shows]
-
 
 def run(user_id, capture_id=None, isProduction=False):
     logger = getLogger(__name__, 'app')
@@ -1007,10 +692,10 @@ def run(user_id, capture_id=None, isProduction=False):
     state.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')
 
     #--TEMP FOR DEBUG?---
-    plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, blurryMask, state)
-    plotPerRegionLinearityAlt(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, state)
-    plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflections, state)
-    plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, state)
+    plotTools.plotPerRegionLinearity(faceRegions, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, blurryMask, state)
+    plotTools.plotPerRegionLinearityAlt(faceRegions, leftEyeReflections, rightEyeReflections, blurryMask, state)
+    plotTools.plotPerRegionScaledLinearity(faceRegions, leftEyeReflections, rightEyeReflections, state)
+    plotTools.plotPerRegionDiffs(faceRegions, leftEyeReflections, rightEyeReflections, state)
     #--END TEMP FOR DEBUG?---
 
     captureSets = zip(faceRegions, leftEyeReflections, rightEyeReflections)
