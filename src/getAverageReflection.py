@@ -598,8 +598,8 @@ def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, 
 
     leftReflectionImages = np.hstack(leftReflectionStats[:, 2])
     rightReflectionImages = np.hstack(rightReflectionStats[:, 2])
-    state.saveReferenceImageSBGR(leftReflectionImages, 'Left Reflections')
-    state.saveReferenceImageSBGR(rightReflectionImages, 'Right Reflections')
+    state.saveReferenceImageBGR(leftReflectionImages, 'Left Reflections')
+    state.saveReferenceImageBGR(rightReflectionImages, 'Right Reflections')
 
     averageReflections = (leftReflectionStats[:, 0] + rightReflectionStats[:, 0]) / 2
     averageReflections = [(averageReflection if np.all(averageReflection.astype('bool')) else (averageReflection + np.array([1, 1, 1]))) for averageReflection in averageReflections]

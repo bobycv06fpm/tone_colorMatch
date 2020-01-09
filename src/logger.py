@@ -3,6 +3,7 @@ import logging.handlers
 import os
 
 def getLogger(name, location):
+    """Returns logger"""
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
 

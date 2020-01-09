@@ -157,6 +157,7 @@ def getLinearFits(leftEyeReflections, rightEyeReflections, leftSclera, rightScle
     rightEyeLinearFit = np.vstack(rightEyeLinearFitFull[:, 0])
     rightEyeScores = scoreLinearFit(rightEyeLinearFitFull)
 
+    #TODO: HERE IS WHERE THE BUG WAS FIXED. RightScelra -> LeftScelra
     leftScleraLinearFitFull = np.array([plotTools.fitLine(filteredFlashRatios, filteredLeftSclera[:, subPixel]) for subPixel in range(0, 3)])
     leftScleraLinearFit = np.vstack(leftScleraLinearFitFull[:, 0])
 
@@ -380,9 +381,10 @@ def run(user_id, capture_id=None, isProduction=False):
     """Run the color measuring pipeline"""
     failOnError = True
     #failOnError = False
-    LOGGER.info('BEGINNING COLOR MATCH PROCESSING FOR USER {} CAPTURE {}'.format(user_id, capture_id if capture_id is not None else '-1'))
+    LOGGER.info('BEGINNING COLOR MATCH PROCESSING FOR USER %s CAPTURE %s', user_id, capture_id if capture_id is not None else '-1')
+    LOGGER.info('IS PRODUCTION :: %s', isProduction)
+
     state = State(user_id, capture_id, isProduction)
-    LOGGER.info('IS PRODUCTION :: {}'.format(isProduction))
 
     try:
         images = state.loadImages()

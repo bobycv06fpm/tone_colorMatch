@@ -82,6 +82,7 @@ for message in messages:
         response = runSteps.run(message['user_id'], message['capture_id'])
         print('Response :: {}'.format(response))
     except Exception as err:
+        print(err)
         logger.error(err)
         pass
 
