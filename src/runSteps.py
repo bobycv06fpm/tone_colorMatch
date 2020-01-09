@@ -20,7 +20,7 @@ from logger import getLogger
 import json
 import colorsys
 
-logger = getLogger(__name__)
+logger = None
 
 def fitLine(A, B):
     A_prepped = np.vstack([A, np.ones(len(A))]).T
@@ -1210,6 +1210,7 @@ def synthesis(captures):
 
 
 def run2(user_id, capture_id=None, isProduction=False):
+    logger = getLogger(__name__, 'app')
     failOnError = True
     #failOnError = False
     logger.info('BEGINNING COLOR MATCH PROCESSING FOR USER {} CAPTURE {}'.format(user_id, capture_id if capture_id is not None else '-1'))

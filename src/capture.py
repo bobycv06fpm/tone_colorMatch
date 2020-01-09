@@ -7,7 +7,7 @@ from landmarkPoints import Landmarks
 from logger import getLogger
 
 
-logger = getLogger(__name__)
+logger = getLogger(__name__, 'app')
 
 class Capture:
 

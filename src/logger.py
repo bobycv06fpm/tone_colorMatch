@@ -2,16 +2,16 @@ import logging
 import logging.handlers
 import os
 
-def getLogger(name):
+def getLogger(name, location):
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
 
-    LOG_FILE = '/opt/python/log/tone-colormatch-app.log' #For Prod
+    LOG_FILE = '/opt/python/log/tone-colormatch-{}.log'.format(location) #For Prod
     LOG_DIR = '/opt/python/log/'
-    isDir = os.path.isdir(LOG_DIR)
+    isProd = os.path.isdir(LOG_DIR) #Directory only exists in prodution
 
-    if not isDir:
-        LOG_FILE = 'tone-colormatch-app.log'
+    if not isProd:
+        LOG_FILE = 'tone-colormatch-{}.log'.format(location)
 
     handler = logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=1048576, backupCount=5)
     handler.setLevel(logging.INFO)

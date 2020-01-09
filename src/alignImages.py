@@ -4,8 +4,8 @@ import cv2
 import colorTools
 import math
 import cropTools
-from logger import getLogger
-logger = getLogger(__name__)
+import logger
+logger = logger.getLogger(__name__, 'app')
 
 #TAKES A FLOAT
 def stretchHistogram(gray, mask=None):

@@ -4,6 +4,9 @@ import psycopg2
 import time
 import runSteps
 
+import logger
+logger = logger.getLogger(__name__, 'app')
+
 #Do not love storing password in plain text in code....
 conn = psycopg2.connect(dbname="ebdb",
                         host="aa7a9qu9bzxsgc.cz5sm4eeyiaf.us-west-2.rds.amazonaws.com",
@@ -77,6 +80,7 @@ for message in messages:
 
     try:
         response = runSteps.run2(message['user_id'], message['capture_id'])
+        print('Response :: {}'.format(response))
     except Exception as err:
         logger.error(err)
         pass

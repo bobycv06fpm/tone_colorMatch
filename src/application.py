@@ -1,37 +1,11 @@
-#from flask import Flask, escape, request
-import logging
-import logging.handlers
+from wsgiref.simple_server import make_server
 from runSteps import run2
 import json
 
-from wsgiref.simple_server import make_server
+from logger import getLogger
+logger = getLogger(__name__, 'server')
 
-
-# Create logger
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-isProduction = False
-# Handler 
-if __name__ == '__main__':
-    LOG_FILE = 'tone-colormatch-server.log'
-else:
-    LOG_FILE = '/opt/python/log/tone-colormatch-server.log'
-    isProduction = True
-
-handler = logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=1048576, backupCount=5)
-handler.setLevel(logging.INFO)
-
-# Formatter
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-# Add Formatter to Handler
-handler.setFormatter(formatter)
-
-# add Handler to Logger
-logger.addHandler(handler)
-
-welcome = 'Probably not what you are looking for...'
+isProduction = __name__ != '__main__'
 
 def application(environ, start_response):
     path    = environ['PATH_INFO']
@@ -75,7 +49,7 @@ def application(environ, start_response):
             logger.warning('Error retrieving request body for async work. {}'.format(e))
             response = str(False)
     else:
-        response = welcome
+        response = 'Probably not what you are looking for...'
 
     status = '200 OK'
     headers = [('Content-type', 'text/html')]
@@ -83,8 +57,7 @@ def application(environ, start_response):
     start_response(status, headers)
     return [response.encode('utf-8')]
 
-
-if __name__ == '__main__':
+if not isProduction:
     httpd = make_server('', 8000, application)
     print("Serving on port 8000...")
     httpd.serve_forever()

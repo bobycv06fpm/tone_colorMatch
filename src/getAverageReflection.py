@@ -10,7 +10,7 @@ import math
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from logger import getLogger
-logger = getLogger(__name__)
+logger = getLogger(__name__, 'app')
 
 def erode(img):
     kernel = np.ones((5, 5), np.uint16)
