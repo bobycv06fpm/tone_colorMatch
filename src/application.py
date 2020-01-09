@@ -1,5 +1,5 @@
 from wsgiref.simple_server import make_server
-from runSteps import run2
+from runSteps import run
 import json
 
 from logger import getLogger
@@ -34,7 +34,7 @@ def application(environ, start_response):
                 capture_id = requestForm[capture_id_key]
                 
                 logger.info('PROCESSING :: user_id :: {}, session_id :: {}, capture_id :: {}'.format(user_id, session_id, capture_id))
-                isSuccessful = run2(user_id, capture_id, isProduction)['successful']
+                isSuccessful = run(user_id, capture_id, isProduction)['successful']
                 if isSuccessful:
                     logger.info('IS SUCCESSFUL :: user_id :: {}, session_id :: {}, capture_id :: {}'.format(user_id, session_id, capture_id))
                 else:

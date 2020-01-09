@@ -79,7 +79,7 @@ for message in messages:
     #addMessageToSQS(message)
 
     try:
-        response = runSteps.run2(message['user_id'], message['capture_id'])
+        response = runSteps.run(message['user_id'], message['capture_id'])
         print('Response :: {}'.format(response))
     except Exception as err:
         logger.error(err)
