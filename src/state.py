@@ -23,6 +23,7 @@ class State:
     """State provides convenience methods for accessing DB, File System, and stores parsed information that maybe be used in processing. Should abstract away running in production vs Dev"""
 
     def __init__(self, user_id, capture_id=None, isProduction=False):
+        self.s3 = boto3.client('s3')
         self.version = '0.0.1' #GET EB VERSION SOMEHOW?
         LOGGER.info("NOTE: THIS IS STATIC - SERVER VERSION :: %s", self.version)
 
@@ -49,7 +50,7 @@ class State:
             LOGGER.info("Opened connection to DB")
 
         except Exception as error:
-            LOGGER.error("Error while fetch data from Postrgesql\n%s", error)
+            LOGGER.error("Error establishing connection to Postrgesql\n%s", error)
             raise
 
         if self.capture_id is not None:
@@ -74,7 +75,6 @@ class State:
         self.session_id = capture[1]
         self.capture_metadata = capture[2]
         self.capture_key_root = '{}/{}/{}'.format(user_id, self.session_id, self.capture_id)
-        self.s3 = boto3.client('s3')
 
     def __referencePathBuilder(self, file='', extension=''):
         """Returns path to reference file for capture set"""
@@ -180,7 +180,6 @@ class State:
 
         imageSets = []
         for capture_number in range(1, 9):
-        #for capture_number in range(1, 9, 2):
         #for capture_number in range(1, 16):
             faceFile = faceFileTemplate.format(capture_number)
             leftEyeFile = leftEyeFileTemplate.format(capture_number)
@@ -206,8 +205,24 @@ class State:
         key = self.__referencePathBuilder(reference, '.png')
         self.storeImage(key, bgr)
 
-    def getMetadata(self):
-        """Returns capture metadata"""
+    def getValidatedMetadata(self):
+        """Returns metadata if it is valid (exposure variables match between captures), raises error if not"""
+
+        expectedISO = self.capture_metadata[0]["iso"]
+        expectedExposure = self.capture_metadata[0]["exposureTime"]
+        expectedWB = self.capture_metadata[0]["whiteBalance"]
+
+        if not 'faceImageTransforms' in self.capture_metadata[0]:
+            raise ValueError('No Face Image Transforms in Metadata')
+
+        for captureMetadata in self.capture_metadata:
+            iso = captureMetadata["iso"]
+            exposure = captureMetadata["exposureTime"]
+            wb = captureMetadata["whiteBalance"]
+
+            if (iso != expectedISO) or (exposure != expectedExposure) or (wb['x'] != expectedWB['x']) or (wb['y'] != expectedWB['y']):
+                raise ValueError('Metadata Does Not Match in all Captures')
+
         return self.capture_metadata
 
     def getAsShotWhiteBalance(self):
@@ -223,7 +238,7 @@ class State:
         plot.savefig(path, optimize=True)
         plot.close()
 
-        LOGGER.info('Saved chart to {}'.format(path))
+        LOGGER.info('Saved chart to %s', path)
 
         plotImg = cv2.imread(path)
         self.storeImage(key, plotImg, extension)

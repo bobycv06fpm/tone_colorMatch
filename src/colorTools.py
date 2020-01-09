@@ -336,7 +336,7 @@ def convertSingle_linearValue_to_sValue(point):
 def whitebalanceBGR(capture, wb):
     if not np.all(wb.astype('bool')):
         print('Trying to WB to a 0 value!')
-        raise NameError('Trying to WB to a 0 value!')
+        raise ValueError('Trying to WB to a 0 value!')
 
     targetValue = max(wb)
     wbMultiplier = [targetValue, targetValue, targetValue] / wb
@@ -345,7 +345,7 @@ def whitebalanceBGR(capture, wb):
 def whitebalanceBGRImage(image, wb):
     if not np.all(wb.astype('bool')):
         print('Trying to WB to a 0 value!')
-        raise NameError('Trying to WB to a 0 value!')
+        raise ValueError('Trying to WB to a 0 value!')
 
     targetValue = max(wb)
     wbMultiplier = [targetValue, targetValue, targetValue] / wb
@@ -354,7 +354,7 @@ def whitebalanceBGRImage(image, wb):
 def whitebalanceBGRPoints(points, wb):
     if not np.all(wb.astype('bool')):
         print('Trying to WB to a 0 value!')
-        raise NameError('Trying to WB to a 0 value!')
+        raise ValueError('Trying to WB to a 0 value!')
 
     targetValue = max(wb)
     wbMultiplier = [targetValue, targetValue, targetValue] / wb

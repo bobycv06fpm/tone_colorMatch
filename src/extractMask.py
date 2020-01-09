@@ -38,7 +38,7 @@ def extractPolygonPoints(image, mask, polygon):
 
     #cutoff = 0.1
     #if cleanClippedRatio < cutoff:
-    #    raise NameError('Not enough clean non-clipped pixels. Ratio :: ' + str(cleanClippedRatio))
+    #    raise ValueError('Not enough clean non-clipped pixels. Ratio :: ' + str(cleanClippedRatio))
 
     return [filteredRegionPoints, cleanClippedRatio]
 

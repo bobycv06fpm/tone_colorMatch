@@ -83,29 +83,6 @@ def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
     medianScaledDiffReflections = list(np.median(scaledDiffReflections, axis=0))
     return [medianScaledDiffReflections, medianScaledDiffFace]
 
-def isMetadataValid(metadata):
-    """Takes in metadata for a set of captures and checks that the captures were taken with the same camera settings"""
-    expectedISO = metadata[0]["iso"]
-    expectedExposure = metadata[0]["exposureTime"]
-
-    if not 'faceImageTransforms' in metadata[0]:
-        LOGGER.warning('No Face Image Transforms')
-        return False
-
-    expectedWB = metadata[0]["whiteBalance"]
-
-    for captureMetadata in metadata:
-        iso = captureMetadata["iso"]
-        exposure = captureMetadata["exposureTime"]
-        wb = captureMetadata["whiteBalance"]
-
-        if (iso != expectedISO) or (exposure != expectedExposure) or (wb['x'] != expectedWB['x']) or (wb['y'] != expectedWB['y']):
-            print("White Balance Does Not Match")
-            print("Expected :: {} | Received :: {}".format(expectedWB, wb))
-            return False
-
-    return True
-
 def getMedianDiff(points):
     """For an ordered set of points, returns the median difference between neighboring points"""
     diffs = []
@@ -388,8 +365,8 @@ def run(user_id, capture_id=None, isProduction=False):
 
     try:
         images = state.loadImages()
-    except Exception as err:
-        LOGGER.error('User :: {} | Image :: {} | Error :: {} | Details ::\n{}'.format(state.user_id, state.imageName(), 'Error Loading Images', err))
+    except ValueError as err:
+        LOGGER.error('User :: %s | Image :: %s | Error :: %s | Details ::\n%s', state.user_id, state.imageName(), 'Error Loading Images', err)
         state.errorProccessing()
         if failOnError:
             raise
@@ -397,22 +374,23 @@ def run(user_id, capture_id=None, isProduction=False):
 
     state.saveExposurePointImage('exposurePoints', images)
 
-    metadata = state.getMetadata()
-
-    if not isMetadataValid(metadata):
-        LOGGER.error('User :: {} | Image :: {} | Error :: {}'.format(state.user_id, state.imageName(), 'Metadata does not Match'))
+    try:
+        metadata = state.getValidatedMetadata()
+    except ValueError as err:
+        LOGGER.error('User :: %s | Image :: %s | Error :: %s', state.user_id, state.imageName(), 'Metadata does not Match')
         state.errorProccessing()
         if failOnError:
-            raise ValueError('Metadata does not Match')
+            raise
         return getResponse(state.imageName(), False)
+
 
     captures = [Capture(image, meta) for image, meta in zip(images, metadata)]
     sharpness.labelSharpestCaptures(captures)
 
     try:
         leftEyeCropOffsets, rightEyeCropOffsets, faceLandmarkCropOffsets, faceCropOffsets = alignImages.getCaptureEyeOffsets(captures)
-    except Exception as err:
-        LOGGER.error('User :: {} | Image :: {} | Error :: {} | Details ::\n{}'.format(state.user_id, state.imageName(), 'Error Cropping and Aligning Images', err))
+    except ValueError as err:
+        LOGGER.error('User :: %s | Image :: %s | Error :: %s | Details ::\n%s', state.user_id, state.imageName(), 'Error Cropping and Aligning Images', err)
         state.errorProccessing()
         if failOnError:
             raise
@@ -430,8 +408,8 @@ def run(user_id, capture_id=None, isProduction=False):
 
     try:
         averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, blurryMask = getAverageScreenReflectionColor2(captures, leftEyeCropOffsets, rightEyeCropOffsets, state)
-    except Exception as err:
-        LOGGER.error('User :: {} | Image :: {} | Error :: {} | Details ::\n{}'.format(state.user_id, state.imageName(), 'Error Extracting Reflection', err))
+    except ValueError as err:
+        LOGGER.error('User :: %s | Image :: %s | Error :: %s | Details ::\n%s', state.user_id, state.imageName(), 'Error Extracting Reflection', err)
         state.errorProccessing()
         if failOnError:
             raise
@@ -447,8 +425,8 @@ def run(user_id, capture_id=None, isProduction=False):
 
     try:
         faceRegions = np.array([FaceRegions(capture, mask) for capture in captures])
-    except Exception as err:
-        LOGGER.error('User :: {} | Image :: {} | Error :: {} | Details ::\n{}'.format(state.user_id, state.imageName(), 'Error extracting Points for Recovered Mask', err))
+    except ValueError as err:
+        LOGGER.error('User :: %s | Image :: %s | Error :: %s | Details ::\n%s', state.user_id, state.imageName(), 'Error extracting Points for Recovered Mask', err)
         state.errorProccessing()
         if failOnError:
             raise

@@ -18,5 +18,5 @@ def detectFace(image, predictor, detector):
         shape = shape * ratio
         return [image, shape]
     except:
-        raise NameError("Could Not Detect Face")
+        raise ValueError("Could Not Detect Face")
 
