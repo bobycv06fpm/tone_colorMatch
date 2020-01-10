@@ -9,7 +9,7 @@ from state import State
 import colorTools
 import plotTools
 import cropTools
-import sharpness
+import imageTools
 import extractMask
 from capture import Capture
 from faceRegions import FaceRegions
@@ -383,9 +383,8 @@ def run(user_id, capture_id=None, isProduction=False):
             raise
         return getResponse(state.imageName(), False)
 
-
     captures = [Capture(image, meta) for image, meta in zip(images, metadata)]
-    sharpness.labelSharpestCaptures(captures)
+    imageTools.labelSharpestCaptures(captures)
 
     try:
         leftEyeCropOffsets, rightEyeCropOffsets, faceLandmarkCropOffsets, faceCropOffsets = alignImages.getCaptureEyeOffsets(captures)

@@ -1,6 +1,6 @@
 """ Capture class holds a full face image, left eye image, and right eye image along with relavant information parsed from the metadata"""
 import numpy as np
-import thresholdMask
+import imageTools
 from landmarkPoints import Landmarks
 from logger import getLogger
 
@@ -28,9 +28,9 @@ class Capture:
 
         self.landmarks = Landmarks(self.metadata['faceLandmarksSource'], self.metadata['faceImageTransforms']['landmarks'], self.faceImage.shape)
 
-        self.faceMask = thresholdMask.getClippedMask(self.faceImage)
-        self.leftEyeMask = thresholdMask.getClippedMask(self.leftEyeImage)
-        self.rightEyeMask = thresholdMask.getClippedMask(self.rightEyeImage)
+        self.faceMask = imageTools.getClippedMask(self.faceImage)
+        self.leftEyeMask = imageTools.getClippedMask(self.leftEyeImage)
+        self.rightEyeMask = imageTools.getClippedMask(self.rightEyeImage)
 
         self.whiteBalance = [self.metadata['whiteBalance']['x'], self.metadata['whiteBalance']['y']]
 
