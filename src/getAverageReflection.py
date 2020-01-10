@@ -540,7 +540,7 @@ def getEyeWhiteSample(eye, leftPoint, rightPoint):
     return None
 
 def getAverageScreenReflectionColor2(captures, leftEyeOffsets, rightEyeOffsets, state):
-    wb = captures[0].getAsShotWhiteBalance()
+    wb = captures[0].whiteBalance
     isSpecialCase = [capture.isNoFlash for capture in captures]
 
     leftEyeCrops = [capture.leftEyeImage for capture in captures]

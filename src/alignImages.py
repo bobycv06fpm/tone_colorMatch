@@ -72,7 +72,7 @@ def getEyeOffsets(eyes, sharpestIndex, wb=None):
     return np.array(eyeOffsets)
 
 def getCaptureEyeOffsets(captures):
-    wb = captures[0].getAsShotWhiteBalance()
+    wb = captures[0].whiteBalance
     sharpestMask = np.array([capture.isSharpest for capture in captures])
     sharpestIndex = np.arange(len(sharpestMask))[sharpestMask][0]
 

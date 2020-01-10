@@ -225,11 +225,6 @@ class State:
 
         return self.capture_metadata
 
-    def getAsShotWhiteBalance(self):
-        """Returns whitebalance in [X, Y] format"""
-        whiteBalanceDict = self.capture_metadata[0]['whiteBalance']
-        return [whiteBalanceDict['x'], whiteBalanceDict['y']]
-
     def savePlot(self, name, plot):
         """Save plot to reference folder"""
         extension = '.jpg'

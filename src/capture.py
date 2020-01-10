@@ -1,7 +1,6 @@
+""" Capture class holds a full face image, left eye image, and right eye image along with relavant information parsed from the metadata"""
 import numpy as np
-import cv2
 import thresholdMask
-import colorTools
 from landmarkPoints import Landmarks
 from logger import getLogger
 
@@ -9,107 +8,34 @@ from logger import getLogger
 logger = getLogger(__name__, 'app')
 
 class Capture:
+    """Hold full face, left eye, right eye images and metadata, including landmarking information"""
 
     def __init__(self, image, metadata, mask=None):
         self.name = '{}_{}_Flash'.format(metadata["flashSettings"]["area"], metadata["flashSettings"]["areas"])
-        self.flashSettings = metadata["flashSettings"]
-        self.flashRatio = self.flashSettings["area"] / self.flashSettings["areas"]
-        self.isNoFlash = True if metadata["flashSettings"]["area"] == 0 else False
-        self.isGammaSBGR = True#metadata['faceImageTransforms']["isGammaSBGR"]
-        self.scaleRatio = metadata['faceImageTransforms']["scaleRatio"] if "scaleRatio" in metadata['faceImageTransforms'] else 1
+
         self.faceImage, self.leftEyeImage, self.rightEyeImage = image
         self.metadata = metadata
 
-        self.leftEyeBB = np.array(self.metadata['leftEyeImageTransforms']['bbInParent']) if 'bbInParent' in self.metadata['leftEyeImageTransforms'] else None
-        self.rightEyeBB = np.array(self.metadata['rightEyeImageTransforms']['bbInParent']) if 'bbInParent' in self.metadata['rightEyeImageTransforms'] else None
+        self.flashSettings = metadata["flashSettings"]
+        self.flashRatio = self.flashSettings["area"] / self.flashSettings["areas"]
+        self.isNoFlash = self.flashRatio == 0
 
-        self.landmarks = Landmarks(self.metadata['faceLandmarksSource'], self.metadata['faceImageTransforms']['landmarks'], [self.leftEyeBB, self.rightEyeBB], self.faceImage.shape)
+        #Scale Ratio represents the scaling factor for FaceImage from its original resolution
+        self.scaleRatio = metadata['faceImageTransforms']["scaleRatio"] if "scaleRatio" in metadata['faceImageTransforms'] else 1
+
+        self.leftEyeBB = np.array(self.metadata['leftEyeImageTransforms']['bbInParent']) if ('bbInParent' in self.metadata['leftEyeImageTransforms']) else None
+        self.rightEyeBB = np.array(self.metadata['rightEyeImageTransforms']['bbInParent']) if ('bbInParent' in self.metadata['rightEyeImageTransforms']) else None
+
+        self.landmarks = Landmarks(self.metadata['faceLandmarksSource'], self.metadata['faceImageTransforms']['landmarks'], self.faceImage.shape)
 
         self.faceMask = thresholdMask.getClippedMask(self.faceImage)
         self.leftEyeMask = thresholdMask.getClippedMask(self.leftEyeImage)
         self.rightEyeMask = thresholdMask.getClippedMask(self.rightEyeImage)
 
-        self.whiteBalance = self.metadata['whiteBalance']
+        self.whiteBalance = [self.metadata['whiteBalance']['x'], self.metadata['whiteBalance']['y']]
+
+        self.isSharpest = False #Is the sharpest image in the capture set. Set later
         self.isBlurry = False
-        self.isSharpest = False
 
         if mask is not None:
             self.mask = np.logical_or(self.mask, mask)
-
-    def getFormattedFaceImage(self):
-        return np.clip(self.faceImage, 0, 255).astype('uint8')
-
-    def getLargestValue(self):
-        return np.max(self.getFormattedImage())
-
-    def blurredImage(self):
-        return cv2.GaussianBlur(self.getFormattedImage(), (5, 5), 0)
-        #return cv2.medianBlur(self.image.astype('uint16'), 5)
-
-    #def scaleToValue(self, value):
-    #    if value < 255:
-    #        return
-
-    #    self.image = self.image * (255 / value)
-
-    #def whiteBalanceImageToD65(self):
-    #    self.faceImage = colorTools.whitebalance_from_asShot_to_d65(self.faceImage, self.whiteBalance['x'], self.whiteBalance['y'])
-    #    self.leftEyeImage = colorTools.whitebalance_from_asShot_to_d65(self.leftEyeImage, self.whiteBalance['x'], self.whiteBalance['y'])
-    #    self.rightEyeImage = colorTools.whitebalance_from_asShot_to_d65(self.rightEyeImage, self.whiteBalance['x'], self.whiteBalance['y'])
-
-   # def getWhiteBalancedImageToD65(self):
-   #     faceImageWB = colorTools.whitebalance_from_asShot_to_d65(self.faceImage, self.whiteBalance['x'], self.whiteBalance['y'])
-   #     leftEyeImageWB = colorTools.whitebalance_from_asShot_to_d65(self.leftEyeImage, self.whiteBalance['x'], self.whiteBalance['y'])
-   #     rightEyeImageWB = colorTools.whitebalance_from_asShot_to_d65(self.rightEyeImage, self.whiteBalance['x'], self.whiteBalance['y'])
-   #     return [faceImageWB, leftEyeImageWB, rightEyeImageWB]#np.clip(whiteBalanced * 255, 0, 255).astype('uint8')
-
-    def getAsShotWhiteBalance(self):
-        return [self.whiteBalance['x'], self.whiteBalance['y']]
-
-    #def getClippedImage(self):
-    #    return np.clip(self.image, 0, 255).astype('uint8')
-
-    def show(self):
-        ratio = 3
-        smallImage = cv2.resize(self.getFormattedImage(), (0, 0), fx=1/ratio, fy=1/ratio)
-        cv2.imshow(self.name, smallImage)
-        cv2.waitKey(0)
-
-    def calculateNoise(self):
-        blurSize = 5
-        blurred = cv2.medianBlur(self.getFormattedImage(), blurSize)
-        #blurred = cv2.blur(image.astype('uint16'), (blurSize, blurSize))
-        #blurred = cv2.GaussianBlur(image.astype('uint16'), (blurSize, blurSize), 0)
-
-        blurred[blurred == 0] = 1
-        #blurredLuminance[blurredLuminance == 0] = 1
-
-        #noise = (np.abs(image.astype('int32') - blurred.astype('int32')) * 50).astype('uint8')
-        noise = (np.abs(self.getFormattedImage().astype('int32') - blurred.astype('int32'))).astype('uint8')
-        #noise = (np.clip(capture.image.astype('int32') - blurred.astype('int32'), 0, 255) * 50).astype('uint8')
-        #noise = ((np.abs(capture.image.astype('int32') - blurred.astype('int32')) / capture.image) * 5000).astype('uint8')
-
-        #blurSize2 = 55
-        #noiseBlurred = cv2.GaussianBlur(noise, (blurSize2, blurSize2), 0)
-
-        return noise
-
-    def showMasked(self, wait=True):
-        masked = np.copy(self.getFormattedImage())
-        masked[self.mask] = [0, 0, 0]
-
-        self.show(wait, masked)
-
-    def showImageWithLandmarks(self, wait=True, tag=''):
-        img = self.getFormattedFaceImage()
-        for point in self.landmarks.landmarkPoints:
-            print("POINT :: {}".format(point))
-            cv2.circle(img, (int(point[0]), int(point[1])), 5, (0, 0, 255), -1)
-
-        #ratio = 3
-        #smallImage = cv2.resize(img, (0, 0), fx=1/ratio, fy=1/ratio)
-
-        cv2.imshow(self.name + tag, img)
-        if wait:
-            cv2.waitKey(0)
-
