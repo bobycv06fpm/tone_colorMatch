@@ -6,8 +6,12 @@ from logger import getLogger
 LOGGER = getLogger(__name__, 'app')
 
 #TAKES A FLOAT
-def __stretchHistogram(gray, mask=None):
-    """Stretches grey image to fill full range"""
+def stretchHistogram(gray, clipValues=None, mask=None):
+    """
+    Stretches grey image to fill full range.
+        clipValues takes a set of two values, [lowerSDMult, upperSDMult]
+        Lower standard deviation multiplier (everything less than (lowerSDMult * SD) gets clipped to (lowerSDMult * SD). vice-versa for upperSDMult.
+    """
     upperBound = 1
     lowerBound = 0
 
@@ -22,12 +26,19 @@ def __stretchHistogram(gray, mask=None):
     else:
         grayPoints = gray.flatten()
 
-    median = np.median(grayPoints)
-    sd = np.std(grayPoints)
-    lower = median - (2 * sd)
-    lower = lower if lower > lowerBound else lowerBound
-    upper = median + (10 * sd)
-    upper = upper if upper < upperBound else upperBound
+    if clipValues is None:
+        lower = np.min(grayPoints)
+        upper = np.max(grayPoints)
+    else:
+        lowerSDMult, upperSDMult = clipValues
+
+        median = np.median(grayPoints)
+        sd = np.std(grayPoints)
+        lower = median - (lowerSDMult * sd) #(3 * sd)
+        lower = lower if lower > lowerBound else lowerBound
+        upper = median + (upperSDMult * sd) #(3 * sd)
+        upper = upper if upper < upperBound else upperBound
+
 
     bounds = np.copy(gray)
     bounds[bounds < lower] = lower
@@ -39,27 +50,31 @@ def __stretchHistogram(gray, mask=None):
     #stretched = np.clip(stretched * 255, 0, 255)
     return stretched
 
+def __getImageSetFFTMeans(images):
+    """Takes a set of sBGR images and returns the mean FFT for each image"""
+    linearImages = [colorTools.convert_sBGR_to_linearBGR_float_fast(image) for image in images]
+    greyLinearImages = [np.mean(linearImage, axis=2) for linearImage in linearImages] #Convert to greyscale by averaging BGR channels
+    stretchedGreyLinearImages = [stretchHistogram(greyLinearImage, [2, 10]) for greyLinearImage in greyLinearImages] #Stretching helps normalize contrast across different exposures
+
+    fftImages = [np.fft.fft2(stretchedGreyLinearImage) for stretchedGreyLinearImage in stretchedGreyLinearImages]
+    shiftedFFTImages = [np.abs(np.fft.fftshift(fftImage)) for fftImage in fftImages]
+    meanFFTs = [np.mean(shiftedFFTImage) for shiftedFFTImage in shiftedFFTImages]
+    return meanFFTs
 
 def labelSharpestCaptures(captures):
-    """Compares all of the captures an labels the sharpest"""
+    """
+    Compares all of the captures an labels the single sharpest and the two blurriest
+        Modifies some of the passed in captures with blurriest or sharpest labels
+    """
     leftEyeCrops = [capture.leftEyeImage for capture in captures]
     rightEyeCrops = [capture.rightEyeImage for capture in captures]
 
-    leftEyeCropsLinear = [colorTools.convert_sBGR_to_linearBGR_float_fast(leftEyeCrop) for leftEyeCrop in leftEyeCrops]
-    greyLeftEyeCropsLinear = [np.mean(linearLeftEyeCrop, axis=2) for linearLeftEyeCrop in leftEyeCropsLinear]
-    greyLeftEyeCropsLinearStretched = [__stretchHistogram(greyLeftEyeCropLinear) for greyLeftEyeCropLinear in greyLeftEyeCropsLinear]
-    greyLeftEyeCropsLinearStretchedFFT = [np.fft.fft2(greyLeftEyeCropLinearStretched) for greyLeftEyeCropLinearStretched in greyLeftEyeCropsLinearStretched]
-    greyLeftEyeCropsLinearStretchedFFTShifted = [np.abs(np.fft.fftshift(greyLeftEyeCropLinearStretchedFFT)) for greyLeftEyeCropLinearStretchedFFT in greyLeftEyeCropsLinearStretchedFFT]
-    greyLeftEyeCropsLinearStretchedFFTShiftedMeans = [np.mean(leftEyeFFT) for leftEyeFFT in greyLeftEyeCropsLinearStretchedFFTShifted]
+    #Use Mean FFT as an approximate for sharpness. Get for each eye independently
+    leftEyeCropsMeanFFT = __getImageSetFFTMeans(leftEyeCrops) 
+    rightEyeCropsMeanFFT = __getImageSetFFTMeans(rightEyeCrops)
 
-    rightEyeCropsLinear = [colorTools.convert_sBGR_to_linearBGR_float_fast(rightEyeCrop) for rightEyeCrop in rightEyeCrops]
-    greyRightEyeCropsLinear = [np.mean(linearRightEyeCrop, axis=2) for linearRightEyeCrop in rightEyeCropsLinear]
-    greyRightEyeCropsLinearStretched = [__stretchHistogram(greyRightEyeCropLinear) for greyRightEyeCropLinear in greyRightEyeCropsLinear]
-    greyRightEyeCropsLinearStretchedFFT = [np.fft.fft2(greyRightEyeCropLinearStretched) for greyRightEyeCropLinearStretched in greyRightEyeCropsLinearStretched]
-    greyRightEyeCropsLinearStretchedFFTShifted = [np.abs(np.fft.fftshift(greyRightEyeCropLinearStretchedFFT)) for greyRightEyeCropLinearStretchedFFT in greyRightEyeCropsLinearStretchedFFT]
-    greyRightEyeCropsLinearStretchedFFTShiftedMeans = [np.mean(rightEyeFFT) for rightEyeFFT in greyRightEyeCropsLinearStretchedFFTShifted]
-
-    scores = [(left + right) / 2 for (left, right) in zip(greyLeftEyeCropsLinearStretchedFFTShiftedMeans, greyRightEyeCropsLinearStretchedFFTShiftedMeans)]
+    #Average L and R meanFFT to generate a sharpness score
+    scores = [(left + right) / 2 for (left, right) in zip(leftEyeCropsMeanFFT, rightEyeCropsMeanFFT)]
     sortedScores = sorted(scores)
 
     LOGGER.info('Eye Sharpness Scores :: %s', scores)
@@ -70,6 +85,7 @@ def labelSharpestCaptures(captures):
             capture.isBlurry = True
             LOGGER.info('Blurry Capture :: %s', capture.name)
 
+        #Label sharpest capture
         if score == sortedScores[-1]:
             capture.isSharpest = True
             LOGGER.info('Sharpest Capture :: %s', capture.name)
