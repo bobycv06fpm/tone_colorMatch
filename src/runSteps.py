@@ -10,42 +10,13 @@ import colorTools
 import plotTools
 import cropTools
 import imageTools
+from dataFormatTools import getFailureResponse, getSuccessfulResponse
 import extractMask
 from capture import Capture
 from faceRegions import FaceRegions
 from logger import getLogger
 
 LOGGER = getLogger(__name__, 'app')
-
-def getReflectionMap(leftReflection, rightReflection):
-    """Builds a dictionary containting left and right reflection"""
-    value = {}
-    value['left'] = [float(value) for value in leftReflection]
-    value['right'] = [float(value) for value in rightReflection]
-
-    return value
-
-def getResponse(imageName, successful, captureSets=None, linearFits=None, bestGuess=None, averageReflectionArea=None):
-    """Builds a dictionary containing all of the output values helpful for analyzing how well the image pipeline is performing"""
-    response = {}
-    response['name'] = imageName
-    response['successful'] = successful
-    response['captures'] = {}
-    response['linearFits'] = linearFits
-    response['bestGuess'] = bestGuess
-    response['reflectionArea'] = averageReflectionArea
-
-    if not successful:
-        return response
-
-    for captureSet in captureSets:
-        faceRegions, leftEyeReflection, rightEyeReflection = captureSet
-        key = faceRegions.capture.name
-        response['captures'][key] = {}
-        response['captures'][key]['regions'] = faceRegions.getRegionMapValue()
-        response['captures'][key]['reflections'] = getReflectionMap(leftEyeReflection, rightEyeReflection)
-
-    return response
 
 def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
     """
@@ -82,14 +53,6 @@ def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
     medianScaledDiffFace = list(np.median(scaledCaptureFaceRegions, axis=0))
     medianScaledDiffReflections = list(np.median(scaledDiffReflections, axis=0))
     return [medianScaledDiffReflections, medianScaledDiffFace]
-
-def getMedianDiff(points):
-    """For an ordered set of points, returns the median difference between neighboring points"""
-    diffs = []
-    for index in range(1, len(points)):
-        diffs.append(np.abs(points[index - 1] - points[index]))
-
-    return np.median(np.array(diffs), axis=0)
 
 def scoreLinearFit(linearFitObject):
     """Generates a rough score for the linear fit using the residuals scaled by the rise of the line"""
@@ -188,37 +151,6 @@ def getLinearFits(leftEyeReflections, rightEyeReflections, leftSclera, rightScle
     linearFits["sclera"]["right"] = list(rightScleraLinearFit[:, 0])
 
     return linearFits
-
-def getMedianDiffs(leftEyeReflections, rightEyeReflections, faceRegions):
-    """Return the Median diff dictionary containing the median diff each face region, left and right eye refletions"""
-    leftEyeDiffReflectionMedian = getMedianDiff(leftEyeReflections)
-    #leftEyeDiffReflectionMedianHSV = colorTools.bgr_to_hsv(leftEyeDiffReflectionMedian)
-
-    rightEyeDiffReflectionMedian = getMedianDiff(rightEyeReflections)
-    #rightEyeDiffReflectionMedianHSV = colorTools.bgr_to_hsv(rightEyeDiffReflectionMedian)
-
-    faceRegionMedians = np.vstack([[region.getRegionMedians() for region in faceRegions]])
-
-    #Take half of the face diffs for better accuracy... Maybe
-    #print('Regions before :: ' + str(faceRegionMedians))
-    #faceRegionMedians = np.array([faceRegionMedian for i, faceRegionMedian in enumerate(faceRegionMedians) if i % 2 == 0])
-    #print('Regions after :: ' + str(faceRegionMedians))
-
-    faceRegionDiffMedians = [getMedianDiff(faceRegionMedians[:, idx]) for idx in range(0, faceRegionMedians.shape[1])]
-    #faceRegionDiffMediansHSV  = [colorTools.bgr_to_hsv(point) for point in faceRegionDiffMedians]
-
-    medianDiffs = {}
-    medianDiffs["reflections"] = {}
-    medianDiffs["reflections"]["left"] = list(leftEyeDiffReflectionMedian)
-    medianDiffs["reflections"]["right"] = list(rightEyeDiffReflectionMedian)
-
-    medianDiffs["regions"] = {}
-    medianDiffs["regions"]["left"] = list(faceRegionDiffMedians[0])
-    medianDiffs["regions"]["right"] = list(faceRegionDiffMedians[1])
-    medianDiffs["regions"]["chin"] = list(faceRegionDiffMedians[2])
-    medianDiffs["regions"]["forehead"] = list(faceRegionDiffMedians[3])
-
-    return medianDiffs
 
 #TODO: Not sure this really makes sense...
 def getReflectionColor(reflectionPoints):
@@ -370,7 +302,7 @@ def run(user_id, capture_id=None, isProduction=False):
         state.errorProccessing()
         if failOnError:
             raise
-        return getResponse(state.imageName(), False)
+        return getFailureResponse(state.imageName())
 
     state.saveExposurePointImage('exposurePoints', images)
 
@@ -381,7 +313,7 @@ def run(user_id, capture_id=None, isProduction=False):
         state.errorProccessing()
         if failOnError:
             raise
-        return getResponse(state.imageName(), False)
+        return getFailureResponse(state.imageName())
 
     captures = [Capture(image, meta) for image, meta in zip(images, metadata)]
     imageTools.labelSharpestCaptures(captures)
@@ -393,7 +325,7 @@ def run(user_id, capture_id=None, isProduction=False):
         state.errorProccessing()
         if failOnError:
             raise
-        return getResponse(state.imageName(), False)
+        return getFailureResponse(state.imageName())
 
     print('Left \n {} \n Right \n {} \n Face \n {}'.format(leftEyeCropOffsets, rightEyeCropOffsets, faceCropOffsets))
     print('average \n {}'.format((leftEyeCropOffsets + rightEyeCropOffsets) / 2))
@@ -412,7 +344,7 @@ def run(user_id, capture_id=None, isProduction=False):
         state.errorProccessing()
         if failOnError:
             raise
-        return getResponse(state.imageName(), False)
+        return getFailureResponse(state.imageName())
 
     leftEyeProportionalBGR = getReflectionColor(leftEyeReflections)
     rightEyeProportionalBGR = getReflectionColor(rightEyeReflections)
@@ -429,7 +361,7 @@ def run(user_id, capture_id=None, isProduction=False):
         state.errorProccessing()
         if failOnError:
             raise
-        return getResponse(state.imageName(), False)
+        return getFailureResponse(state.imageName())
 
     LOGGER.info('Finished Image Processing - Beginning Analysis')
     state.saveReferenceImageBGR(faceRegions[0].getMaskedImage(), faceRegions[0].capture.name + '_masked')
@@ -521,7 +453,7 @@ def run(user_id, capture_id=None, isProduction=False):
     matched_skin_color_id = 0
     state.saveCaptureResults(calibrated_skin_color, matched_skin_color_id)
 
-    response = getResponse(state.imageName(), True, captureSets, linearFitSets, bestGuess, averageReflectionArea)
+    response = getSuccessfulResponse(state.imageName(), captureSets, linearFitSets, bestGuess, averageReflectionArea)
     #print(json.dumps(response))
     LOGGER.info('Done - Returing Results')
     return response

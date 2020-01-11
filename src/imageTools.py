@@ -62,7 +62,7 @@ def labelSharpestCaptures(captures):
     scores = [(left + right) / 2 for (left, right) in zip(greyLeftEyeCropsLinearStretchedFFTShiftedMeans, greyRightEyeCropsLinearStretchedFFTShiftedMeans)]
     sortedScores = sorted(scores)
 
-    LOGGER.info('Eye Sharpness Scores :: {}'.format(scores))
+    LOGGER.info('Eye Sharpness Scores :: %s', scores)
 
     for score, capture in zip(scores, captures):
         #Label blurriest 2 captures as such
