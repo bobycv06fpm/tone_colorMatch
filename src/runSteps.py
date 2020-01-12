@@ -4,7 +4,7 @@ Skin tone measuring image processing pipeline
 import cv2
 import numpy as np
 import alignImages
-from getAverageReflection import getAverageScreenReflectionColor2
+from getAverageReflection import getAverageScreenReflectionColor
 from state import State
 import colorTools
 import plotTools
@@ -340,7 +340,7 @@ def run(user_id, capture_id=None, isProduction=False):
     state.saveReferenceImageBGR(displaySynth, captures[0].name + '_syntheticSanityCheck')
 
     try:
-        averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, blurryMask = getAverageScreenReflectionColor2(captures, leftEyeCropOffsets, rightEyeCropOffsets, state)
+        averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, blurryMask = getAverageScreenReflectionColor(captures, leftEyeCropOffsets, rightEyeCropOffsets, state)
     except ValueError as err:
         LOGGER.error('User :: %s | Image :: %s | Error :: %s | Details ::\n%s', state.user_id, state.imageName(), 'Error Extracting Reflection', err)
         state.errorProccessing()
@@ -407,7 +407,7 @@ def run(user_id, capture_id=None, isProduction=False):
 
     print('Ratio :: {}'.format(faceRatio))
 
-    channelRatio = averageSkinSlopeWB 
+    channelRatio = averageSkinSlopeWB
     print('\n----\nChannel Ratio :: {}'.format(channelRatio))
     print('B - G Channel Ratio :: {}\n---\n'.format(channelRatio[0] / channelRatio[1]))
     hue = 60 * ((channelRatio[1] - channelRatio[0]) / (channelRatio[2])) % 6

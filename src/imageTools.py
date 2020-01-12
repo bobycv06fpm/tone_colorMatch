@@ -34,9 +34,9 @@ def stretchHistogram(gray, clipValues=None, mask=None):
 
         median = np.median(grayPoints)
         sd = np.std(grayPoints)
-        lower = median - (lowerSDMult * sd) #(3 * sd)
+        lower = median - (lowerSDMult * sd)
         lower = lower if lower > lowerBound else lowerBound
-        upper = median + (upperSDMult * sd) #(3 * sd)
+        upper = median + (upperSDMult * sd)
         upper = upper if upper < upperBound else upperBound
 
 
