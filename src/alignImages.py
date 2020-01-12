@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 import colorTools
 import imageTools
+import cropTools
 import logger
 
 LOGGER = logger.getLogger(__name__, 'app')
@@ -14,7 +15,7 @@ def __calculateOffset(offsetImage, targetImage):
     return np.array(offset)
 
 def __getPreparedEye(gray):
-    gray = cv2.bilateralFilter(np.clip(gray * 255, 0, 255).astype('uint8'),5,50,50)
+    gray = cv2.bilateralFilter(np.clip(gray * 255, 0, 255).astype('uint8'), 5, 50, 50)
     prepped = cv2.Sobel(gray, cv2.CV_16S, 1, 1, ksize=5)
     return np.float32(prepped)
 
@@ -33,11 +34,10 @@ def __getEyeOffsets(eyes, sharpestIndex, wb=None):
 
     return np.array(eyeOffsets)
 
-def getCaptureEyeOffsets(captures):
+
+def getCapturesOffsets(captures):
     """
-    Returns the image offsets between captures for the left eye, right eye, full face, and an average of left eye and right eye
-        Left eye and Right eye are calculated using phase correlation - should be reasonably accurate
-        Full face simply uses facial landmarks to calculate the offset - Expect to be less accurate
+    Returns the image offsets between captures for the left eye crop, right eye crop, and face crop
     """
     wb = captures[0].whiteBalance
     sharpestMask = np.array([capture.isSharpest for capture in captures])
@@ -49,44 +49,19 @@ def getCaptureEyeOffsets(captures):
     if (not leftEyeCrops) or (not rightEyeCrops):
         raise ValueError('Eye Capture Missing')
 
-    leftEyeOffsets = __getEyeOffsets(leftEyeCrops, sharpestIndex, wb)
-    rightEyeOffsets = __getEyeOffsets(rightEyeCrops, sharpestIndex, wb)
+    #Offsets from using the left and right eyes from the face crop
+    faceCropLeftEyes = cropTools.cropImagesToParentBB([capture.faceImage for capture in captures], [capture.landmarks.getLeftEyeBB() for capture in captures])
+    faceCropLeftEyeOffsets = __getEyeOffsets(faceCropLeftEyes, sharpestIndex, wb)
 
-    leftEyeBBs = np.array([capture.landmarks.getLeftEyeBB() for capture in captures])
-    leftEyeBBPoints = np.array([[bb[0], bb[1], bb[0] + bb[2], bb[1] + bb[3]] for bb in leftEyeBBs])
-    leftJointBB = [np.min(leftEyeBBPoints[:, 0]), np.min(leftEyeBBPoints[:, 1]), np.max(leftEyeBBPoints[:, 2]), np.max(leftEyeBBPoints[:, 3])]
-    leftEyeJointCrops = [capture.faceImage[leftJointBB[1]:leftJointBB[3], leftJointBB[0]:leftJointBB[2]] for capture in captures]
-    leftEyeJointOffsets = __getEyeOffsets(leftEyeJointCrops, sharpestIndex, wb)
+    faceCropRightEyes = cropTools.cropImagesToParentBB([capture.faceImage for capture in captures], [capture.landmarks.getRightEyeBB() for capture in captures])
+    faceCropRightEyeOffsets = __getEyeOffsets(faceCropRightEyes, sharpestIndex, wb)
 
-    rightEyeBBs = np.array([capture.landmarks.getRightEyeBB() for capture in captures])
-    rightEyeBBPoints = np.array([[bb[0], bb[1], bb[0] + bb[2], bb[1] + bb[3]] for bb in rightEyeBBs])
-    rightJointBB = [np.min(rightEyeBBPoints[:, 0]), np.min(rightEyeBBPoints[:, 1]), np.max(rightEyeBBPoints[:, 2]), np.max(rightEyeBBPoints[:, 3])]
-    rightEyeJointCrops = [capture.faceImage[rightJointBB[1]:rightJointBB[3], rightJointBB[0]:rightJointBB[2]] for capture in captures]
-    rightEyeJointOffsets = __getEyeOffsets(rightEyeJointCrops, sharpestIndex, wb)
+    faceCropOffsets = np.round((faceCropLeftEyeOffsets + faceCropRightEyeOffsets) / 2).astype('int32')
 
-    averageJointOffset = np.round((leftEyeJointOffsets + rightEyeJointOffsets) / 2).astype('int32')
+    #Offsets from using the full resolution left and right eye crops
+    eyeCropLeftEyeOffsets = __getEyeOffsets(leftEyeCrops, sharpestIndex, wb)
+    eyeCropRightEyeOffsets = __getEyeOffsets(rightEyeCrops, sharpestIndex, wb)
 
-    leftEyeBBOrigins = np.array([capture.leftEyeBB[0] for capture in captures])
-    rightEyeBBOrigins = np.array([capture.rightEyeBB[0] for capture in captures])
+    LOGGER.info('Face Offsets ::\n%s', faceCropOffsets)
 
-    scaleRatio = captures[0].scaleRatio
-
-    scaledLeftEyeOffsets = leftEyeOffsets * scaleRatio
-    scaledRightEyeOffsets = rightEyeOffsets * scaleRatio
-
-    scaledAverageOffsets = averageJointOffset#np.round(np.mean([scaledLeftEyeOffsets, scaledRightEyeOffsets], axis=0)).astype('int32')
-
-    alignedCoordLeft = leftEyeBBOrigins + scaledLeftEyeOffsets
-    alignedCoordRight = rightEyeBBOrigins + scaledRightEyeOffsets
-
-    leftFaceOffsets = alignedCoordLeft - alignedCoordLeft[0]
-    rightFaceOffsets = alignedCoordRight - alignedCoordRight[0]
-
-    averageFaceLandmarksOffsets = np.round(np.mean([leftFaceOffsets, rightFaceOffsets], axis=0)).astype('int32')
-
-    LOGGER.info('L Eye Offset ::\n%s', leftEyeOffsets)
-    LOGGER.info('R Eye Offset ::\n%s', rightEyeOffsets)
-    LOGGER.info('L/R Eye Offset Averages ::\n%s', averageFaceLandmarksOffsets)
-    LOGGER.info('L/R TEST Eye Offset Averages ::\n%s', scaledAverageOffsets)
-
-    return [leftEyeOffsets, rightEyeOffsets, averageFaceLandmarksOffsets, scaledAverageOffsets]
+    return [eyeCropLeftEyeOffsets, eyeCropRightEyeOffsets, faceCropOffsets]

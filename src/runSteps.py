@@ -154,7 +154,10 @@ def getLinearFits(leftEyeReflections, rightEyeReflections, leftSclera, rightScle
 
 #TODO: Not sure this really makes sense...
 def getReflectionColor(reflectionPoints):
-    """Converts a set of points to a single BGR point representative of that color, without value information"""
+    """
+    Converts a set of points to a single BGR point representative of that color, without value information
+       Only Use for WB!
+    """
     reflectionHSV = colorTools.naiveBGRtoHSV(np.array([reflectionPoints]))[0]
     medianHSV = np.median(reflectionHSV, axis=0)
     hue, sat, _ = medianHSV
@@ -319,7 +322,7 @@ def run(user_id, capture_id=None, isProduction=False):
     imageTools.labelSharpestCaptures(captures)
 
     try:
-        leftEyeCropOffsets, rightEyeCropOffsets, faceLandmarkCropOffsets, faceCropOffsets = alignImages.getCaptureEyeOffsets(captures)
+        leftEyeCropOffsets, rightEyeCropOffsets, faceCropOffsets = alignImages.getCapturesOffsets(captures)
     except ValueError as err:
         LOGGER.error('User :: %s | Image :: %s | Error :: %s | Details ::\n%s', state.user_id, state.imageName(), 'Error Cropping and Aligning Images', err)
         state.errorProccessing()
@@ -327,15 +330,14 @@ def run(user_id, capture_id=None, isProduction=False):
             raise
         return getFailureResponse(state.imageName())
 
-    print('Left \n {} \n Right \n {} \n Face \n {}'.format(leftEyeCropOffsets, rightEyeCropOffsets, faceCropOffsets))
-    print('average \n {}'.format((leftEyeCropOffsets + rightEyeCropOffsets) / 2))
-    updatedAverageOffset = cropTools.cropCapturesToOffsets(captures, faceCropOffsets)
+    cropTools.cropCapturesToOffsets(captures, faceCropOffsets)
+
     #All offsets are relative to capture[0]
     for capture in captures:
         capture.landmarks = captures[0].landmarks
 
     synth, displaySynth = synthesis(captures)
-    #state.saveReferenceImageBGR(displaySynth, captures[0].name + '_synth')
+    state.saveReferenceImageBGR(displaySynth, captures[0].name + '_syntheticSanityCheck')
 
     try:
         averageReflection, averageReflectionArea, leftEyeReflections, rightEyeReflections, leftSclera, rightSclera, blurryMask = getAverageScreenReflectionColor2(captures, leftEyeCropOffsets, rightEyeCropOffsets, state)
@@ -405,47 +407,14 @@ def run(user_id, capture_id=None, isProduction=False):
 
     print('Ratio :: {}'.format(faceRatio))
 
-    channelRatio = averageSkinSlopeWB #averageSkinSlope / averageReflectionSlope
+    channelRatio = averageSkinSlopeWB 
     print('\n----\nChannel Ratio :: {}'.format(channelRatio))
     print('B - G Channel Ratio :: {}\n---\n'.format(channelRatio[0] / channelRatio[1]))
     hue = 60 * ((channelRatio[1] - channelRatio[0]) / (channelRatio[2])) % 6
     sat = (max(channelRatio) - min(channelRatio)) / max(channelRatio)
-    val = faceRatio#colorTools.getRelativeLuminance([channelRatio])[0]
-    #val = sum(channelRatio) / 3
+    val = faceRatio
 
-    #reflectionBestGuess, faceBestGuess = getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections)
     bestGuess = getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections)
-
-    print('Average Sclera Sclope WB :: {}'.format(averageScleraSlopeWB))
-    targetSlope = 0.80
-    multiplier = targetSlope / np.max(averageScleraSlopeWB)
-
-    synthWB = synth / propBGR
-
-    synthComp = np.hstack([synth * multiplier, synthWB * multiplier])
-    synthWB *= multiplier
-
-    maxVal = np.max(synthComp)
-    if maxVal > 1.0:
-        synthComp /= maxVal
-
-    maxVal = np.max(synthWB)
-    if maxVal > 1.0:
-        synthWB /= maxVal
-
-    synthCompGamma = colorTools.convert_linearBGR_to_sBGR_float_fast(np.copy(synthComp))
-    synthCompGamma = np.clip(np.round(synthCompGamma * 255), 0, 255).astype('uint8')
-
-    synthWBGamma = colorTools.convert_linearBGR_to_sBGR_float_fast(np.copy(synthWB))
-    synthWBGamma = np.clip(np.round(synthWBGamma * 255), 0, 255).astype('uint8')
-
-    displaySynth = np.vstack([displaySynth, synthCompGamma])
-
-    state.saveReferenceImageBGR(displaySynth, captures[0].name + '_synthComp')
-    state.saveReferenceImageBGR(synthWBGamma, captures[0].name + '_synth')
-    #cv2.imshow('synth', synthWBGamma)
-    #cv2.imshow('synth Gamma', displaySynth)
-    #cv2.waitKey(0)
 
     LOGGER.info('Done Analysis - Generating Results')
 

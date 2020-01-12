@@ -1,69 +1,28 @@
+"""Set of functions to help with image and capture cropping"""
 import numpy as np
-import cv2
 
 X = 0
 Y = 1
 SHAPE_X = 1
 SHAPE_Y = 0
 
-def getSecond(arr):
+def __getSecond(arr):
+    """Lambda helper function"""
     return arr[1]
 
-def getThird(arr):
+def __getThird(arr):
+    """Lambda helper function"""
     return arr[2]
 
-def cropToAxis(captures, offsets, axis):
-    #print('Cropping to Axis')
-    #imageSets = np.dstack((images, offset, np.arange(len(offset))))
-    OFFSET = 1
-
-    #captureSets = zip(captures, offsets)
-    captureSets = []
-    for index, capture in enumerate(captures):
-        captureSets.append([capture, offsets[index]])
-
-    captureSets = np.array(sorted(captureSets, key=getSecond))
-
-    if captureSets[0, OFFSET] < 0:
-        captureSets[:, OFFSET] += abs(captureSets[0, OFFSET])
-
-    #print('Capture Sets :: ' + str(captureSets))
-
-    maxOffset = captureSets[-1, OFFSET]
-
-    #cropped = []
-    for captureSet in captureSets:
-        [capture, offset] = captureSet
-        start = offset
-
-        if axis == Y:
-            end = capture.image.shape[SHAPE_Y] - (maxOffset - offset)
-            capture.image = capture.image[start:end, :]
-            capture.mask = capture.mask[start:end, :]
-            capture.landmarks.landmarkPoints[:, Y] -= start
-            #capture.landmarks.sourceLandmarkPoints[:, 1] -= start
-
-        else:
-            end = capture.image.shape[SHAPE_X] - (maxOffset - offset)
-            capture.image = capture.image[:, start:end]
-            capture.mask = capture.mask[:, start:end]
-            capture.landmarks.landmarkPoints[:, X] -= start
-            #capture.landmarks.sourceLandmarkPoints[:, 0] -= start
-
-def cropToOffsets(captures, offsets):
-    #print('Offsets :: ' + str(offsets))
-    cropToAxis(captures, offsets[:, X], X)
-    cropToAxis(captures, offsets[:, Y], Y)
-
-def cropImagesToAxis(images, offsets, axis):
-    #print('Cropping to Axis')
+def __cropImagesToAxis(images, offsets, axis):
+    """Crop images by the offset amount in the axis provided, the resulting images are all equal in size"""
     OFFSET = 1
 
     imageSets = []
     for index, capture in enumerate(images):
         imageSets.append([capture, offsets[index], index])
 
-    imageSets = np.array(sorted(imageSets, key=getSecond))
+    imageSets = np.array(sorted(imageSets, key=__getSecond))
 
     if imageSets[0, OFFSET] < 0:
         imageSets[:, OFFSET] += abs(imageSets[0, OFFSET])
@@ -84,10 +43,11 @@ def cropImagesToAxis(images, offsets, axis):
 
         cropped.append([image, offset, order])
 
-    croppedImages = np.array(sorted(cropped, key=getThird))
+    croppedImages = np.array(sorted(cropped, key=__getThird))
     return croppedImages[:, 0], croppedImages[:, 1]
 
 def cropImagesToOffsets(images, offsets):
+    """Crops the images to the offsets provided"""
 
     imageDimensions = np.array([image.shape for image in images])
     minHeight = np.min(imageDimensions[:, 0])
@@ -100,8 +60,8 @@ def cropImagesToOffsets(images, offsets):
     #images = np.array(images)
     offsets = np.array(offsets)
     updatedOffsets = np.copy(offsets)
-    images, xOffsets = cropImagesToAxis(images, offsets[:, X], X)
-    images, yOffsets = cropImagesToAxis(images, offsets[:, Y], Y)
+    images, xOffsets = __cropImagesToAxis(images, offsets[:, X], X)
+    images, yOffsets = __cropImagesToAxis(images, offsets[:, Y], Y)
 
     updatedOffsets[:, X] = xOffsets
     updatedOffsets[:, Y] = yOffsets
@@ -109,6 +69,7 @@ def cropImagesToOffsets(images, offsets):
     return images, updatedOffsets
 
 def cropCapturesToOffsets(captures, offsets):
+    """Crops the captures to the offsets provided. Updates landmarks, masks, BBs as well"""
     images = [capture.faceImage for capture in captures]
     croppedImages, updatedOffsets = cropImagesToOffsets(images, offsets)
     for capture, croppedImage, updatedOffset in zip(captures, croppedImages, updatedOffsets):
@@ -118,11 +79,8 @@ def cropCapturesToOffsets(captures, offsets):
         capture.leftEyeBB -= updatedOffset
         capture.rightEyeBB -= updatedOffset
 
-    return updatedOffsets
-
-#TODO: ARE LANDMARKS LABLED BACKWARKS?!?! YEESH
-def cropCapturesToLandmark(captures, landmarkIndex):
-    offsetsFromZero = np.array([capture.landmarks.landmarkPoints[landmarkIndex] for capture in captures])
-    offsets = offsetsFromZero - offsetsFromZero[0]#[minXOffset, minYOffset]
-    cropToOffsets(captures, offsets)
-
+def cropImagesToParentBB(images, BBs):
+    """Take a set of images and a set of bounding boxes and find the BB that encompases all of the provided BBs. Crop all images to the parent BB"""
+    BBPoints = np.array([[BB[0], BB[1], BB[0] + BB[2], BB[1] + BB[3]] for BB in BBs])
+    parentBBPoints = [np.min(BBPoints[:, 0]), np.min(BBPoints[:, 1]), np.max(BBPoints[:, 2]), np.max(BBPoints[:, 3])]
+    return [image[parentBBPoints[1]:parentBBPoints[3], parentBBPoints[0]:parentBBPoints[2]] for image in images]
