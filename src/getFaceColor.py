@@ -84,7 +84,8 @@ for message in messages:
     except Exception as err:
         print(err)
         logger.error(err)
-        pass
+        raise err
+        #pass
 
     #time.sleep(10)
 

@@ -68,8 +68,8 @@ def cropImagesToOffsets(images, offsets):
 
     return images, updatedOffsets
 
-def cropCapturesToOffsets(captures, offsets):
-    """Crops the captures to the offsets provided. Updates landmarks, masks, BBs as well"""
+def cropCapturesToFaceOffsets(captures, offsets):
+    """Crops face image in captures to the offsets provided. Updates landmarks, masks, BBs as well"""
     images = [capture.faceImage for capture in captures]
     croppedImages, updatedOffsets = cropImagesToOffsets(images, offsets)
     for capture, croppedImage, updatedOffset in zip(captures, croppedImages, updatedOffsets):
@@ -78,6 +78,22 @@ def cropCapturesToOffsets(captures, offsets):
         capture.faceMask = capture.faceMask[updatedOffset[1]:updatedOffset[1] + capture.faceImage.shape[0], updatedOffset[0]:updatedOffset[0] + capture.faceImage.shape[1]]
         capture.leftEyeBB -= updatedOffset
         capture.rightEyeBB -= updatedOffset
+
+def getEyeImagesCroppedToOffsets(captures, offsets, side):
+    """Returns specified eye image cropped to offsets"""
+
+    if side == 'left':
+        imageSets = np.array([capture.leftEyeImage for capture in captures])
+    elif side == 'right':
+        imageSets = np.array([capture.rightEyeImage for capture in captures])
+    elif side is None:
+        raise ValueError("Eye not specified with side argument")
+    else:
+        raise ValueError("Invalid side argument")
+
+    croppedImages, _ = cropImagesToOffsets(imageSets, offsets)
+
+    return croppedImages
 
 def cropImagesToParentBB(images, BBs):
     """Take a set of images and a set of bounding boxes and find the BB that encompases all of the provided BBs. Crop all images to the parent BB"""

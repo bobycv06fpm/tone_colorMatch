@@ -3,7 +3,6 @@ Skin tone measuring image processing pipeline
 """
 import cv2
 import numpy as np
-import alignImages
 from getAverageReflection import getAverageScreenReflectionColor
 from state import State
 import colorTools
@@ -322,7 +321,7 @@ def run(user_id, capture_id=None, isProduction=False):
     imageTools.labelSharpestCaptures(captures)
 
     try:
-        leftEyeCropOffsets, rightEyeCropOffsets, faceCropOffsets = alignImages.getCapturesOffsets(captures)
+        leftEyeCropOffsets, rightEyeCropOffsets, faceCropOffsets = imageTools.getCapturesOffsets(captures)
     except ValueError as err:
         LOGGER.error('User :: %s | Image :: %s | Error :: %s | Details ::\n%s', state.user_id, state.imageName(), 'Error Cropping and Aligning Images', err)
         state.errorProccessing()
@@ -330,7 +329,7 @@ def run(user_id, capture_id=None, isProduction=False):
             raise
         return getFailureResponse(state.imageName())
 
-    cropTools.cropCapturesToOffsets(captures, faceCropOffsets)
+    cropTools.cropCapturesToFaceOffsets(captures, faceCropOffsets)
 
     #All offsets are relative to capture[0]
     for capture in captures:

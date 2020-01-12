@@ -135,7 +135,8 @@ disable=print-statement,
         exception-escape,
         comprehension-escape,
         E1136, #pylint/issues/3139
-        C0103 #Might be worth enabling this again in the future...
+        C0103, #Might be worth enabling this again in the future...
+        E0633 #Pylint seems confused about unpacking numpy arrays
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

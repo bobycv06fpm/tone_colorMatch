@@ -33,7 +33,7 @@ def __getEyeWhiteMask(eyes, reflection_bb, wb, label):
     primarySpecularReflectionBB = np.copy(reflection_bb)
     primarySpecularReflectionBB[0:2] -= reflection_bb[2:4]
     primarySpecularReflectionBB[2:4] *= 3
-    primarySpecularReflectionMask = bbToMask(primarySpecularReflectionBB, eyes[0][:, :, 0].shape)
+    primarySpecularReflectionMask = __bbToMask(primarySpecularReflectionBB, eyes[0][:, :, 0].shape)
 
     eye_blur = [cv2.blur(eye, (5, 5)) for eye in eyes]
     eyes_hsv = [colorTools.naiveBGRtoHSV(eye) for eye in eye_blur]
@@ -184,8 +184,11 @@ def __getReflectionBB(eyes, wb):
     eyeReflectionBB[1] += eyeCropY1
     return np.array(eyeReflectionBB)
 
-def __getAnnotatedEyeStrip(leftReflectionBB, leftScleraContour, leftEyeCrop, rightReflectionBB, rightScleraContour, rightEyeCrop):
+def __getAnnotatedEyeStrip(leftEyeFeatures, rightEyeFeatures):
     """For Sanity Checking. Return an image with the left and right eyes of each capture with the sclera and device screen reflection over layed"""
+
+    leftReflectionBB, leftScleraContour, leftEyeCrop = leftEyeFeatures
+    rightReflectionBB, rightScleraContour, rightEyeCrop = rightEyeFeatures
 
     leftReflectionP1 = leftReflectionBB[0:2]
     leftReflectionP2 = leftReflectionP1 + leftReflectionBB[2:4]
@@ -236,14 +239,14 @@ def __calculateRepresentativeReflectionPoint(reflectionPoints):
     """Calculate the point that should be closest to the true refletion color"""
     numPoints = reflectionPoints.shape[0]
 
-    oneTenth = int(numPoints / 10) * -1
+    topTenPercent = int(numPoints / 10) * -1
 
-    topMedianBlue = np.median(np.array(sorted(reflectionPoints[:, 0]))[oneTenth:])
-    topMedianGreen = np.median(np.array(sorted(reflectionPoints[:, 1]))[oneTenth:])
-    topMedianRed = np.median(np.array(sorted(reflectionPoints[:, 2]))[oneTenth:])
+    #Only take the median of the top 10% of subpixels
+    topMedianBlue = np.median(np.array(sorted(reflectionPoints[:, 0]))[topTenPercent:])
+    topMedianGreen = np.median(np.array(sorted(reflectionPoints[:, 1]))[topTenPercent:])
+    topMedianRed = np.median(np.array(sorted(reflectionPoints[:, 2]))[topTenPercent:])
 
     newRepValue = [topMedianBlue, topMedianGreen, topMedianRed]
-    #print('Old :: {} | New :: {}'.format(old, newRepValue))
     return np.array(newRepValue)
 
 def __extractScleraPoints(eyes, scleraMask):
@@ -258,9 +261,8 @@ def __extractScleraPoints(eyes, scleraMask):
     print('Means :: {}'.format(brightestMeans))
     return np.array(brightestMeans) / 255
 
-def __extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
+def __extractReflectionPoints(reflectionBB, eyeCrop):
     """Return the points in the device screen reflection"""
-
     [x, y, w, h] = reflectionBB
 
     reflectionCrop = eyeCrop[y:y+h, x:x+w]
@@ -279,17 +281,18 @@ def __extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
     if cleanPixelRatio < 0.95:
         raise ValueError('Not enough clean non-clipped pixels in eye reflections')
 
-    threshold = 1/4 #1/5
+    threshold = 1/4
 
-    stretchedBlueReflectionCrop = (reflectionCrop[:, :, 0] - np.min(reflectionCrop[:, :, 0])) * (1 / (np.max(reflectionCrop[:, :, 0]) - np.min(reflectionCrop[:, :, 0])))
+    stretchedBlueReflectionCrop = imageTools.simpleStretchHistogram(reflectionCrop[:, :, 0])
     blueMask = stretchedBlueReflectionCrop > threshold
 
-    stretchedGreenReflectionCrop = (reflectionCrop[:, :, 1] - np.min(reflectionCrop[:, :, 1])) * (1 / (np.max(reflectionCrop[:, :, 1]) - np.min(reflectionCrop[:, :, 1])))
+    stretchedGreenReflectionCrop = imageTools.simpleStretchHistogram(reflectionCrop[:, :, 1])
     greenMask = stretchedGreenReflectionCrop > threshold
 
-    stretchedRedReflectionCrop = (reflectionCrop[:, :, 2] - np.min(reflectionCrop[:, :, 2])) * (1 / (np.max(reflectionCrop[:, :, 2]) - np.min(reflectionCrop[:, :, 2])))
+    stretchedRedReflectionCrop = imageTools.simpleStretchHistogram(reflectionCrop[:, :, 2])
     redMask = stretchedRedReflectionCrop > threshold
 
+    #Mask out any pixels where each Red, Green, and Blue are not above the threshold
     reflectionMask = np.logical_not(np.logical_or(np.logical_or(blueMask, greenMask), redMask))
     inv_reflectionMask = np.logical_not(reflectionMask)
     contours, _ = cv2.findContours(inv_reflectionMask.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -301,9 +304,6 @@ def __extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
     boundingRectangle[0] += reflectionBB[0]
     boundingRectangle[1] += reflectionBB[1]
 
-    if ignoreMask:
-        reflectionMask.fill(False)
-
     showMask = np.stack([reflectionMask.astype('uint8'), reflectionMask.astype('uint8'), reflectionMask.astype('uint8')], axis=2) * 255
     maskedReflections = np.copy(reflectionCrop)
     maskedReflections[reflectionMask] = [0, 0, 0]
@@ -313,7 +313,7 @@ def __extractReflectionPoints(reflectionBB, eyeCrop, eyeMask, ignoreMask):
 
     representativeReflectionPoint = __calculateRepresentativeReflectionPoint(reflectionPoints)
 
-    return [representativeReflectionPoint, cleanPixelRatio, stacked, boundingRectangle]
+    return [representativeReflectionPoint, stacked, boundingRectangle]
 
 def getEyeWidth(capture):
     """Returns the average width of the eye"""
@@ -328,69 +328,59 @@ def getEyeWidth(capture):
 def getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, state):
     """Returns data retreived from the users eye including Screen reflection color, reflection size, and scelra color and luminance"""
     wb = captures[0].whiteBalance
-    isSpecialCase = [capture.isNoFlash for capture in captures]
 
-    leftEyeCrops = [capture.leftEyeImage for capture in captures]
-    leftEyeMasks = [capture.leftEyeMask for capture in captures]
-
-    leftEyeCrops, _ = cropTools.cropImagesToOffsets(leftEyeCrops, leftEyeOffsets)
-    leftEyeMasks, _ = cropTools.cropImagesToOffsets(leftEyeMasks, leftEyeOffsets)
-
-    rightEyeCrops = [capture.rightEyeImage for capture in captures]
-    rightEyeMasks = [capture.rightEyeMask for capture in captures]
-
-    rightEyeCrops, _ = cropTools.cropImagesToOffsets(rightEyeCrops, rightEyeOffsets)
-    rightEyeMasks, _ = cropTools.cropImagesToOffsets(rightEyeMasks, rightEyeOffsets)
-
+    leftEyeCrops = cropTools.getEyeImagesCroppedToOffsets(captures, leftEyeOffsets, 'left')
     leftReflectionBB = __getReflectionBB(leftEyeCrops, wb)
-    rightReflectionBB = __getReflectionBB(rightEyeCrops, wb)
-
     leftEyeWhiteMask, leftEyeWhiteContour = __getEyeWhiteMask(leftEyeCrops, leftReflectionBB, wb, 'left')
-    rightEyeWhiteMask, rightEyeWhiteContour = __getEyeWhiteMask(rightEyeCrops, rightReflectionBB, wb, 'right')
-
     leftEyeScleraPoints = __extractScleraPoints(leftEyeCrops, leftEyeWhiteMask)
+
+    rightEyeCrops = cropTools.getEyeImagesCroppedToOffsets(captures, rightEyeOffsets, 'right')
+    rightReflectionBB = __getReflectionBB(rightEyeCrops, wb)
+    rightEyeWhiteMask, rightEyeWhiteContour = __getEyeWhiteMask(rightEyeCrops, rightReflectionBB, wb, 'right')
     rightEyeScleraPoints = __extractScleraPoints(rightEyeCrops, rightEyeWhiteMask)
-    #cv2.waitKey(0)
 
-    #leftEyeCoords[:, 0:2] += leftOffsets
-    #rightEyeCoords[:, 0:2] += rightOffsets
+    #RESULTS ARE IN LINEAR COLORSPACE
+    #Left Reflection -> lr, Right Reflection -> rr
+    lrChosenPoints, lrStacked, lrBoundingRectangle = np.array([__extractReflectionPoints(leftReflectionBB, eyeCrop) for eyeCrop in leftEyeCrops]).T
+    rrChosenPoints, rrStacked, rrBoundingRectangle = np.array([__extractReflectionPoints(rightReflectionBB, eyeCrop) for eyeCrop in rightEyeCrops]).T
 
-    #RESULTS ARE LINEAR
-    leftReflectionStats = np.array([__extractReflectionPoints(leftReflectionBB, eyeCrop, eyeMask, ignoreMask) for eyeCrop, eyeMask, ignoreMask in zip(leftEyeCrops, leftEyeMasks, isSpecialCase)])
-    rightReflectionStats = np.array([__extractReflectionPoints(rightReflectionBB, eyeCrop, eyeMask, ignoreMask) for eyeCrop, eyeMask, ignoreMask in zip(rightEyeCrops, rightEyeMasks, isSpecialCase)])
+    refinedLeftReflectionBBs = np.vstack(lrBoundingRectangle)
+    refinedRightReflectionBBs = np.vstack(rrBoundingRectangle)
 
-    refinedLeftReflectionBBs = np.vstack(leftReflectionStats[:, 3])
-    refinedRightReflectionBBs = np.vstack(rightReflectionStats[:, 3])
-
-
+    #Check if any specular reflection is significantly (defined by TOLERANCE) larger or smaller than the others
     TOLERANCE = 0.20
-    leftReflectionBBAreas = [r[2] * r[3] for r in refinedLeftReflectionBBs]
+    leftReflectionBBAreas = [bb[2] * bb[3] for bb in refinedLeftReflectionBBs]
     leftReflectionBBAreasMedian = np.median(leftReflectionBBAreas)
     leftMask = np.abs(leftReflectionBBAreas - leftReflectionBBAreasMedian) > (TOLERANCE * leftReflectionBBAreasMedian)
 
-    rightReflectionBBAreas = [r[2] * r[3] for r in refinedRightReflectionBBs]
+    rightReflectionBBAreas = [bb[2] * bb[3] for bb in refinedRightReflectionBBs]
     rightReflectionBBAreasMedian = np.median(rightReflectionBBAreas)
     rightMask = np.abs(rightReflectionBBAreas - rightReflectionBBAreasMedian) > (TOLERANCE * rightReflectionBBAreasMedian)
 
+    #If either eye has an outlying reflection size, label it as blurry
+    #  Often caused by a moving screen (user w/ Shakey hands, unprepared, etc) . It will create a smear effect which makes the reflection appear larger
     blurryMask = np.logical_and(leftMask, rightMask)
 
+    leftEyeFeatures = [[leftReflectionBBrefined, leftEyeWhiteContour, leftEyeCrop] for leftReflectionBBrefined, leftEyeCrop in zip(refinedLeftReflectionBBs, leftEyeCrops)]
+    rightEyeFeatures = [[rightReflectionBBrefined, rightEyeWhiteContour, rightEyeCrop] for rightReflectionBBrefined, rightEyeCrop in zip(refinedRightReflectionBBs, rightEyeCrops)]
 
-    annotatedEyeStrips = [__getAnnotatedEyeStrip(leftReflectionBBrefined, leftEyeWhiteContour, leftEyeCrop, rightReflectionBBrefined, rightEyeWhiteContour, rightEyeCrop) for leftEyeCrop, rightEyeCrop, leftReflectionBBrefined, rightReflectionBBrefined in zip(leftEyeCrops, rightEyeCrops, refinedLeftReflectionBBs, refinedRightReflectionBBs)]
+    annotatedEyeStrips = [__getAnnotatedEyeStrip(leftEye, rightEye) for leftEye, rightEye in zip(leftEyeFeatures, rightEyeFeatures)]
 
     stackedAnnotatedEyeStrips = np.vstack(annotatedEyeStrips)
     state.saveReferenceImageBGR(stackedAnnotatedEyeStrips, 'eyeStrips')
 
-    leftReflectionImages = np.hstack(leftReflectionStats[:, 2])
-    rightReflectionImages = np.hstack(rightReflectionStats[:, 2])
+    leftReflectionImages = np.hstack(lrStacked)
     state.saveReferenceImageBGR(leftReflectionImages, 'Left Reflections')
+
+    rightReflectionImages = np.hstack(rrStacked)
     state.saveReferenceImageBGR(rightReflectionImages, 'Right Reflections')
 
-    averageReflections = (leftReflectionStats[:, 0] + rightReflectionStats[:, 0]) / 2
+    averageReflections = (lrChosenPoints + rrChosenPoints) / 2
     averageReflections = [(averageReflection if np.all(averageReflection.astype('bool')) else (averageReflection + np.array([1, 1, 1]))) for averageReflection in averageReflections]
 
     #Whitebalance per flash and eye to get luminance levels... Maybe compare the average reflection values?
-    wbLeftReflections = np.vstack(leftReflectionStats[:, 0])
-    wbRightReflections = np.vstack(rightReflectionStats[:, 0])
+    wbLeftReflections = np.vstack(lrChosenPoints)
+    wbRightReflections = np.vstack(rrChosenPoints)
 
     #GET Luminance in reflection per flash and eye
     leftReflectionLuminances = [colorTools.getRelativeLuminance([leftReflection])[0] for leftReflection in wbLeftReflections]
