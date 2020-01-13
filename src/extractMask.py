@@ -1,9 +1,9 @@
-import utils
-import colorsys
+"""Functions that help extract masks defined by a bitmask or a polygon"""
 import numpy as np
 import cv2
 
 def getMaskedImage(image, clippedMask, polygons):
+    """Returns the masked image incorporating a bitmask and polygons"""
     regionsMask = np.zeros(clippedMask.shape, dtype='uint8')
 
     for polygon in polygons:
@@ -12,33 +12,23 @@ def getMaskedImage(image, clippedMask, polygons):
 
     regionsMask = regionsMask.astype('bool')
     filteredRegionsMask = np.logical_and(regionsMask, np.logical_not(clippedMask))
-    #maskedImage = np.where(filteredRegionsMask[..., None], image, 1)
     maskedImage = np.where(filteredRegionsMask[..., None], image, 0)
 
     return maskedImage#.astype('uint8')
 
 
 def extractPolygonPoints(image, mask, polygon):
+    """Returns the points contained in the polygon incorporating the bitmask"""
     regionMask = np.zeros(mask.shape, dtype='uint8')
 
     hull = cv2.convexHull(polygon)
     regionMask = cv2.fillConvexPoly(regionMask, hull, 1)
     regionMask = regionMask.astype('bool')
-    #clippedRegionMask = np.logical_and(regionMask, np.logical_not(clippedMask))
     filteredRegionMask = np.logical_and(regionMask, mask)
-#    cv2.imshow('region mask', regionMask.astype('uint8') * 255)
-#    cv2.imshow('mask', mask.astype('uint8') * 255)
-#    cv2.imshow('combined mask', filteredRegionMask.astype('uint8') * 255)
-#    cv2.waitKey(0)
 
     unfilteredRegionPoints = image[regionMask]
     filteredRegionPoints = image[filteredRegionMask]
 
     cleanClippedRatio = filteredRegionPoints.size / unfilteredRegionPoints.size
 
-    #cutoff = 0.1
-    #if cleanClippedRatio < cutoff:
-    #    raise ValueError('Not enough clean non-clipped pixels. Ratio :: ' + str(cleanClippedRatio))
-
     return [filteredRegionPoints, cleanClippedRatio]
-

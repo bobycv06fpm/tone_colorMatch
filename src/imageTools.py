@@ -2,7 +2,6 @@
 import numpy as np
 import cv2
 import colorTools
-import imageTools
 import cropTools
 
 from logger import getLogger
@@ -78,7 +77,7 @@ def labelSharpestCaptures(captures):
     rightEyeCrops = [capture.rightEyeImage for capture in captures]
 
     #Use Mean FFT as an approximate for sharpness. Get for each eye independently
-    leftEyeCropsMeanFFT = __getImageSetFFTMeans(leftEyeCrops) 
+    leftEyeCropsMeanFFT = __getImageSetFFTMeans(leftEyeCrops)
     rightEyeCropsMeanFFT = __getImageSetFFTMeans(rightEyeCrops)
 
     #Average L and R meanFFT to generate a sharpness score
@@ -130,7 +129,7 @@ def __getEyeOffsets(eyes, sharpestIndex, wb=None):
         eyes = [colorTools.whitebalance_from_asShot_to_d65(eye, *wb) for eye in eyes]
 
     greyEyes = [np.min(eye, axis=2) for eye in eyes] #Sort of counter intuitive, but using min we basically isolate white values/reflections
-    stretchedEyes = [imageTools.stretchHistogram(greyEye, [3, 3]) for greyEye in greyEyes]
+    stretchedEyes = [stretchHistogram(greyEye, [3, 3]) for greyEye in greyEyes]
     preparedEyes = [__getPreparedEyeImage(stretchedEye) for stretchedEye in stretchedEyes]
 
     relativeEyeOffsets = [__calculateImageOffset(preparedEye, preparedEyes[sharpestIndex]) for index, preparedEye in enumerate(preparedEyes)]

@@ -362,9 +362,6 @@ def getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, s
     rightReflectionImages = np.hstack(rrStacked)
     state.saveReferenceImageBGR(rightReflectionImages, 'Right Reflections')
 
-    averageReflections = (lrChosenPoints + rrChosenPoints) / 2
-
-    #Whitebalance per flash and eye to get luminance levels... Maybe compare the average reflection values?
     leftReflections = np.vstack(lrChosenPoints)
     rightReflections = np.vstack(rrChosenPoints)
 
@@ -375,8 +372,9 @@ def getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, s
     eyeWidth = getEyeWidth(captures[0])
 
     if eyeWidth == 0:
-        raise ValueError('Zero value Eye Width')
+        raise ValueError('Zero Value Eye Width')
 
+    #Put reflection width and height in terms of eye width. Used to approximately compensate for the size of the device illumiating face
     leftReflectionWidth, leftReflectionHeight = np.mean(refinedLeftReflectionBBs[:, 2:4], axis=0) / eyeWidth
     rightReflectionWidth, rightReflectionHeight = np.mean(refinedRightReflectionBBs[:, 2:4], axis=0) / eyeWidth
 
@@ -400,14 +398,16 @@ def getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, s
 
     middleIndex = math.floor(len(captures) / 2)
 
-    leftHalfReflectionLuminance = leftReflectionLuminances[middleIndex] * 2 #2x because we are using half
-    rightHalfReflectionLuminance = rightReflectionLuminances[middleIndex] * 2 #2x because we are using half
+    leftHalfReflectionLuminance = leftReflectionLuminances[middleIndex] * 2 #2x because we are using the half illuminated capture
+    rightHalfReflectionLuminance = rightReflectionLuminances[middleIndex] * 2 #2x because we are using the half illuminated capture
 
-    #TODO: Rename Fluxish to LuminantArea?
-    leftFluxish = leftReflectionArea * leftHalfReflectionLuminance
-    rightFluxish = rightReflectionArea * rightHalfReflectionLuminance
+    leftIlluminantMag = leftReflectionArea * leftHalfReflectionLuminance
+    rightIlluminantMag = rightReflectionArea * rightHalfReflectionLuminance
 
-    LOGGER.info('LEFT FLUXISH :: %s | AREA ::  %s | LUMINOSITY :: %s', leftFluxish, leftReflectionArea, leftHalfReflectionLuminance)
-    LOGGER.info('RIGHT FLUXISH :: %s | AREA ::  %s | LUMINOSITY :: %s', rightFluxish, rightReflectionArea, rightHalfReflectionLuminance)
+    LOGGER.info('LEFT ILLUMINANTE MAG :: %s | AREA ::  %s | LUMINOSITY :: %s', leftIlluminantMag, leftReflectionArea, leftHalfReflectionLuminance)
+    LOGGER.info('RIGHT ILLUMINANTE MAG :: %s | AREA ::  %s | LUMINOSITY :: %s', rightIlluminantMag, rightReflectionArea, rightHalfReflectionLuminance)
 
-    return [averageReflections[middleIndex], averageReflectionArea, leftReflections, rightReflections, leftEyeScleraPoints, rightEyeScleraPoints, blurryMask]
+    leftEye = [leftReflections, leftEyeScleraPoints]
+    rightEye = [rightReflections, rightEyeScleraPoints]
+
+    return [leftEye, rightEye, averageReflectionArea, blurryMask]

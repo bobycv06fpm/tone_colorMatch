@@ -1,9 +1,10 @@
+"A class to simplify handling face regions"""
 import numpy as np
-import cv2
 import extractMask
 import colorTools
 
 class FaceRegions:
+    """Simplifies accessing face regions. Wraps Capture and mask"""
 
     def __init__(self, capture, mask):
         self.mask = mask
@@ -32,6 +33,7 @@ class FaceRegions:
         self.linearForeheadMean = np.mean(self.linearForeheadPoints, axis=0)
 
     def getRegionMapValue(self):
+        """Returns the mean value for each face region in a map"""
         value = {}
         value['left'] = [float(value) for value in self.linearLeftCheekMean]
         value['right'] = [float(value) for value in self.linearRightCheekMean]
@@ -39,39 +41,13 @@ class FaceRegions:
         value['forehead'] = [float(value) for value in self.linearForeheadMean]
         return value
 
-    def maxSubpixelValue(self):
-        return np.max([np.max(region) for region in [self.linearLeftCheekPoints, self.linearRightCheekPoints, self.linearChinPoints, self.linearForeheadPoints]])
-
     def getMaskedImage(self):
+        """Returns the face image masked by the face region polygons"""
         return extractMask.getMaskedImage(self.capture.faceImage, self.capture.faceMask, [self.leftCheekPolygon, self.rightCheekPolygon, self.chinPolygon, self.foreheadPolygon])
 
-    def getRegionPoints(self):
+    def __getRegionPoints(self):
         return np.array([self.linearLeftCheekPoints, self.linearRightCheekPoints, self.linearChinPoints, self.linearForeheadPoints])
 
-    def getNumPixelsPerRegion(self):
-        regionsPoints = self.getRegionPoints()
-        return [len(regionPoints) for regionPoints in regionsPoints]
-
-    def getRegionMedians(self):
-        #return np.array([self.linearLeftCheekMedian, self.linearRightCheekMedian, self.linearChinMedian, self.linearForeheadMedian])
+    def getRegionMeans(self):
+        """Returns the mean for each facial region in an array"""
         return np.array([self.linearLeftCheekMean, self.linearRightCheekMean, self.linearChinMean, self.linearForeheadMean])
-
-    def getRegionMedianHSV(self):
-        return [colorTools.bgr_to_hsv(bgr) for bgr in self.getRegionMedians()]
-
-    def getRegionHSV(self):
-        #Need to match CV2 result with colorsys result H: [0-1] S: [0-1] V: [0-255] so divide by [255, 255, 1]
-        return [cv2.cvtColor(np.array([regionPoints]).astype('uint8'), cv2.COLOR_BGR2HSV_FULL)[0] / np.array([255, 255, 1]) for regionPoints in self.getRegionPoints()]
-
-    def getRegionMedianLuminance(self):
-        return [colorTools.getRelativeLuminance([regionMedian]) for regionMedian in self.getRegionMedians()]
-
-    def getRegionLuminance(self):
-        return [colorTools.getRelativeLuminance(regionPoints) for regionPoints in self.getRegionPoints()]
-
-    def getRegionCleanRatios(self):
-        return np.array([self.leftCheekCleanRatio, self.rightCheekCleanRatio, self.chinCleanRatio, self.foreheadCleanRatio])
-
-    def getNumberOfRegions(self):
-        return 4
-

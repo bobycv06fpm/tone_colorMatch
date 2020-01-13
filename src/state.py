@@ -36,16 +36,11 @@ class State:
 
             LOGGER.info("Opening connection to DB")
 
-            #NOTE: Do not love storing password in plain text in code....
             self.conn = psycopg2.connect(dbname="ebdb",
-                                         host="aa7a9qu9bzxsgc.cz5sm4eeyiaf.us-west-2.rds.amazonaws.com",
+                                         host="",
                                          user="toneDatabase",
                                          port="5432",
-                                         password="mr9pkatYVlX5pD9HjGRDJEzJ0NFpoC")
-            #self.conn = psycopg2.connect(dbname="tone",
-            #                             user="postgres",
-            #                             port="5434",
-            #                             password="dirty vent unroof")
+                                         password="")
 
             LOGGER.info("Opened connection to DB")
 

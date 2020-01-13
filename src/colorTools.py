@@ -1,13 +1,12 @@
+"""Set of tools for working with color"""
 import colorsys
 import numpy as np
-import cv2
 
 def bgr_to_hsv(pixel):
     """Convert a single pixel from BGR to HSV"""
     [b, g, r] = pixel
     return colorsys.rgb_to_hsv(r, g, b)
 
-#TODO: NOT SURE THIS IS SOMETHING YOU CAN DO...
 # https://www.rapidtables.com/convert/color/hsv-to-rgb.html Modified to Scaled Value. Check notes October 3, 2019
 def hueSatToBGRRatio(hue, sat):
     """Returns the ratio of Green and Blue to Red from Hue and Sat. Use result for white balancing"""
@@ -90,7 +89,7 @@ def naiveBGRtoHSV(bgrImage, isFloat=True):
     hsvImage[mask_deltaAlmostZero, S] = 0
 
     hsvImage[mask_zeroMax, H] = 0
-    hsvImage[mask_zeroMax, S] = 0#float('nan')
+    hsvImage[mask_zeroMax, S] = 0
     hsvImage[mask_zeroMax, V] = 0
 
     return hsvImage
@@ -129,7 +128,6 @@ def convert_linearBGR_float_to_sBGR(image):
     convertedLargeValues = __linearBGR_to_sBGR_image_largeValues(image)
     image *= Small_Values_Const
 
-    #convertedSmallValues *= smallValuesMask
     convertedLargeValues *= (~smallValuesMask)
     image *= smallValuesMask
 
