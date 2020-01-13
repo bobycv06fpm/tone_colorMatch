@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 import colorTools
 import cropTools
+import extractMask
 
 from logger import getLogger
 LOGGER = getLogger(__name__, 'app')
@@ -168,3 +169,117 @@ def getCapturesOffsets(captures):
     LOGGER.info('Face Offsets ::\n%s', faceCropOffsets)
 
     return [eyeCropLeftEyeOffsets, eyeCropRightEyeOffsets, faceCropOffsets]
+
+def getReflectionColor(reflectionPoints):
+    """
+    Converts a set of points to a single BGR point representative of that color, without value information
+       Only Use for WB!
+    """
+    reflectionHSV = colorTools.naiveBGRtoHSV(np.array([reflectionPoints]))[0]
+    medianHSV = np.median(reflectionHSV, axis=0)
+    hue, sat, _ = medianHSV
+
+    proportionalBGR = colorTools.hueSatToBGRRatio(hue, sat)
+    return np.asarray(proportionalBGR)
+
+def extractSkinReflectionMask(brightestCapture, dimmestCapture, wb_ratios):
+    """Returns a mask based on the face regions and a hueristic to avoid surface specular reflection on the skin"""
+    brightest = colorTools.convert_sBGR_to_linearBGR_float(brightestCapture.faceImage)
+    dimmest = colorTools.convert_sBGR_to_linearBGR_float(dimmestCapture.faceImage)
+
+    brightest_wb = brightest / wb_ratios
+    dimmest_wb = dimmest / wb_ratios
+
+    brightest = cv2.GaussianBlur(brightest_wb, (5, 5), 0)
+    dimmest = cv2.GaussianBlur(dimmest_wb, (5, 5), 0)
+
+    diff = brightest - dimmest
+    subZero = diff < 0
+    subzeroMask = np.sum(subZero.astype('uint8'), axis=2) > 0
+    diff[subzeroMask] = [0, 0, 0]
+
+    leftCheekPolygon = brightestCapture.landmarks.getLeftCheekPoints()
+    rightCheekPolygon = brightestCapture.landmarks.getRightCheekPoints()
+    chinPolygon = brightestCapture.landmarks.getChinPoints()
+    foreheadPolygon = brightestCapture.landmarks.getForeheadPoints()
+
+    hsv = colorTools.naiveBGRtoHSV(diff)
+    brightv2 = np.mean(diff, axis=2)
+    hsv[:, :, 2] = brightv2
+
+    masked_hsv = extractMask.getMaskedImage(hsv, brightestCapture.faceMask, [leftCheekPolygon, rightCheekPolygon, chinPolygon, foreheadPolygon])
+    masked_region_rough = masked_hsv[:, :, 1] != 0
+
+    rotateHue = masked_hsv[:, :, 0] + 0.25
+    rotateHue[rotateHue > 1] -= 1
+
+    masked_hsv[masked_region_rough, 0] = rotateHue[masked_region_rough]
+
+    hue_median = np.median(masked_hsv[masked_region_rough, 0])
+    hue_std = np.std(masked_hsv[masked_region_rough, 0])
+
+    sat_median = np.median(masked_hsv[masked_region_rough, 1])
+    sat_std = np.std(masked_hsv[masked_region_rough, 1])
+
+    mask_template = np.zeros(masked_hsv.shape[0:2], dtype='bool')
+
+    hue_lower_mask = np.copy(mask_template)
+    hue_upper_mask = np.copy(mask_template)
+    sat_lower_mask = np.copy(mask_template)
+    sat_upper_mask = np.copy(mask_template)
+
+    multiplier = 0.5
+    hue_range = multiplier * hue_std
+    hue_lower_mask[masked_region_rough] = masked_hsv[masked_region_rough, 0] > (hue_median - hue_range)
+    hue_upper_mask[masked_region_rough] = masked_hsv[masked_region_rough, 0] < (hue_median + hue_range)
+    hue_mask = np.logical_and(hue_lower_mask, hue_upper_mask)
+
+    sat_range = multiplier * sat_std
+    sat_lower_mask[masked_region_rough] = masked_hsv[masked_region_rough, 1] > (sat_median - sat_range)
+    sat_upper_mask[masked_region_rough] = masked_hsv[masked_region_rough, 1] < (sat_median + sat_range)
+    sat_mask = np.logical_and(sat_lower_mask, sat_upper_mask)
+
+    points_mask = np.logical_and(sat_mask, hue_mask)
+
+    return points_mask
+
+
+def synthesis(captures):
+    """Create a visual approximate for what the color measuring algorithm is doing. Helpful for spot and santiy checks"""
+    #Just Temp ... figure out robust way to do this?
+    scale = 10
+
+    images = [capture.faceImage for capture in captures]
+    linearImages = np.asarray([colorTools.convert_sBGR_to_linearBGR_float(image) for image in images], dtype='float32')
+    #linearImagesBlur = np.array([cv2.GaussianBlur(img, (3, 3), 0) for img in linearImages])
+    #linearImagesDiffsOld = linearImages[:-1] - linearImages[1:]
+
+    count = np.arange(len(captures))
+    oddMask = (np.arange(len(captures)) % 2).astype('bool')
+    evenMask = np.logical_not(oddMask)
+
+    oddMaskBrighter = np.copy(oddMask)
+    oddMaskBrighter[max(count[oddMaskBrighter])] = False
+    oddMaskDarker = np.copy(oddMask)
+    oddMaskDarker[min(count[oddMaskBrighter])] = False
+
+    evenMaskBrighter = np.copy(evenMask)
+    evenMaskBrighter[max(count[evenMaskBrighter])] = False
+    evenMaskDarker = np.copy(evenMask)
+    evenMaskDarker[min(count[evenMaskBrighter])] = False
+
+    linearImages[oddMaskBrighter] -= linearImages[oddMaskDarker]
+    linearImages[evenMaskBrighter] -= linearImages[evenMaskDarker]
+
+    linearImageSynth = np.median(linearImages[:-2], axis=0)
+    linearImageSynthMedianBlur = cv2.medianBlur(linearImageSynth, 5)
+
+    linearImageSynthTransform = np.clip(np.round(linearImageSynth * scale * 255), 0, 255).astype('uint8')
+    linearImageSynthTransformMedianBlur = cv2.medianBlur(linearImageSynthTransform, 5)
+
+    show = np.hstack([linearImageSynthTransform, linearImageSynthTransformMedianBlur])
+    showSBGR = colorTools.convert_linearBGR_float_to_sBGR(show / 255).astype('uint8')
+
+    shows = np.vstack([show, showSBGR])
+
+    return [linearImageSynthMedianBlur, shows]
