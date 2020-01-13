@@ -1,10 +1,11 @@
+"""Command line utility that gets the face color, processed in a number of different ways"""
 import pprint
 import argparse
 import psycopg2
 import runSteps
 
 import logger
-logger = logger.getLogger(__name__, 'app')
+LOGGER = logger.getLogger(__name__, 'app')
 
 conn = psycopg2.connect(dbname="ebdb",
                         host="",
@@ -83,7 +84,7 @@ for message in messages:
         pp.pprint(response)
     except Exception as err:
         print(err)
-        logger.error(err)
+        LOGGER.error(err)
         raise err
 
 print("Done")

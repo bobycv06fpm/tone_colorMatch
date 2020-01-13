@@ -114,7 +114,7 @@ def getReflectionColor(reflectionPoints):
     return np.asarray(proportionalBGR)
 
 def extractSkinReflectionMask(brightestCapture, dimmestCapture, wb_ratios):
-    """Return a mask of the specular reflections on the surface of the skin. Only works on ambient light reflections, not specular reflections caused by device screen"""
+    """Returns a mask based on the face regions and a hueristic to avoid surface specular reflection on the skin"""
     brightest = colorTools.convert_sBGR_to_linearBGR_float(brightestCapture.faceImage)
     dimmest = colorTools.convert_sBGR_to_linearBGR_float(dimmestCapture.faceImage)
 
@@ -186,8 +186,7 @@ def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
     scaledCaptureFaceRegions = []
 
     for regionIndex in range(0, numberOfRegions):
-        diff = plotTools.getDiffs(captureFaceRegions[3:-1, regionIndex, :])
-        scaledCaptureFaceRegion = diff 
+        scaledCaptureFaceRegion = plotTools.getDiffs(captureFaceRegions[3:-1, regionIndex, :])
         scaledCaptureFaceRegions.append(scaledCaptureFaceRegion)
 
     scaledCaptureFaceRegions = np.vstack(scaledCaptureFaceRegions)
@@ -196,8 +195,8 @@ def getBestGuess(faceRegions, leftEyeReflections, rightEyeReflections):
     rightEyeDiffs = plotTools.getDiffs(rightEyeReflections[3:-1])
     leftEyeDiffs[:, 2][leftEyeDiffs[:, 2] == 0] = 0.001
     rightEyeDiffs[:, 2][rightEyeDiffs[:, 2] == 0] = 0.001
-    scaledLeftEyeReflections = leftEyeDiffs #/ (np.ones(3) * np.reshape(leftEyeDiffs[:, 2], (leftEyeDiffs.shape[0], 1)))
-    scaledRightEyeReflections = rightEyeDiffs #/ (np.ones(3) * np.reshape(rightEyeDiffs[:, 2], (rightEyeDiffs.shape[0], 1)))
+    scaledLeftEyeReflections = leftEyeDiffs 
+    scaledRightEyeReflections = rightEyeDiffs
 
     scaledDiffReflections = np.vstack((scaledLeftEyeReflections, scaledRightEyeReflections))
 
