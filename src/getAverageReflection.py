@@ -21,13 +21,13 @@ def __bbToMask(bb, imgShape):
     img[bb[1]:(bb[1]+bb[3]), bb[0]:(bb[0]+bb[2])] = 1
     return img.astype('bool')
 
-def __getEyeWhiteMask(eyes, reflection_bb, wb, label):
+def __getEyeWhiteMask(eyes, reflection_bb, wb):
     """Returns a mask for the Sclera of both the left and right eyes"""
     for index, eye in enumerate(eyes):
         if eye.shape[0] * eye.shape[1] == 0:
             raise ValueError('Cannot Find #{} Eye'.format(index))
 
-    eyes = [colorTools.convert_sBGR_to_linearBGR_float_fast(eye) for eye in eyes]
+    eyes = [colorTools.convert_sBGR_to_linearBGR_float(eye) for eye in eyes]
     eyes = [colorTools.whitebalance_from_asShot_to_d65(eye, *wb) for eye in eyes]
 
     primarySpecularReflectionBB = np.copy(reflection_bb)
@@ -97,24 +97,12 @@ def __getEyeWhiteMask(eyes, reflection_bb, wb, label):
     thresh2 = cv2.morphologyEx(thresh2, cv2.MORPH_OPEN, kernel)
     thresh2 = cv2.morphologyEx(thresh2, cv2.MORPH_CLOSE, kernel)
 
-    contoursRefined, hierarchy = cv2.findContours(thresh2, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contoursRefined, _ = cv2.findContours(thresh2, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     areasRefined = [cv2.contourArea(c) for c in contoursRefined]
     maxIndex = np.argmax(areasRefined)
 
     target = np.zeros(thresh.shape, dtype='uint8')
     maskRefined = cv2.drawContours(target, contoursRefined, maxIndex, 255, cv2.FILLED).astype('bool')
-
-    #cv2.imshow('mask 2 - {}'.format(label), maskRefined)
-     #= np.stack((maskRefined, maskRefined, maskRefined), axis=-1)
-
-    #masked_eyes = np.copy(eyes)
-    #masked_eyes[:, np.logical_not(maskRefined)] = [0, 0, 0]
-
-    #cv2.imshow('diff', scaled_diff)
-    #cv2.imshow('thresh', thresh)
-    #cv2.imshow('sclera', sclera_mask)
-    #cv2.imshow('sclera {}'.format(label), np.vstack([np.hstack(masked_eyes[0:4]), np.hstack(masked_eyes[4:])]))
-    #cv2.waitKey(0)
 
     return [maskRefined, contoursRefined[maxIndex]]
 
@@ -124,7 +112,7 @@ def __getReflectionBB(eyes, wb):
         if eye.shape[0] * eye.shape[1] == 0:
             raise ValueError('Cannot Find #{} Eye'.format(index))
 
-    eyes = [colorTools.convert_sBGR_to_linearBGR_float_fast(eye) for eye in eyes]
+    eyes = [colorTools.convert_sBGR_to_linearBGR_float(eye) for eye in eyes]
     eyes = [colorTools.whitebalance_from_asShot_to_d65(eye, *wb) for eye in eyes]
     #greyEyes = np.array([np.mean(eye, axis=2) for eye in eyes])
     greyEyes = np.array([np.mean(eye[:, :, 0:2], axis=2) for eye in eyes])
@@ -175,7 +163,6 @@ def __getReflectionBB(eyes, wb):
             if borderPointsMedian > highScore:
                 highScore = borderPointsMedian
                 eyeReflectionBB = list(cv2.boundingRect(contour))
-                gradientMask = drawn.astype('bool')
 
     if eyeReflectionBB is None:
         raise ValueError('Could Not Find Reflection BB')
@@ -266,7 +253,7 @@ def __extractReflectionPoints(reflectionBB, eyeCrop):
     [x, y, w, h] = reflectionBB
 
     reflectionCrop = eyeCrop[y:y+h, x:x+w]
-    reflectionCrop = colorTools.convert_sBGR_to_linearBGR_float_fast(reflectionCrop)
+    reflectionCrop = colorTools.convert_sBGR_to_linearBGR_float(reflectionCrop)
 
     #Add together each subpixel mask for each pixel. if the value is greater than 0, one of the subpixels was clipping
     #Just mask = isClipping(Red) or isClipping(Green) or isClipping(Blue)
@@ -331,12 +318,12 @@ def getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, s
 
     leftEyeCrops = cropTools.getEyeImagesCroppedToOffsets(captures, leftEyeOffsets, 'left')
     leftReflectionBB = __getReflectionBB(leftEyeCrops, wb)
-    leftEyeWhiteMask, leftEyeWhiteContour = __getEyeWhiteMask(leftEyeCrops, leftReflectionBB, wb, 'left')
+    leftEyeWhiteMask, leftEyeWhiteContour = __getEyeWhiteMask(leftEyeCrops, leftReflectionBB, wb)
     leftEyeScleraPoints = __extractScleraPoints(leftEyeCrops, leftEyeWhiteMask)
 
     rightEyeCrops = cropTools.getEyeImagesCroppedToOffsets(captures, rightEyeOffsets, 'right')
     rightReflectionBB = __getReflectionBB(rightEyeCrops, wb)
-    rightEyeWhiteMask, rightEyeWhiteContour = __getEyeWhiteMask(rightEyeCrops, rightReflectionBB, wb, 'right')
+    rightEyeWhiteMask, rightEyeWhiteContour = __getEyeWhiteMask(rightEyeCrops, rightReflectionBB, wb)
     rightEyeScleraPoints = __extractScleraPoints(rightEyeCrops, rightEyeWhiteMask)
 
     #RESULTS ARE IN LINEAR COLORSPACE
@@ -361,11 +348,11 @@ def getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, s
     #  Often caused by a moving screen (user w/ Shakey hands, unprepared, etc) . It will create a smear effect which makes the reflection appear larger
     blurryMask = np.logical_and(leftMask, rightMask)
 
+    #Save some reference images for spot/sanity checking later
     leftEyeFeatures = [[leftReflectionBBrefined, leftEyeWhiteContour, leftEyeCrop] for leftReflectionBBrefined, leftEyeCrop in zip(refinedLeftReflectionBBs, leftEyeCrops)]
     rightEyeFeatures = [[rightReflectionBBrefined, rightEyeWhiteContour, rightEyeCrop] for rightReflectionBBrefined, rightEyeCrop in zip(refinedRightReflectionBBs, rightEyeCrops)]
 
     annotatedEyeStrips = [__getAnnotatedEyeStrip(leftEye, rightEye) for leftEye, rightEye in zip(leftEyeFeatures, rightEyeFeatures)]
-
     stackedAnnotatedEyeStrips = np.vstack(annotatedEyeStrips)
     state.saveReferenceImageBGR(stackedAnnotatedEyeStrips, 'eyeStrips')
 
@@ -376,15 +363,14 @@ def getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, s
     state.saveReferenceImageBGR(rightReflectionImages, 'Right Reflections')
 
     averageReflections = (lrChosenPoints + rrChosenPoints) / 2
-    averageReflections = [(averageReflection if np.all(averageReflection.astype('bool')) else (averageReflection + np.array([1, 1, 1]))) for averageReflection in averageReflections]
 
     #Whitebalance per flash and eye to get luminance levels... Maybe compare the average reflection values?
-    wbLeftReflections = np.vstack(lrChosenPoints)
-    wbRightReflections = np.vstack(rrChosenPoints)
+    leftReflections = np.vstack(lrChosenPoints)
+    rightReflections = np.vstack(rrChosenPoints)
 
     #GET Luminance in reflection per flash and eye
-    leftReflectionLuminances = [colorTools.getRelativeLuminance([leftReflection])[0] for leftReflection in wbLeftReflections]
-    rightReflectionLuminances = [colorTools.getRelativeLuminance([rightReflection])[0] for rightReflection in wbRightReflections]
+    leftReflectionLuminances = [colorTools.getRelativeLuminance([leftReflection])[0] for leftReflection in leftReflections]
+    rightReflectionLuminances = [colorTools.getRelativeLuminance([rightReflection])[0] for rightReflection in rightReflections]
 
     eyeWidth = getEyeWidth(captures[0])
 
@@ -417,10 +403,11 @@ def getAverageScreenReflectionColor(captures, leftEyeOffsets, rightEyeOffsets, s
     leftHalfReflectionLuminance = leftReflectionLuminances[middleIndex] * 2 #2x because we are using half
     rightHalfReflectionLuminance = rightReflectionLuminances[middleIndex] * 2 #2x because we are using half
 
+    #TODO: Rename Fluxish to LuminantArea?
     leftFluxish = leftReflectionArea * leftHalfReflectionLuminance
     rightFluxish = rightReflectionArea * rightHalfReflectionLuminance
 
     LOGGER.info('LEFT FLUXISH :: %s | AREA ::  %s | LUMINOSITY :: %s', leftFluxish, leftReflectionArea, leftHalfReflectionLuminance)
     LOGGER.info('RIGHT FLUXISH :: %s | AREA ::  %s | LUMINOSITY :: %s', rightFluxish, rightReflectionArea, rightHalfReflectionLuminance)
 
-    return [averageReflections[middleIndex], averageReflectionArea, wbLeftReflections, wbRightReflections, leftEyeScleraPoints, rightEyeScleraPoints, blurryMask]
+    return [averageReflections[middleIndex], averageReflectionArea, leftReflections, rightReflections, leftEyeScleraPoints, rightEyeScleraPoints, blurryMask]

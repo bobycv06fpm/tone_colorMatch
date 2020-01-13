@@ -2,8 +2,6 @@ import numpy as np
 import cv2
 import extractMask
 import colorTools
-import colorsys
-from matplotlib import pyplot as plt
 
 class FaceRegions:
 
@@ -23,19 +21,14 @@ class FaceRegions:
         self.chinPoints, self.chinCleanRatio = extractMask.extractPolygonPoints(capture.faceImage, self.mask, self.chinPolygon)
         self.foreheadPoints, self.foreheadCleanRatio = extractMask.extractPolygonPoints(capture.faceImage, self.mask, self.foreheadPolygon)
 
-        #print('{} - Converting Face Regions to Linear -'.format(capture.name))
-        self.linearLeftCheekPoints = colorTools.convert_sBGR_to_linearBGR_float_fast(self.leftCheekPoints)
-        self.linearRightCheekPoints = colorTools.convert_sBGR_to_linearBGR_float_fast(self.rightCheekPoints)
-        self.linearChinPoints = colorTools.convert_sBGR_to_linearBGR_float_fast(self.chinPoints)
-        self.linearForeheadPoints = colorTools.convert_sBGR_to_linearBGR_float_fast(self.foreheadPoints)
+        self.linearLeftCheekPoints = colorTools.convert_sBGR_to_linearBGR_float(self.leftCheekPoints)
+        self.linearRightCheekPoints = colorTools.convert_sBGR_to_linearBGR_float(self.rightCheekPoints)
+        self.linearChinPoints = colorTools.convert_sBGR_to_linearBGR_float(self.chinPoints)
+        self.linearForeheadPoints = colorTools.convert_sBGR_to_linearBGR_float(self.foreheadPoints)
 
-        #self.linearLeftCheekMedian = np.median(self.linearLeftCheekPoints, axis=0)
         self.linearLeftCheekMean = np.mean(self.linearLeftCheekPoints, axis=0)
-        #self.linearRightCheekMedian = np.median(self.linearRightCheekPoints, axis=0)
         self.linearRightCheekMean = np.mean(self.linearRightCheekPoints, axis=0)
-        #self.linearChinMedian = np.median(self.linearChinPoints, axis=0)
         self.linearChinMean = np.mean(self.linearChinPoints, axis=0)
-        #self.linearForeheadMedian = np.median(self.linearForeheadPoints, axis=0)
         self.linearForeheadMean = np.mean(self.linearForeheadPoints, axis=0)
 
     def getRegionMapValue(self):
@@ -64,7 +57,7 @@ class FaceRegions:
         return np.array([self.linearLeftCheekMean, self.linearRightCheekMean, self.linearChinMean, self.linearForeheadMean])
 
     def getRegionMedianHSV(self):
-        return [colorsys.rgb_to_hsv(r, g, b) for b, g, r in self.getRegionMedians()]
+        return [colorTools.bgr_to_hsv(bgr) for bgr in self.getRegionMedians()]
 
     def getRegionHSV(self):
         #Need to match CV2 result with colorsys result H: [0-1] S: [0-1] V: [0-255] so divide by [255, 255, 1]

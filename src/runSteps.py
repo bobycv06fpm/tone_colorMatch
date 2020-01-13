@@ -161,13 +161,13 @@ def getReflectionColor(reflectionPoints):
     medianHSV = np.median(reflectionHSV, axis=0)
     hue, sat, _ = medianHSV
 
-    proportionalBGR = colorTools.hueSatToProportionalBGR(hue, sat)
+    proportionalBGR = colorTools.hueSatToBGRRatio(hue, sat)
     return np.asarray(proportionalBGR)
 
 def extractSkinReflectionMask(brightestCapture, dimmestCapture, wb_ratios):
     """Return a mask of the specular reflections on the surface of the skin. Only works on ambient light reflections, not specular reflections caused by device screen"""
-    brightest = colorTools.convert_sBGR_to_linearBGR_float_fast(brightestCapture.faceImage)
-    dimmest = colorTools.convert_sBGR_to_linearBGR_float_fast(dimmestCapture.faceImage)
+    brightest = colorTools.convert_sBGR_to_linearBGR_float(brightestCapture.faceImage)
+    dimmest = colorTools.convert_sBGR_to_linearBGR_float(dimmestCapture.faceImage)
 
     brightest_wb = brightest / wb_ratios
     dimmest_wb = dimmest / wb_ratios
@@ -254,7 +254,7 @@ def synthesis(captures):
     scale = 10
 
     images = [capture.faceImage for capture in captures]
-    linearImages = np.asarray([colorTools.convert_sBGR_to_linearBGR_float_fast(image) for image in images], dtype='float32')
+    linearImages = np.asarray([colorTools.convert_sBGR_to_linearBGR_float(image) for image in images], dtype='float32')
     #linearImagesBlur = np.array([cv2.GaussianBlur(img, (3, 3), 0) for img in linearImages])
     #linearImagesDiffsOld = linearImages[:-1] - linearImages[1:]
 

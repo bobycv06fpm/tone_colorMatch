@@ -60,7 +60,7 @@ def simpleStretchHistogram(gray):
 
 def __getImageSetFFTMeans(images):
     """Takes a set of sBGR images and returns the mean FFT for each image"""
-    linearImages = [colorTools.convert_sBGR_to_linearBGR_float_fast(image) for image in images]
+    linearImages = [colorTools.convert_sBGR_to_linearBGR_float(image) for image in images]
     greyLinearImages = [np.mean(linearImage, axis=2) for linearImage in linearImages] #Convert to greyscale by averaging BGR channels
     stretchedGreyLinearImages = [stretchHistogram(greyLinearImage, [2, 10]) for greyLinearImage in greyLinearImages] #Stretching helps normalize contrast across different exposures
 
@@ -125,7 +125,7 @@ def __getPreparedEyeImage(gray):
 
 def __getEyeOffsets(eyes, sharpestIndex, wb=None):
     """Takes a set of eye images, the index of the sharpest eye, and returns a set of offsets for each image"""
-    eyes = [colorTools.convert_sBGR_to_linearBGR_float_fast(eye) for eye in eyes]
+    eyes = [colorTools.convert_sBGR_to_linearBGR_float(eye) for eye in eyes]
     if wb is not None:
         eyes = [colorTools.whitebalance_from_asShot_to_d65(eye, *wb) for eye in eyes]
 
