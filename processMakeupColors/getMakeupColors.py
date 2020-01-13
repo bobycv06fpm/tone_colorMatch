@@ -1,7 +1,11 @@
+"""Process raw scraped content into usable (approximate) colors for comparison"""
 from os import listdir
-from os.path import isfile, join
-import cv2
+from os.path import join
 import math
+import colorsys
+import cv2
+
+ROOT = '../../'
 
 def getImageWidth(image):
     return image.shape[1]
@@ -9,15 +13,13 @@ def getImageWidth(image):
 def getImageHeight(image):
     return image.shape[0]
 
-root = '../../'
-
 def getFentiColors(trueColor):
-    fentiColorFiles = listdir(root + 'scraped/fenti_colors')
+    fentiColorFiles = listdir(ROOT + 'scraped/fenti_colors')
     fentiColors = []
     #print(fentiColors)
 
     for file in fentiColorFiles:
-        image = cv2.imread(join(root + 'scraped/fenti_colors', file))
+        image = cv2.imread(join(ROOT + 'scraped/fenti_colors', file))
         fentiColors.append(image)
 
     width = getImageWidth(fentiColors[0])
@@ -57,7 +59,7 @@ def getFentiColors(trueColor):
     return ((fenti_r, fenti_g, fenti_b), fenti_scaled)
 
 def getMakeupForeverColors(trueColor):
-    makeupForeverHex = open(root + "scraped/makeupForever/makeupForeverColors", "r")
+    makeupForeverHex = open(ROOT + "scraped/makeupForever/makeupForeverColors", "r")
 
     mf_r = []
     mf_g = []
@@ -72,7 +74,7 @@ def getMakeupForeverColors(trueColor):
         mf_g.append(g)
         mf_b.append(b)
 
-        if(trueColor):
+        if trueColor:
             mf_scaled.append([r/255, g/255, b/255])
         else:
             mf_scaled.append([1, 0, 0])
@@ -82,7 +84,7 @@ def getMakeupForeverColors(trueColor):
 
 
 def getBareMineralsColors(trueColor):
-    bareMineralsRGB = open(root + "scraped/bm_colors/bm_colors", "r")
+    bareMineralsRGB = open(ROOT + "scraped/bm_colors/bm_colors", "r")
 
     bm_r = []
     bm_g = []
@@ -97,7 +99,7 @@ def getBareMineralsColors(trueColor):
         bm_g.append(int(g))
         bm_b.append(int(b))
 
-        if(trueColor):
+        if trueColor:
             bm_scaled.append([int(r)/255, int(g)/255, int(b)/255])
         else:
             bm_scaled.append([0, 1, 0])
@@ -126,6 +128,3 @@ def convertRGBToHSV(r_values, g_values, b_values):
 #plotHSV(trueColor, plt)
 
 #plt.show()
-
-
-

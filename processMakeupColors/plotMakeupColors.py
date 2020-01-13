@@ -1,13 +1,13 @@
-import sys
-sys.path.insert(0, '../src')
-
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+"""Plot and analyze makeup colors from existing brands"""
 import csv
+import sys
 import colorsys
-import colorTools
+import color
 import numpy as np
-from skimage import color
+import matplotlib.pyplot as plt
+
+sys.path.insert(0, '../src')
+import colorTools
 
 paths = ['../../scraped/bm_colors/bm_colors.csv', '../../scraped/fenti_colors/fentiColors.csv', '../../scraped/makeupForever/makeupForeverColors.csv']
 names = ['Bare Minerals', 'Fenti', 'Makeup Forever']
@@ -80,7 +80,6 @@ def plotHLS():
 
         colors = np.array(sRGB_points[index])
 
-        
         l_A = np.vstack([hlsPoints[:, 1], np.ones(len(hlsPoints))]).T
         h_m, h_c = np.linalg.lstsq(l_A, hlsPoints[:, 0], rcond=None)[0]
 
@@ -108,6 +107,7 @@ def plotLAB():
     for index, rgbPoints in enumerate(sRGB_points):
         colors = np.array(sRGB_points[index])
         labPoints = color.rgb2lab(np.array([rgbPoints]), "D65")[0]
+        colorTools.bgr
 
         plt.subplot(131)
         plt.scatter(labPoints[:, 1], labPoints[:, 0], 50, colors)
@@ -204,4 +204,4 @@ for index, path in enumerate(paths):
 plotHSV()
 plotLinearHSV()
 #plotHLS()
-#plotLAB()
+plotLAB()

@@ -1,7 +1,6 @@
-import cv2
+"""Process scraped Makeup Forever colors into csv file"""
 import csv
 import os
-import numpy as np
 
 root = '../../'
 pathToHex = root + 'scraped/makeupForever/makeupForeverColors'
@@ -23,4 +22,3 @@ with open(pathToCSV, 'w', newline='') as f:
 
 os.chmod(pathToCSV, 0o777)
 print(colors)
-
