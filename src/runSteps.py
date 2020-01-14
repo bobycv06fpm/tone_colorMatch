@@ -33,6 +33,7 @@ def run(user_id, capture_id=None, isProduction=False):
             raise
         return getFailureResponse(state.imageName())
 
+    #Helpful for understanding why an image was exposed the way it was
     state.saveExposurePointImage('exposurePoints', images)
 
     try:
@@ -127,7 +128,7 @@ def run(user_id, capture_id=None, isProduction=False):
 
     LOGGER.info('Done Analysis - Generating Results')
 
-    calibrated_skin_color = [hue, sat, val]#[0.0, 0.0, 0.0]
+    calibrated_skin_color = [hue, sat, val]
     matched_skin_color_id = 0
     state.saveCaptureResults(calibrated_skin_color, matched_skin_color_id)
 
